@@ -1,0 +1,87 @@
+# ==============================================================================
+# AI Agriculture Project — .gitignore
+# ==============================================================================
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual Environment ──
+venv/
+.venv/
+env/
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Environment Variables ──
+.env
+
+# ── Trained Models (large binary files) ──
+saved_models/*.keras
+saved_models/*.h5
+*.h5
+
+# ── Dataset (too large for git) ──
+PlantVillage/
+data/raw/
+data/processed/
+data/external/
+
+# ── Reports (generated, reproducible) ──
+reports/graphs/*.png
+reports/confusion_matrix/*.png
+reports/roc_curves/*.png
+reports/gradcam/*.png
+reports/metrics/*.csv
+reports/metrics/*.txt
+reports/summary/*.csv
+reports/summary/*.json
+
+# ── Logs ──
+logs/
+*.log
+
+# ── Temporary ──
+*.tmp
+*.bak
+train_remaining.py
+
+# ── Jupyter ──
+.ipynb_checkpoints/
+notebooks/*.ipynb
+
+# ── Keras Tuner ──
+hp_tuning/
+
+# ── Raw Dataset Images ──
+Pepper__bell___Bacterial_spot/
+Pepper__bell___healthy/
+Potato___Early_blight/
+Potato___healthy/
+Potato___Late_blight/
+Tomato_Bacterial_spot/
+Tomato_Early_blight/
+Tomato_healthy/
+Tomato_Late_blight/
+Tomato_Leaf_Mold/
+Tomato_Septoria_leaf_spot/
+Tomato_Spider_mites_Two_spotted_spider_mite/
+Tomato__Target_Spot/
+Tomato__Tomato_mosaic_virus/
+Tomato__Tomato_YellowLeaf__Curl_Virus/
