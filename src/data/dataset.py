@@ -71,8 +71,7 @@ class DatasetManager:
 
         # ── Training Generator (with optional augmentation) ──
         if use_augmentation:
-            train_datagen = ImageDataGenerator(
-                rescale=1.0 / 255,
+            train_datagen = ImageDataGenerator(     
                 rotation_range=self.data_cfg.rotation_range,
                 horizontal_flip=self.data_cfg.horizontal_flip,
                 zoom_range=self.data_cfg.zoom_range,

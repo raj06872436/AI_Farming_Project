@@ -7,6 +7,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
+import numpy as np
 import tensorflow as tf
 
 from src.config.settings import Config
@@ -233,5 +234,3 @@ class TrainingPipeline:
                 filename=f"{model_name}_sample_{i}_{class_name}.png",
             )
 
-
-import numpy as np

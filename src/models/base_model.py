@@ -4,6 +4,7 @@
 # Provides a common interface for building models with consistent classifier heads.
 # ==============================================================================
 
+import os
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -251,6 +252,3 @@ class BaseModelBuilder(ABC):
         }
         return optimizers.get(name.lower(), tf.keras.optimizers.Adam(learning_rate=lr))
 
-
-# Need os import for checkpoint path
-import os
