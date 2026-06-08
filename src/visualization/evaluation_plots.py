@@ -247,6 +247,110 @@ class EvaluationPlotter:
         plt.close(fig)
         return filepath
 
+    # ── Combined Confusion Matrix (all models in one figure) ──────────
+
+    def plot_combined_confusion_matrix(
+        self, all_metrics: List[ModelMetrics], save: bool = True,
+    ) -> Optional[str]:
+        """Plot confusion matrices for all models in a single 2×2 grid."""
+        n = len(all_metrics)
+        ncols = 2
+        nrows = (n + ncols - 1) // ncols  # ceil division
+        fig, axes = plt.subplots(nrows, ncols, figsize=(24, 10 * nrows))
+        axes = np.array(axes).flatten()  # ensure iterable even if 1 row
+
+        for idx, m in enumerate(all_metrics):
+            ax = axes[idx]
+            sns.heatmap(
+                m.confusion_matrix,
+                annot=True, fmt="d", cmap="YlGnBu",
+                xticklabels=self.class_names,
+                yticklabels=self.class_names,
+                ax=ax, linewidths=0.5,
+                cbar_kws={"shrink": 0.8},
+            )
+            acc = m.accuracy
+            ax.set_title(
+                f"{m.model_name}  (Acc: {acc:.2%})",
+                fontsize=13, fontweight="bold", pad=10,
+            )
+            ax.set_xlabel("Predicted Label", fontsize=10)
+            ax.set_ylabel("True Label", fontsize=10)
+            ax.tick_params(axis="x", rotation=45, labelsize=7)
+            ax.tick_params(axis="y", rotation=0, labelsize=7)
+
+        # Hide unused axes (if odd number of models)
+        for idx in range(n, len(axes)):
+            axes[idx].set_visible(False)
+
+        fig.suptitle(
+            "Overall Confusion Matrices — All Models",
+            fontsize=18, fontweight="bold", y=1.02,
+        )
+        plt.tight_layout()
+
+        filepath = None
+        if save:
+            filepath = os.path.join(
+                self.config.paths.confusion_matrix_dir,
+                "all_models_confusion_matrix.png",
+            )
+            fig.savefig(filepath, dpi=150, bbox_inches="tight")
+            logger.info(f"Combined confusion matrix saved: {filepath}")
+        plt.close(fig)
+        return filepath
+
+    # ── Combined ROC Curves (all models on one plot) ──────────────────
+
+    def plot_combined_roc_curves(
+        self, all_metrics: List[ModelMetrics], save: bool = True,
+    ) -> Optional[str]:
+        """Plot macro-average ROC curves for all models on a single figure."""
+        fig, ax = plt.subplots(figsize=(10, 8))
+
+        model_colors = {
+            "MobileNetV2": "#2ecc71",
+            "ResNet50": "#3498db",
+            "EfficientNetB0": "#e74c3c",
+            "DenseNet121": "#f39c12",
+        }
+
+        for idx, m in enumerate(all_metrics):
+            color = model_colors.get(m.model_name, COLORS[idx % len(COLORS)])
+            if m.fpr and "macro" in m.fpr:
+                macro_auc = m.roc_auc.get("macro", m.auc_score)
+                ax.plot(
+                    m.fpr["macro"], m.tpr["macro"],
+                    color=color, linewidth=2.5,
+                    label=f"{m.model_name}  (AUC = {macro_auc:.4f})",
+                )
+
+        # Diagonal reference line
+        ax.plot([0, 1], [0, 1], "k--", linewidth=1, alpha=0.5, label="Random Classifier")
+
+        ax.set_title(
+            "ROC Curves — All Models (Macro-Average)",
+            fontsize=15, fontweight="bold",
+        )
+        ax.set_xlabel("False Positive Rate", fontsize=12)
+        ax.set_ylabel("True Positive Rate", fontsize=12)
+        ax.legend(loc="lower right", fontsize=11, framealpha=0.9)
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim([-0.01, 1.01])
+        ax.set_ylim([-0.01, 1.05])
+        plt.tight_layout()
+
+        filepath = None
+        if save:
+            filepath = os.path.join(
+                self.config.paths.roc_curves_dir,
+                "all_models_roc_curves.png",
+            )
+            fig.savefig(filepath, dpi=150, bbox_inches="tight")
+            logger.info(f"Combined ROC curves saved: {filepath}")
+        plt.close(fig)
+        return filepath
+
     # ── Generate All Plots ────────────────────────────────────────────
 
     def generate_all_plots(self, all_metrics: List[ModelMetrics]) -> None:
@@ -261,5 +365,9 @@ class EvaluationPlotter:
         self.plot_model_comparison(all_metrics)
         self.plot_inference_comparison(all_metrics)
         self.plot_size_comparison(all_metrics)
+
+        # Combined cross-model plots
+        self.plot_combined_confusion_matrix(all_metrics)
+        self.plot_combined_roc_curves(all_metrics)
 
         logger.info("All evaluation plots generated successfully")

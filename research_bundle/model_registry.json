@@ -3,10 +3,10 @@
         "architecture": "MobileNetV2",
         "path": "MobileNetV2_best.keras",
         "status": "verified",
-        "accuracy": 0.88,
+        "accuracy": 0.7245,
         "params": "2.6M",
         "size_mb": 13.4,
-        "inference_ms": 62.0,
+        "inference_ms": 64.9,
         "strengths": "Lightweight, fast inference, mobile-deployable",
         "weaknesses": "Slightly lower accuracy on complex patterns",
         "deployment": "Mobile & Edge devices, IoT sensors"
@@ -15,10 +15,10 @@
         "architecture": "ResNet50",
         "path": "ResNet50_best.keras",
         "status": "verified",
-        "accuracy": 0.50,
+        "accuracy": 0.5042,
         "params": "24.2M",
         "size_mb": 97.1,
-        "inference_ms": 93.3,
+        "inference_ms": 106.8,
         "strengths": "Deep residual learning, strong feature extraction",
         "weaknesses": "Large model size, slower inference",
         "deployment": "Server-side, cloud inference"
@@ -30,7 +30,7 @@
         "accuracy": 0.958,
         "params": "4.4M",
         "size_mb": 31.5,
-        "inference_ms": 72.5,
+        "inference_ms": 83.1,
         "strengths": "Best accuracy-efficiency trade-off, compound scaling",
         "weaknesses": "Requires careful preprocessing",
         "deployment": "Edge servers, moderate compute environments"
@@ -42,7 +42,7 @@
         "accuracy": 0.9195,
         "params": "7.3M",
         "size_mb": 31.7,
-        "inference_ms": 104.5,
+        "inference_ms": 126.6,
         "strengths": "Feature reuse, gradient flow, parameter efficient",
         "weaknesses": "Memory intensive during training",
         "deployment": "Research environments, ensemble systems"

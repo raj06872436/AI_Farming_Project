@@ -369,7 +369,14 @@ elif page == "📊 Research Dashboard":
                 st.caption(f"⏳ {mname} — training graph not available")
 
     with tab_cm:
-        st.markdown("**Confusion Matrices for All Models**")
+        # Combined confusion matrix (all models in one figure)
+        combined_cm_path = os.path.join(CONFUSION_DIR, "all_models_confusion_matrix.png")
+        if os.path.exists(combined_cm_path):
+            st.markdown("**📊 Overall Confusion Matrix — All Models**")
+            st.image(combined_cm_path, use_container_width=True)
+            st.divider()
+
+        st.markdown("**Individual Confusion Matrices**")
         cm_cols = st.columns(2)
         col_idx = 0
         for mname in REGISTRY:
@@ -383,7 +390,14 @@ elif page == "📊 Research Dashboard":
             st.info("No confusion matrices found. Run evaluation to generate them.")
 
     with tab_roc:
-        st.markdown("**ROC & Precision-Recall Curves**")
+        # Combined ROC curve (all models on one plot)
+        combined_roc_path = os.path.join(ROC_DIR, "all_models_roc_curves.png")
+        if os.path.exists(combined_roc_path):
+            st.markdown("**📈 ROC Curves — All Models (Macro-Average)**")
+            st.image(combined_roc_path, use_container_width=True)
+            st.divider()
+
+        st.markdown("**Individual ROC & Precision-Recall Curves**")
         for mname in REGISTRY:
             roc_path = os.path.join(ROC_DIR, f"{mname}_roc_curves.png")
             pr_path = os.path.join(ROC_DIR, f"{mname}_pr_curves.png")
