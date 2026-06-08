@@ -1,6 +1,6 @@
 """
 AGRI-X AI — Location Service (Module 1)
-Automatic geolocation via IP + manual override.
+Automatic geolocation via IP + manual override + reverse geocoding.
 """
 import requests
 import streamlit as st
@@ -36,6 +36,60 @@ def _ip_geolocation():
             }
     except Exception:
         pass
+    return None
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def reverse_geocode(lat: float, lon: float) -> dict:
+    """
+    Convert latitude/longitude to a place name using free APIs.
+    Priority: Nominatim (OpenStreetMap) → BigDataCloud fallback.
+    Returns dict with city, state, country or None.
+    """
+    # --- Nominatim (OpenStreetMap) ---
+    try:
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            params={"lat": lat, "lon": lon, "format": "json", "addressdetails": 1, "zoom": 10},
+            headers={"User-Agent": "AGRI-X-AI/2.0 (Agricultural Research)"},
+            timeout=6,
+        )
+        data = resp.json()
+        addr = data.get("address", {})
+        if addr:
+            city = (
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("village")
+                or addr.get("county")
+                or addr.get("state_district")
+                or "Unknown"
+            )
+            state = addr.get("state", addr.get("region", "Unknown"))
+            country = addr.get("country", "Unknown")
+            district = addr.get("state_district", addr.get("county", city))
+            return {"city": city, "district": district, "state": state, "country": country}
+    except Exception:
+        pass
+
+    # --- BigDataCloud fallback ---
+    try:
+        resp = requests.get(
+            "https://api.bigdatacloud.net/data/reverse-geocode-client",
+            params={"latitude": lat, "longitude": lon, "localityLanguage": "en"},
+            timeout=6,
+        )
+        data = resp.json()
+        if data:
+            return {
+                "city": data.get("city", data.get("locality", "Unknown")),
+                "district": data.get("localityInfo", {}).get("administrative", [{}])[0].get("name", "Unknown"),
+                "state": data.get("principalSubdivision", "Unknown"),
+                "country": data.get("countryName", "Unknown"),
+            }
+    except Exception:
+        pass
+
     return None
 
 
@@ -96,18 +150,48 @@ def render_location_card(loc: dict):
 
 
 def render_location_override_form():
-    """Render manual location override form."""
+    """Render manual location override form with reverse geocoding."""
     with st.expander("✏️ Override Location Manually", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             lat = st.number_input("Latitude", value=28.6139, min_value=-90.0, max_value=90.0, step=0.0001, format="%.4f", key="loc_lat")
-            city = st.text_input("City", value="New Delhi", key="loc_city")
-            country = st.text_input("Country", value="India", key="loc_country")
         with col2:
             lon = st.number_input("Longitude", value=77.2090, min_value=-180.0, max_value=180.0, step=0.0001, format="%.4f", key="loc_lon")
-            state = st.text_input("State", value="Delhi", key="loc_state")
 
-        if st.button("📍 Set Location", type="primary", key="btn_set_loc"):
+        # ── Reverse Geocode Button ──
+        if st.button("🔍 Lookup Place Name from Coordinates", key="btn_reverse_geo", use_container_width=True):
+            with st.spinner("Looking up location..."):
+                result = reverse_geocode(lat, lon)
+            if result:
+                st.session_state["_geo_city"] = result["city"]
+                st.session_state["_geo_state"] = result["state"]
+                st.session_state["_geo_country"] = result["country"]
+                st.session_state["_geo_district"] = result.get("district", result["city"])
+                st.success(f"📍 Found: **{result['city']}**, {result.get('district','')}, {result['state']}, {result['country']}")
+            else:
+                st.warning("Could not resolve location. Please enter details manually.")
+
+        # Use reverse-geocoded values as defaults if available
+        default_city = st.session_state.get("_geo_city", "New Delhi")
+        default_state = st.session_state.get("_geo_state", "Delhi")
+        default_country = st.session_state.get("_geo_country", "India")
+        default_district = st.session_state.get("_geo_district", "")
+
+        col3, col4 = st.columns(2)
+        with col3:
+            city = st.text_input("City / Town", value=default_city, key="loc_city")
+            country = st.text_input("Country", value=default_country, key="loc_country")
+        with col4:
+            state = st.text_input("State / Region", value=default_state, key="loc_state")
+            district = st.text_input("District (optional)", value=default_district, key="loc_district")
+
+        if st.button("📍 Set Location", type="primary", key="btn_set_loc", use_container_width=True):
             set_manual_location(lat, lon, city, state, country)
-            st.success(f"✅ Location set to {city}, {state}, {country}")
+            # Also store district
+            if district:
+                st.session_state["location"]["district"] = district
+            # Reset weather cache so it fetches for new coordinates
+            st.session_state["weather_raw"] = None
+            st.session_state["weather_current"] = {}
+            st.success(f"✅ Location set to **{city}**, {state}, {country}")
             st.rerun()

@@ -30,6 +30,7 @@ streamlit>=1.28.0
 # ── Utilities ──
 python-dotenv>=1.0.0
 tqdm>=4.65.0
+requests>=2.31.0
 
 # ── Optional: Vision Transformer ──
 # vit-keras>=0.1.2
