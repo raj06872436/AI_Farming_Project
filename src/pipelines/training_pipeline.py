@@ -61,6 +61,14 @@ class TrainingPipeline:
         logger.info("Preparing dataset...")
         train_gen, val_gen, test_gen = self.dataset_mgr.prepare_data(use_augmentation=True)
 
+        # ── Compute Class Weights for Imbalance Handling ──
+        class_weights = self.dataset_mgr.get_class_weights()
+        logger.info(f"Class weights computed for {len(class_weights)} classes")
+        for idx, weight in sorted(class_weights.items()):
+            if weight > 2.0:
+                cls_name = self.dataset_mgr.class_names[idx] if idx < len(self.dataset_mgr.class_names) else f"class_{idx}"
+                logger.warning(f"  Underrepresented class {cls_name}: weight={weight:.2f}")
+
         # Save dataset summary
         dataset_summary = self.dataset_mgr.get_dataset_summary()
         save_json(dataset_summary, os.path.join(
@@ -81,7 +89,7 @@ class TrainingPipeline:
 
             try:
                 eval_result = self._train_single_model(
-                    model_name, train_gen, val_gen, test_gen
+                    model_name, train_gen, val_gen, test_gen, class_weights
                 )
                 results[model_name] = eval_result
                 if eval_result.training_result:
@@ -118,6 +126,7 @@ class TrainingPipeline:
         train_gen,
         val_gen,
         test_gen,
+        class_weights: dict = None,
     ) -> EvaluationResult:
         """Train a single model through both phases."""
 
@@ -136,6 +145,7 @@ class TrainingPipeline:
             validation_data=val_gen,
             epochs=self.config.training.initial_epochs,
             callbacks=callbacks,
+            class_weight=class_weights,
             verbose=1,
         )
 
@@ -151,6 +161,7 @@ class TrainingPipeline:
             validation_data=val_gen,
             epochs=self.config.training.fine_tune_epochs,
             callbacks=callbacks,
+            class_weight=class_weights,
             verbose=1,
         )
 

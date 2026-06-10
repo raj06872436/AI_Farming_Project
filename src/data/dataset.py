@@ -71,13 +71,16 @@ class DatasetManager:
 
         # ── Training Generator (with optional augmentation) ──
         if use_augmentation:
-            train_datagen = ImageDataGenerator(     
+            train_datagen = ImageDataGenerator(
+                rescale=1.0 / 255,  # BUG FIX: was missing — images were 0-255 during training but 0-1 during validation
                 rotation_range=self.data_cfg.rotation_range,
                 horizontal_flip=self.data_cfg.horizontal_flip,
+                vertical_flip=True,
                 zoom_range=self.data_cfg.zoom_range,
                 brightness_range=self.data_cfg.brightness_range,
                 width_shift_range=self.data_cfg.width_shift_range,
                 height_shift_range=self.data_cfg.height_shift_range,
+                shear_range=0.15,
                 fill_mode=self.data_cfg.fill_mode,
                 validation_split=1 - self.data_cfg.train_split,
             )
