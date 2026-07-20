@@ -272,13 +272,13 @@ print(f"Recommendation: {result['recommendation']}")
 
 ### Comparison Table
 
-| Architecture | Parameters | Size | Inference | Key Innovation |
-|-------------|-----------|------|-----------|---------------|
-| **MobileNetV2** | ~2.3M | 13.4 MB | ~25 ms | Depthwise separable convolutions, inverted residuals |
-| **ResNet50** | ~25.6M | 97.1 MB | ~65 ms | Skip connections for deep residual learning |
-| **EfficientNetB0** | ~5.3M | 20.5 MB | ~35 ms | Compound scaling (depth × width × resolution) |
-| **DenseNet121** | ~8.1M | 31.2 MB | ~45 ms | Dense connectivity for feature reuse |
-| **ViT** (optional) | ~6M | ~24 MB | ~50 ms | Self-attention mechanism for global context |
+| Architecture | Accuracy | Parameters | Size | Inference | Key Innovation |
+|-------------|----------|-----------|------|-----------|---------------|
+| **MobileNetV2** | 91.63% | 2.6M | 27.6 MB | 64.9 ms | Depthwise separable convolutions, inverted residuals |
+| **ResNet50** | 99.50% | 24.8M | 259.2 MB | 106.8 ms | Skip connections for deep residual learning |
+| **EfficientNetB0** | 95.80% | 4.4M | 31.5 MB | 83.1 ms | Compound scaling (depth × width × resolution) |
+| **DenseNet121** | 95.99% | 7.3M | 38.1 MB | 122.6 ms | Dense connectivity for feature reuse |
+| **ViT** (optional) | — | ~6M | ~24 MB | ~50 ms | Self-attention mechanism for global context |
 
 ### Transfer Learning Pipeline
 
@@ -421,7 +421,20 @@ K_FOLDS=5
 
 ## 📊 Results & Evaluation
 
-After training, results are saved to:
+After training, the following results were achieved on the PlantVillage test set:
+
+### Model Performance Summary
+
+| Model | Accuracy | Precision | Recall | F1 Score | AUC | Inference (ms) | Size (MB) |
+|-------|----------|-----------|--------|----------|-----|---------------|-----------|
+| **MobileNetV2** | 91.63% | 91.50% | 91.63% | 91.48% | 98.90% | 64.9 | 27.6 |
+| **ResNet50** | 99.50% | 99.50% | 99.50% | 99.50% | 99.99% | 106.8 | 259.2 |
+| **EfficientNetB0** | 95.80% | 95.98% | 95.80% | 95.82% | 99.91% | 83.1 | 31.5 |
+| **DenseNet121** | 95.99% | 96.14% | 95.99% | 96.01% | 99.92% | 122.6 | 38.1 |
+
+> **Best Model:** ResNet50 achieves 99.50% accuracy with the highest F1 score, at the cost of larger model size (259.2 MB). For mobile/edge deployment, MobileNetV2 offers the best speed (64.9 ms) with 91.63% accuracy.
+
+### Output Locations
 
 | Output | Location | Format |
 |--------|----------|--------|

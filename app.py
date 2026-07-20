@@ -150,7 +150,11 @@ def generate_gradcam(model, img_array, layer_name):
         import matplotlib.cm as cm
         colormap = cm.jet(heatmap_full)[:, :, :3]
         original = img_array[0]
-        overlay = np.clip(0.6 * original + 0.4 * colormap, 0, 1)
+        # Use heatmap intensity as alpha mask so only activated regions
+        # get the colormap overlay; non-activated areas show original clearly
+        alpha = np.expand_dims(heatmap_full, axis=-1)
+        alpha = np.clip(alpha * 1.5, 0, 1)            # boost for visibility
+        overlay = np.clip(original * (1 - alpha * 0.7) + colormap * (alpha * 0.7), 0, 1)
         act_pct = float(np.sum(heatmap_full > 0.3) / heatmap_full.size * 100)
         return heatmap_full, overlay, act_pct
     except Exception as e:
