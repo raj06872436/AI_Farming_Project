@@ -93,6 +93,47 @@ def reverse_geocode(lat: float, lon: float) -> dict:
     return None
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def forward_geocode(query: str) -> list:
+    """
+    Convert a city/place name to latitude/longitude using Nominatim.
+    Returns a list of matching results (up to 5), each with
+    lat, lon, display_name, city, state, country.
+    """
+    results = []
+    try:
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": query, "format": "json", "addressdetails": 1, "limit": 5},
+            headers={"User-Agent": "AGRI-X-AI/2.0 (Agricultural Research)"},
+            timeout=8,
+        )
+        data = resp.json()
+        for item in data:
+            addr = item.get("address", {})
+            city = (
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("village")
+                or addr.get("county")
+                or addr.get("state_district")
+                or query.title()
+            )
+            state = addr.get("state", addr.get("region", ""))
+            country = addr.get("country", "")
+            results.append({
+                "latitude": float(item["lat"]),
+                "longitude": float(item["lon"]),
+                "display_name": item.get("display_name", ""),
+                "city": city,
+                "state": state,
+                "country": country,
+            })
+    except Exception:
+        pass
+    return results
+
+
 def detect_location():
     """
     Return location dict. Priority:
@@ -150,48 +191,88 @@ def render_location_card(loc: dict):
 
 
 def render_location_override_form():
-    """Render manual location override form with reverse geocoding."""
-    with st.expander("✏️ Override Location Manually", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            lat = st.number_input("Latitude", value=28.6139, min_value=-90.0, max_value=90.0, step=0.0001, format="%.4f", key="loc_lat")
-        with col2:
-            lon = st.number_input("Longitude", value=77.2090, min_value=-180.0, max_value=180.0, step=0.0001, format="%.4f", key="loc_lon")
+    """Render manual location override form with city-name search and coordinate entry."""
+    with st.expander("✏️ Change Location", expanded=False):
+        tab_city, tab_coords = st.tabs(["🏙️ Search by City Name", "🌐 Enter Coordinates"])
 
-        # ── Reverse Geocode Button ──
-        if st.button("🔍 Lookup Place Name from Coordinates", key="btn_reverse_geo", use_container_width=True):
-            with st.spinner("Looking up location..."):
-                result = reverse_geocode(lat, lon)
-            if result:
-                st.session_state["_geo_city"] = result["city"]
-                st.session_state["_geo_state"] = result["state"]
-                st.session_state["_geo_country"] = result["country"]
-                st.session_state["_geo_district"] = result.get("district", result["city"])
-                st.success(f"📍 Found: **{result['city']}**, {result.get('district','')}, {result['state']}, {result['country']}")
-            else:
-                st.warning("Could not resolve location. Please enter details manually.")
+        # ── Tab 1: City Name Search ──
+        with tab_city:
+            city_query = st.text_input(
+                "Enter city or place name",
+                placeholder="e.g. Mumbai, Bangalore, Pune...",
+                key="city_search_query",
+            )
+            if st.button("🔍 Search", key="btn_city_search", use_container_width=True):
+                if city_query.strip():
+                    with st.spinner(f"Searching for '{city_query}'..."):
+                        matches = forward_geocode(city_query.strip())
+                    if matches:
+                        st.session_state["_city_matches"] = matches
+                        st.success(f"Found {len(matches)} result(s).")
+                    else:
+                        st.session_state["_city_matches"] = []
+                        st.warning("No results found. Try a different spelling or add state/country.")
+                else:
+                    st.warning("Please enter a city name.")
 
-        # Use reverse-geocoded values as defaults if available
-        default_city = st.session_state.get("_geo_city", "New Delhi")
-        default_state = st.session_state.get("_geo_state", "Delhi")
-        default_country = st.session_state.get("_geo_country", "India")
-        default_district = st.session_state.get("_geo_district", "")
+            # Show search results as selectable cards
+            matches = st.session_state.get("_city_matches", [])
+            if matches:
+                options = [f"{m['city']}, {m['state']}, {m['country']}  ({m['latitude']:.4f}°, {m['longitude']:.4f}°)" for m in matches]
+                selected_idx = st.radio(
+                    "Select your location:",
+                    range(len(options)),
+                    format_func=lambda i: options[i],
+                    key="city_select_radio",
+                )
 
-        col3, col4 = st.columns(2)
-        with col3:
-            city = st.text_input("City / Town", value=default_city, key="loc_city")
-            country = st.text_input("Country", value=default_country, key="loc_country")
-        with col4:
-            state = st.text_input("State / Region", value=default_state, key="loc_state")
-            district = st.text_input("District (optional)", value=default_district, key="loc_district")
+                if st.button("📍 Use This Location", type="primary", key="btn_use_city", use_container_width=True):
+                    m = matches[selected_idx]
+                    set_manual_location(m["latitude"], m["longitude"], m["city"], m["state"], m["country"])
+                    st.session_state["weather_raw"] = None
+                    st.session_state["weather_current"] = {}
+                    st.session_state["_city_matches"] = []
+                    st.success(f"✅ Location set to **{m['city']}**, {m['state']}, {m['country']}")
+                    st.rerun()
 
-        if st.button("📍 Set Location", type="primary", key="btn_set_loc", use_container_width=True):
-            set_manual_location(lat, lon, city, state, country)
-            # Also store district
-            if district:
-                st.session_state["location"]["district"] = district
-            # Reset weather cache so it fetches for new coordinates
-            st.session_state["weather_raw"] = None
-            st.session_state["weather_current"] = {}
-            st.success(f"✅ Location set to **{city}**, {state}, {country}")
-            st.rerun()
+        # ── Tab 2: Coordinates (advanced) ──
+        with tab_coords:
+            col1, col2 = st.columns(2)
+            with col1:
+                lat = st.number_input("Latitude", value=28.6139, min_value=-90.0, max_value=90.0, step=0.0001, format="%.4f", key="loc_lat")
+            with col2:
+                lon = st.number_input("Longitude", value=77.2090, min_value=-180.0, max_value=180.0, step=0.0001, format="%.4f", key="loc_lon")
+
+            if st.button("🔍 Lookup Place Name from Coordinates", key="btn_reverse_geo", use_container_width=True):
+                with st.spinner("Looking up location..."):
+                    result = reverse_geocode(lat, lon)
+                if result:
+                    st.session_state["_geo_city"] = result["city"]
+                    st.session_state["_geo_state"] = result["state"]
+                    st.session_state["_geo_country"] = result["country"]
+                    st.session_state["_geo_district"] = result.get("district", result["city"])
+                    st.success(f"📍 Found: **{result['city']}**, {result.get('district','')}, {result['state']}, {result['country']}")
+                else:
+                    st.warning("Could not resolve location. Please enter details manually.")
+
+            default_city = st.session_state.get("_geo_city", "New Delhi")
+            default_state = st.session_state.get("_geo_state", "Delhi")
+            default_country = st.session_state.get("_geo_country", "India")
+            default_district = st.session_state.get("_geo_district", "")
+
+            col3, col4 = st.columns(2)
+            with col3:
+                city = st.text_input("City / Town", value=default_city, key="loc_city")
+                country = st.text_input("Country", value=default_country, key="loc_country")
+            with col4:
+                state = st.text_input("State / Region", value=default_state, key="loc_state")
+                district = st.text_input("District (optional)", value=default_district, key="loc_district")
+
+            if st.button("📍 Set Location", type="primary", key="btn_set_loc", use_container_width=True):
+                set_manual_location(lat, lon, city, state, country)
+                if district:
+                    st.session_state["location"]["district"] = district
+                st.session_state["weather_raw"] = None
+                st.session_state["weather_current"] = {}
+                st.success(f"✅ Location set to **{city}**, {state}, {country}")
+                st.rerun()

@@ -474,15 +474,36 @@ elif page == "🌦️ Weather & Location":
 
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE: CROP ADVISOR (includes yield prediction & insights)
+# PAGE: CROP ADVISOR (includes location, yield prediction & insights)
 # ══════════════════════════════════════════════════════════════════
 elif page == "🌾 Crop Advisor":
-    tab_crop, tab_yield, tab_insights = st.tabs(["🌾 Crop Recommendations", "📊 Yield Prediction", "🧠 Insights"])
+    # Location section at the top
+    st.markdown('<h1 class="hero-title fade-in">🌾 Crop Advisor & Yield Forecaster</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub fade-in">Set your location, get crop recommendations, and predict yield — all in one place</p>', unsafe_allow_html=True)
+
+    loc_col1, loc_col2 = st.columns([2, 1])
+    with loc_col1:
+        render_location_card(location)
+    with loc_col2:
+        if weather_current:
+            t = weather_current.get("temperature", 0)
+            h = weather_current.get("humidity", 0)
+            p = weather_current.get("precipitation", 0)
+            st.metric("🌡️ Temperature", f"{t:.1f}°C")
+            st.metric("💧 Humidity", f"{h:.0f}%")
+            st.metric("🌧️ Rainfall Now", f"{p:.1f} mm")
+    render_location_override_form()
+
+    st.divider()
+
+    tab_crop, tab_insights = st.tabs(["🌾 Crops & Yield", "🧠 Insights"])
 
     with tab_crop:
-        render_crop_advisor_page(location, weather_current)
+        render_crop_advisor_page(location, weather_current, weather_raw)
 
-    with tab_yield:
+        st.divider()
+        st.markdown("---")
+
         render_yield_page(weather_current)
 
     with tab_insights:

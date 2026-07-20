@@ -185,8 +185,7 @@ def render_yield_factors_chart(result):
 
 def render_yield_page(weather_current):
     """Full yield prediction page."""
-    st.markdown('<h1 class="hero-title fade-in">📊 Yield Prediction Engine</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Estimate expected yield and revenue based on your farm conditions</p>', unsafe_allow_html=True)
+    st.markdown("### 📊 Yield Prediction Engine")
 
     col1, col2, col3 = st.columns(3)
     with col1:

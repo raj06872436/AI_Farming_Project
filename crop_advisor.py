@@ -269,13 +269,45 @@ def render_revenue_comparison_chart(crops):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_crop_advisor_page(location, weather_current):
+def _estimate_annual_rainfall(weather_raw):
+    """Estimate annual rainfall (mm) from 7-day daily forecast precipitation sums."""
+    if not weather_raw or "daily" not in weather_raw:
+        return None
+    daily = weather_raw["daily"]
+    precip_list = daily.get("precipitation_sum", [])
+    if not precip_list:
+        return None
+    weekly_total = sum(precip_list)
+    # Extrapolate 7-day total to annual (×52 weeks)
+    annual_estimate = weekly_total * 52
+    # Clamp to reasonable range
+    return max(100, min(5000, round(annual_estimate)))
+
+
+def render_crop_advisor_page(location, weather_current, weather_raw=None):
     """Full crop advisor page renderer."""
-    st.markdown('<h1 class="hero-title fade-in">🌾 Crop Advisor & Revenue Forecaster</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">AI-powered crop recommendation based on your location, weather, and land</p>', unsafe_allow_html=True)
+    st.markdown("### 🌾 Crop Recommendations")
+
+    # Auto-fill weather data
+    temp = weather_current.get("temperature", 25) if weather_current else 25
+    humidity = weather_current.get("humidity", 60) if weather_current else 60
+    city_name = location.get("city", "Unknown") if location else "Unknown"
+
+    # Auto-estimate annual rainfall from forecast
+    auto_rainfall = _estimate_annual_rainfall(weather_raw)
+    rainfall_default = auto_rainfall if auto_rainfall else 800
 
     # Input section
     st.markdown("### 📝 Farm Details")
+
+    # Show auto-detected weather info
+    if weather_current:
+        st.info(
+            f"🌡️ **Temperature ({temp:.1f}°C)**, 💧 **Humidity ({humidity:.0f}%)**, "
+            f"and 🌧️ **Est. Annual Rainfall (~{rainfall_default} mm)** are auto-filled "
+            f"from weather data for **📍 {city_name}**. You can override rainfall below."
+        )
+
     col1, col2, col3 = st.columns(3)
     with col1:
         land_area = st.number_input("🏞️ Land Area", min_value=0.1, max_value=10000.0, value=5.0, step=0.5, key="crop_land")
@@ -284,7 +316,13 @@ def render_crop_advisor_page(location, weather_current):
         soil = st.selectbox("🪨 Soil Type", SOIL_TYPES, index=5, key="crop_soil")
         season = st.selectbox("🗓️ Season", ["Auto-detect", "Kharif", "Rabi", "Zaid"], key="crop_season")
     with col3:
-        est_rainfall = st.number_input("🌧️ Annual Rainfall (mm)", min_value=0, max_value=5000, value=800, step=50, key="crop_rain")
+        est_rainfall = st.number_input(
+            "🌧️ Annual Rainfall (mm)",
+            min_value=0, max_value=5000,
+            value=rainfall_default, step=50,
+            key="crop_rain",
+            help="Auto-estimated from 7-day weather forecast. Adjust if you know your region's average."
+        )
 
     # Convert to acres
     if unit == "Hectares":
@@ -298,18 +336,18 @@ def render_crop_advisor_page(location, weather_current):
     if season == "Auto-detect":
         season = _get_current_season()
 
-    # Get weather
-    temp = weather_current.get("temperature", 25) if weather_current else 25
-    humidity = weather_current.get("humidity", 60) if weather_current else 60
-
     st.markdown(f"""
     <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:0.5rem 0 1rem 0;">
+        <span style="background:rgba(52,152,219,0.1);color:#3498db;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
+            📍 {city_name}</span>
         <span style="background:rgba(46,204,113,0.1);color:#2ecc71;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
             📏 {acres:.1f} acres</span>
         <span style="background:rgba(52,152,219,0.1);color:#3498db;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
             🌡️ {temp:.1f}°C</span>
         <span style="background:rgba(155,89,182,0.1);color:#9b59b6;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
             💧 {humidity:.0f}% humidity</span>
+        <span style="background:rgba(142,68,173,0.1);color:#8e44ad;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
+            🌧️ ~{est_rainfall} mm/year</span>
         <span style="background:rgba(243,156,18,0.1);color:#f39c12;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
             🗓️ {season} season</span>
         <span style="background:rgba(231,76,60,0.1);color:#e74c3c;padding:4px 12px;border-radius:8px;font-size:0.85rem;">
