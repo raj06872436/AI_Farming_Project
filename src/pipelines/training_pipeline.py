@@ -120,6 +120,17 @@ class TrainingPipeline:
 
         return results
 
+    # Per-model training overrides for architectures that need different
+    # hyperparameters than the global defaults.
+    _MODEL_OVERRIDES = {
+        "ResNet50": {
+            "initial_epochs": 10,       # More warmup for deeper backbone
+            "fine_tune_epochs": 20,      # More fine-tuning with larger capacity
+            "initial_lr": 3e-4,          # Slightly higher LR for Phase 1
+            "fine_tune_lr": 2e-5,        # Slightly higher fine-tune LR
+        },
+    }
+
     def _train_single_model(
         self,
         model_name: str,
@@ -133,17 +144,30 @@ class TrainingPipeline:
         start_time = time.time()
         builder = self.factory.get_builder(model_name)
 
+        # Get per-model overrides (fall back to global config values)
+        overrides = self._MODEL_OVERRIDES.get(model_name, {})
+        initial_epochs = overrides.get("initial_epochs", self.config.training.initial_epochs)
+        fine_tune_epochs = overrides.get("fine_tune_epochs", self.config.training.fine_tune_epochs)
+        initial_lr = overrides.get("initial_lr", self.config.training.learning_rate)
+        fine_tune_lr = overrides.get("fine_tune_lr", self.config.training.fine_tune_lr)
+
+        logger.info(
+            f"Training config for {model_name}: "
+            f"Phase1 epochs={initial_epochs} LR={initial_lr}, "
+            f"Phase2 epochs={fine_tune_epochs} LR={fine_tune_lr}"
+        )
+
         # ── Phase 1: Train classifier head (frozen backbone) ──
         logger.info(f"Phase 1: Training {model_name} (frozen backbone)...")
         model = builder.build(num_classes=self.dataset_mgr.num_classes)
-        model = builder.compile_model(model, learning_rate=self.config.training.learning_rate)
+        model = builder.compile_model(model, learning_rate=initial_lr)
 
         callbacks = builder.get_callbacks(model_name)
 
         history_p1 = model.fit(
             train_gen,
             validation_data=val_gen,
-            epochs=self.config.training.initial_epochs,
+            epochs=initial_epochs,
             callbacks=callbacks,
             class_weight=class_weights,
             verbose=1,
@@ -153,13 +177,13 @@ class TrainingPipeline:
         logger.info(f"Phase 2: Fine-tuning {model_name}...")
         model = builder.unfreeze_for_fine_tuning(model)
         model = builder.compile_model(
-            model, learning_rate=self.config.training.fine_tune_lr
+            model, learning_rate=fine_tune_lr
         )
 
         history_p2 = model.fit(
             train_gen,
             validation_data=val_gen,
-            epochs=self.config.training.fine_tune_epochs,
+            epochs=fine_tune_epochs,
             callbacks=callbacks,
             class_weight=class_weights,
             verbose=1,
@@ -174,8 +198,8 @@ class TrainingPipeline:
             model_name=model_name,
             history=merged_history,
             training_time_seconds=training_time,
-            initial_epochs=self.config.training.initial_epochs,
-            fine_tune_epochs=self.config.training.fine_tune_epochs,
+            initial_epochs=initial_epochs,
+            fine_tune_epochs=fine_tune_epochs,
         )
 
         # ── Save Model ──
