@@ -6,7 +6,7 @@
         "accuracy": 0.9163,
         "params": "2.6M",
         "size_mb": 27.6,
-        "inference_ms": 64.9,
+        "inference_ms": 62.7,
         "strengths": "Lightweight, fastest inference, mobile-deployable, strong accuracy",
         "weaknesses": "Slightly lower accuracy than EfficientNet on complex patterns",
         "deployment": "Mobile & Edge devices, IoT sensors"
@@ -15,10 +15,10 @@
         "architecture": "ResNet50",
         "path": "ResNet50_best.keras",
         "status": "verified",
-        "accuracy": 0.9950,
+        "accuracy": 0.995,
         "params": "24.8M",
         "size_mb": 259.2,
-        "inference_ms": 106.8,
+        "inference_ms": 135.7,
         "strengths": "Highest accuracy (99.5%), deep residual learning, excellent feature extraction",
         "weaknesses": "Large model size, slower inference",
         "deployment": "Server-side, cloud inference"
@@ -30,7 +30,7 @@
         "accuracy": 0.958,
         "params": "4.4M",
         "size_mb": 31.5,
-        "inference_ms": 83.1,
+        "inference_ms": 102.9,
         "strengths": "Best accuracy-efficiency trade-off, compound scaling",
         "weaknesses": "Requires careful preprocessing",
         "deployment": "Edge servers, moderate compute environments"
@@ -42,7 +42,7 @@
         "accuracy": 0.9599,
         "params": "7.3M",
         "size_mb": 38.1,
-        "inference_ms": 122.6,
+        "inference_ms": 146.7,
         "strengths": "Feature reuse, excellent gradient flow, parameter efficient, strong accuracy",
         "weaknesses": "Slower inference, memory intensive during training",
         "deployment": "Research environments, ensemble systems"
