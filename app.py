@@ -21,6 +21,7 @@ from app_utils import (
     find_gradcam_images, get_all_graph_images,
     confidence_bar_html, severity_badge_html, metric_card_html,
     recommendation_card_html, feature_card_html, stat_card_html,
+    weather_strip_html, how_it_works_html, badge_pill_html,
 )
 
 # Phase-2 service modules
@@ -193,8 +194,8 @@ DISEASE_KB = {
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown('<p class="hero-title" style="font-size:1.4rem;">🌿 AGRI-X AI</p>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub">Agricultural Intelligence Platform</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-title" style="font-size:1.4rem;margin-bottom:0;">🌿 AGRI-X AI</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub" style="margin-top:0;">Agricultural Intelligence Platform</p>', unsafe_allow_html=True)
     st.divider()
 
     page = st.radio(
@@ -215,13 +216,23 @@ with st.sidebar:
     st.divider()
     available = get_available_models(REGISTRY)
     all_models = list(REGISTRY.keys())
-    st.caption(f"**Models Available:** {len(available)}/{len(all_models)}")
+    st.caption(f"**Models:** {len(available)}/{len(all_models)} ready")
     for m in all_models:
         status = "✅" if m in available else "⏳"
         acc = REGISTRY[m].get("accuracy", 0)
+        pct = int(acc * 100)
         color = "#2ecc71" if acc >= 0.90 else "#3498db" if acc >= 0.80 else "#f39c12" if acc >= 0.60 else "#e74c3c"
-        st.markdown(f'{status} {m} — <span style="color:{color};font-weight:600">{acc:.0%}</span>', unsafe_allow_html=True)
-    st.divider()
+        st.markdown(f"""
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);">
+            <span style="font-size:0.85rem;">{status}</span>
+            <span style="flex:1;font-size:0.8rem;color:#ccd;">{m}</span>
+            <div style="width:50px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+                <div style="width:{pct}%;height:100%;background:{color};border-radius:3px;"></div>
+            </div>
+            <span style="font-size:0.72rem;font-weight:700;color:{color};min-width:32px;text-align:right;">{acc:.0%}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("", unsafe_allow_html=True)
 
     if REGISTRY:
         best = max(REGISTRY.items(), key=lambda x: x[1].get("accuracy", 0))
@@ -229,41 +240,62 @@ with st.sidebar:
 
     # Location mini-badge
     if location:
-        st.markdown(f"📍 {location.get('city','')}, {location.get('state','')}")
+        st.markdown(f"""
+        <div style="padding:8px 12px;border-radius:10px;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.12);margin:4px 0;font-size:0.82rem;">
+            📍 {location.get('city','')}, {location.get('state','')}
+        </div>
+        """, unsafe_allow_html=True)
     if weather_current:
         t = weather_current.get("temperature", 0)
-        st.markdown(f"{weather_current.get('icon','🌡️')} {t:.0f}°C · {weather_current.get('description','')}")
+        st.markdown(f"""
+        <div style="padding:8px 12px;border-radius:10px;background:rgba(52,152,219,0.06);border:1px solid rgba(52,152,219,0.12);margin:4px 0;font-size:0.82rem;">
+            {weather_current.get('icon','🌡️')} {t:.0f}°C · {weather_current.get('description','')}
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.caption("v2.0 • Phase 2 — AI Platform")
+    st.caption("v2.0 · Phase 2 — AI Platform")
 
 # ══════════════════════════════════════════════════════════════════
 # PAGE: HOME
 # ══════════════════════════════════════════════════════════════════
 if page == "🏠 Home":
     # Hero
-    st.markdown("""
+    best_acc = max((r.get('accuracy',0) for r in REGISTRY.values()), default=0)
+    st.markdown(f"""
     <div class="hero-banner fade-in">
-        <h1 class="hero-title" style="font-size:2.6rem;margin-bottom:0.3rem;">🌿 AGRI-X AI</h1>
-        <p style="color:#8899aa;font-size:1.1rem;margin:0 0 0.5rem 0;">
+        <h1 class="hero-title" style="font-size:2.8rem;margin-bottom:0.3rem;">🌿 AGRI-X AI</h1>
+        <p style="color:#8899aa;font-size:1.1rem;margin:0 0 0.8rem 0;">
             Explainable Multi-Model Deep Learning Framework for<br>
             <span class="shimmer-text" style="font-size:1.3rem;font-weight:700;">Plant Disease Detection & Agricultural Intelligence</span>
         </p>
-        <p style="color:#667;font-size:0.9rem;margin-top:0.8rem;">
-            Powered by MobileNetV2 · ResNet50 · EfficientNetB0 · DenseNet121 — with Grad-CAM Explainability
+        <div style="margin-top:0.8rem;display:flex;flex-wrap:wrap;gap:8px;">
+            {badge_pill_html(f'🧠 {len(REGISTRY)} AI Models', '#2ecc71')}
+            {badge_pill_html('🎯 15 Disease Classes', '#3498db')}
+            {badge_pill_html(f'🏆 {best_acc:.1%} Accuracy', '#f39c12')}
+            {badge_pill_html('🔥 Grad-CAM Explainability', '#9b59b6')}
+        </div>
+        <p style="color:#556;font-size:0.82rem;margin-top:1rem;">
+            Powered by MobileNetV2 · ResNet50 · EfficientNetB0 · DenseNet121
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Stats row
+    # Stats row — custom stat cards
     total_imgs = DATASET_SUMMARY.get("total_images", 20638) if DATASET_SUMMARY else 20638
     sc1, sc2, sc3, sc4, sc5 = st.columns(5)
-    sc1.metric("🧠 Models", len(REGISTRY))
-    sc2.metric("📊 Classes", len(CLASS_NAMES))
-    sc3.metric("🖼️ Images", f"{total_imgs:,}")
-    sc4.metric("🏆 Best Acc", f"{max((r.get('accuracy',0) for r in REGISTRY.values()), default=0):.0%}")
-    sc5.metric("📍 Location", location.get("city", "—") if location else "—")
+    with sc1:
+        st.markdown(stat_card_html(str(len(REGISTRY)), "AI Models", "🧠", "#2ecc71"), unsafe_allow_html=True)
+    with sc2:
+        st.markdown(stat_card_html(str(len(CLASS_NAMES)), "Classes", "📊", "#3498db"), unsafe_allow_html=True)
+    with sc3:
+        st.markdown(stat_card_html(f"{total_imgs:,}", "Images", "🖼️", "#9b59b6"), unsafe_allow_html=True)
+    with sc4:
+        st.markdown(stat_card_html(f"{best_acc:.0%}", "Best Accuracy", "🏆", "#f39c12"), unsafe_allow_html=True)
+    with sc5:
+        city = location.get("city", "—") if location else "—"
+        st.markdown(stat_card_html(city, "Location", "📍", "#1abc9c"), unsafe_allow_html=True)
 
-    # Feature cards
+    # Feature cards with staggered animation
     st.markdown("### ✨ Platform Features")
     features = [
         ("🔬", "Disease Detection", "AI-powered plant disease identification with Grad-CAM explainability and severity analysis"),
@@ -278,16 +310,23 @@ if page == "🏠 Home":
     cols = st.columns(4)
     for i, (icon, title, desc) in enumerate(features):
         with cols[i % 4]:
-            st.markdown(feature_card_html(icon, title, desc), unsafe_allow_html=True)
+            st.markdown(feature_card_html(icon, title, desc, index=i), unsafe_allow_html=True)
 
-    # Quick weather
+    # How It Works section
+    st.markdown("### 🚀 How It Works")
+    st.markdown(how_it_works_html(), unsafe_allow_html=True)
+
+    # Quick weather — glass strip
     if weather_current:
         st.markdown("### 🌦️ Current Conditions")
-        wc1, wc2, wc3, wc4 = st.columns(4)
-        wc1.metric("🌡️ Temperature", f"{weather_current.get('temperature',0):.1f}°C")
-        wc2.metric("💧 Humidity", f"{weather_current.get('humidity',0)}%")
-        wc3.metric("🌧️ Rainfall", f"{weather_current.get('precipitation',0):.1f}mm")
-        wc4.metric("💨 Wind", f"{weather_current.get('wind_speed',0):.1f}km/h")
+        st.markdown(weather_strip_html(
+            temp=weather_current.get('temperature', 0),
+            humidity=weather_current.get('humidity', 0),
+            rain=weather_current.get('precipitation', 0),
+            wind=weather_current.get('wind_speed', 0),
+            icon=weather_current.get('icon', '🌡️'),
+            desc=weather_current.get('description', 'Temp'),
+        ), unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -304,20 +343,29 @@ elif page == "🔬 Disease Detection":
     col_upload, col_result = st.columns([1, 1], gap="large")
 
     with col_upload:
-        st.markdown("#### 📤 Upload & Configure")
+        st.markdown("""
+        <div style="margin-bottom:0.5rem;">
+            <span style="font-size:1.1rem;font-weight:700;color:#f0f2f5;">📤 Upload & Configure</span>
+            <span class="badge-pill" style="color:#2ecc71;border-color:#2ecc71;background:#2ecc7118;margin-left:8px;">AI-Powered</span>
+        </div>
+        """, unsafe_allow_html=True)
         model_choice = st.selectbox("Select Model Architecture", available, help="Choose a trained model for inference")
         meta = REGISTRY.get(model_choice, {})
         mcols = st.columns(3)
         mcols[0].metric("Accuracy", f"{meta.get('accuracy',0):.0%}")
         mcols[1].metric("Size", f"{meta.get('size_mb','?')} MB")
         mcols[2].metric("Speed", f"{meta.get('inference_ms','?')} ms")
-        uploaded = st.file_uploader("Upload a leaf image", type=["jpg","jpeg","png"], help="Supported: JPG, JPEG, PNG")
+        uploaded = st.file_uploader("Upload a leaf image", type=["jpg","jpeg","png"], help="Drag and drop or browse — JPG, JPEG, PNG")
         if uploaded:
             image = Image.open(uploaded)
             st.image(image, caption="Uploaded Image", use_container_width=True)
 
     with col_result:
-        st.markdown("#### 🧠 Analysis Results")
+        st.markdown("""
+        <div style="margin-bottom:0.5rem;">
+            <span style="font-size:1.1rem;font-weight:700;color:#f0f2f5;">🧠 Analysis Results</span>
+        </div>
+        """, unsafe_allow_html=True)
         if uploaded and model_choice:
             if st.button("🔍 Analyze Disease", use_container_width=True, type="primary"):
                 image = Image.open(uploaded)
@@ -339,19 +387,23 @@ elif page == "🔬 Disease Detection":
                     "inference_ms": inf_time, "is_healthy": is_healthy,
                 }
 
-                # Result header
-                if is_healthy:
-                    st.success(f"✅ **{display_name}**")
-                else:
-                    st.error(f"⚠️ **{display_name}**")
+                # Result header with accent card
+                accent = "#2ecc71" if is_healthy else "#e74c3c"
+                status_icon = "✅" if is_healthy else "⚠️"
+                st.markdown(f"""
+                <div class="glass-card" style="border-left:4px solid {accent};">
+                    <div style="font-size:1.3rem;font-weight:800;color:{accent};margin-bottom:0.3rem;">
+                        {status_icon} {display_name}
+                    </div>
+                    <div style="display:flex;gap:1.5rem;margin-top:0.6rem;">
+                        <div><span style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;">Confidence</span><br><span style="font-size:1.3rem;font-weight:700;color:{accent};">{conf:.1%}</span></div>
+                        <div><span style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;">Inference</span><br><span style="font-size:1.3rem;font-weight:700;color:#3498db;">{inf_time:.0f}ms</span></div>
+                        <div><span style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;">Model</span><br><span style="font-size:1.3rem;font-weight:700;color:#f0f2f5;">{model_choice}</span></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-                st.markdown("**Prediction Confidence**")
-                st.progress(conf, text=f"{conf:.1%}")
-
-                mc1, mc2, mc3 = st.columns(3)
-                mc1.metric("Confidence", f"{conf:.1%}")
-                mc2.metric("Inference", f"{inf_time:.0f}ms")
-                mc3.metric("Model", model_choice)
+                st.progress(conf, text=f"Prediction Confidence: {conf:.1%}")
 
                 # Severity + Grad-CAM for diseased plants
                 if not is_healthy:

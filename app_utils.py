@@ -133,7 +133,7 @@ def find_all_reports(pattern="*.json"):
 def confidence_bar_html(confidence, label=""):
     pct = confidence * 100
     if pct >= 80:
-        color = "linear-gradient(90deg, #2ecc71, #27ae60)"
+        color = "linear-gradient(90deg, #2ecc71, #1abc9c)"
     elif pct >= 50:
         color = "linear-gradient(90deg, #f39c12, #e67e22)"
     else:
@@ -151,7 +151,8 @@ def severity_badge_html(severity, color="#FFA500"):
 def metric_card_html(value, label, icon=""):
     return f"""
     <div class="metric-card">
-        <div style="font-size:1.2rem;margin-bottom:4px;">{icon}</div>
+        <div class="metric-card-accent"></div>
+        <div style="font-size:1.4rem;margin-bottom:6px;filter:drop-shadow(0 0 6px rgba(46,204,113,0.3));">{icon}</div>
         <div class="metric-value">{value}</div>
         <div class="metric-label">{label}</div>
     </div>"""
@@ -163,9 +164,11 @@ def recommendation_card_html(title, icon, text):
         <p>{text}</p>
     </div>"""
 
-def feature_card_html(icon, title, description):
+def feature_card_html(icon, title, description, index=0):
+    delay = index * 0.1
     return f"""
-    <div class="feature-card">
+    <div class="feature-card" style="animation-delay:{delay}s;">
+        <div class="feature-card-accent"></div>
         <div class="feature-icon">{icon}</div>
         <div class="feature-title">{title}</div>
         <div class="feature-desc">{description}</div>
@@ -174,10 +177,64 @@ def feature_card_html(icon, title, description):
 def stat_card_html(value, label, icon="", accent_color="#2ecc71"):
     return f"""
     <div class="stat-card">
-        <div class="stat-icon" style="color:{accent_color};">{icon}</div>
+        <div class="stat-card-glow" style="background:radial-gradient(circle at 50% 0%, {accent_color}22, transparent 70%);"></div>
+        <div class="stat-icon" style="color:{accent_color};filter:drop-shadow(0 0 8px {accent_color}44);">{icon}</div>
         <div class="stat-value" style="background:linear-gradient(135deg, {accent_color}, #3498db);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{value}</div>
         <div class="stat-label">{label}</div>
     </div>"""
+
+def weather_strip_html(temp, humidity, rain, wind, icon="", desc=""):
+    return f"""
+    <div class="weather-strip">
+        <div class="weather-strip-item">
+            <span class="weather-strip-icon">{icon if icon else '🌡️'}</span>
+            <span class="weather-strip-val">{temp:.1f}°C</span>
+            <span class="weather-strip-lbl">{desc if desc else 'Temp'}</span>
+        </div>
+        <div class="weather-strip-divider"></div>
+        <div class="weather-strip-item">
+            <span class="weather-strip-icon">💧</span>
+            <span class="weather-strip-val">{humidity:.0f}%</span>
+            <span class="weather-strip-lbl">Humidity</span>
+        </div>
+        <div class="weather-strip-divider"></div>
+        <div class="weather-strip-item">
+            <span class="weather-strip-icon">🌧️</span>
+            <span class="weather-strip-val">{rain:.1f}mm</span>
+            <span class="weather-strip-lbl">Rainfall</span>
+        </div>
+        <div class="weather-strip-divider"></div>
+        <div class="weather-strip-item">
+            <span class="weather-strip-icon">💨</span>
+            <span class="weather-strip-val">{wind:.1f}km/h</span>
+            <span class="weather-strip-lbl">Wind</span>
+        </div>
+    </div>"""
+
+def how_it_works_html():
+    return """
+    <div class="hiw-container">
+        <div class="hiw-step">
+            <div class="hiw-circle">1</div>
+            <div class="hiw-title">Upload</div>
+            <div class="hiw-desc">Take a photo of your crop leaf and upload it</div>
+        </div>
+        <div class="hiw-connector"></div>
+        <div class="hiw-step">
+            <div class="hiw-circle">2</div>
+            <div class="hiw-title">AI Analysis</div>
+            <div class="hiw-desc">4 deep learning models analyze the image</div>
+        </div>
+        <div class="hiw-connector"></div>
+        <div class="hiw-step">
+            <div class="hiw-circle">3</div>
+            <div class="hiw-title">Get Results</div>
+            <div class="hiw-desc">Receive diagnosis, treatment & crop advice</div>
+        </div>
+    </div>"""
+
+def badge_pill_html(text, color="#2ecc71"):
+    return f'<span class="badge-pill" style="color:{color};border-color:{color};background:{color}18;">{text}</span>'
 
 
 # ── CSS ──
@@ -193,7 +250,7 @@ CUSTOM_CSS = """
     --bg-card: rgba(17, 24, 39, 0.75);
     --bg-card-hover: rgba(26, 35, 55, 0.9);
     --border-subtle: rgba(255,255,255,0.06);
-    --border-glow: rgba(46, 204, 113, 0.3);
+    --border-glow: rgba(46, 204, 113, 0.35);
     --text-primary: #f0f2f5;
     --text-secondary: #8899aa;
     --text-muted: #5a6a7a;
@@ -206,9 +263,9 @@ CUSTOM_CSS = """
     --gradient-primary: linear-gradient(135deg, #2ecc71 0%, #27ae60 50%, #1abc9c 100%);
     --gradient-secondary: linear-gradient(135deg, #3498db 0%, #2980b9 50%, #9b59b6 100%);
     --gradient-warm: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
-    --glass-bg: rgba(17, 24, 39, 0.65);
+    --glass-bg: rgba(17, 24, 39, 0.6);
     --glass-border: rgba(255,255,255,0.08);
-    --glass-blur: 16px;
+    --glass-blur: 20px;
     --radius-sm: 8px;
     --radius-md: 14px;
     --radius-lg: 20px;
@@ -259,7 +316,7 @@ html, body, [class*="st-"] {
     border-bottom: 2px solid rgba(46,204,113,0.2);
 }
 
-/* ── Glass Card ── */
+/* ── Glass Card v2 ── */
 .glass-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
@@ -275,22 +332,31 @@ html, body, [class*="st-"] {
 .glass-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+.glass-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(46,204,113,0.03), transparent 50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--transition-smooth);
 }
 .glass-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-glow);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(46,204,113,0.12), var(--shadow-glow);
     border-color: var(--border-glow);
 }
+.glass-card:hover::after { opacity: 1; }
 
 /* ── Feature Cards (Home Page) ── */
 .feature-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: 1.8rem 1.5rem;
@@ -303,29 +369,33 @@ html, body, [class*="st-"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    animation: fadeInUp 0.5s ease-out both;
 }
-.feature-card::before {
-    content: '';
+.feature-card-accent {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
     background: var(--gradient-primary);
-    opacity: 0;
-    transition: opacity var(--transition-smooth);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+    transform-origin: left;
+}
+.feature-card:hover .feature-card-accent {
+    transform: scaleX(1);
 }
 .feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-glow);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 40px rgba(46,204,113,0.12);
     border-color: var(--border-glow);
 }
-.feature-card:hover::before {
-    opacity: 1;
-}
 .feature-icon {
-    font-size: 2.4rem;
+    font-size: 2.6rem;
     margin-bottom: 0.8rem;
+    filter: drop-shadow(0 0 8px rgba(46,204,113,0.25));
+    transition: transform 0.3s ease;
+}
+.feature-card:hover .feature-icon {
+    transform: scale(1.15);
 }
 .feature-title {
     font-size: 1.05rem;
@@ -341,18 +411,27 @@ html, body, [class*="st-"] {
 
 /* ── Stat Cards (Home Page) ── */
 .stat-card {
-    background: linear-gradient(145deg, rgba(17,24,39,0.8), rgba(26,35,55,0.9));
+    background: linear-gradient(145deg, rgba(17,24,39,0.85), rgba(26,35,55,0.95));
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     text-align: center;
     transition: all var(--transition-smooth);
     position: relative;
+    overflow: hidden;
 }
+.stat-card-glow {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+.stat-card:hover .stat-card-glow { opacity: 1; }
 .stat-card:hover {
     border-color: var(--border-glow);
     box-shadow: 0 4px 24px rgba(46,204,113,0.1);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
 }
 .stat-icon {
     font-size: 1.6rem;
@@ -382,16 +461,25 @@ html, body, [class*="st-"] {
 .metric-card {
     flex: 1;
     min-width: 140px;
-    background: linear-gradient(145deg, rgba(17,24,39,0.8), rgba(26,35,55,0.9));
+    background: linear-gradient(145deg, rgba(17,24,39,0.85), rgba(26,35,55,0.95));
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     padding: 1.2rem;
     text-align: center;
     transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+.metric-card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gradient-primary);
 }
 .metric-card:hover {
     border-color: rgba(46,204,113,0.35);
     box-shadow: 0 4px 20px rgba(46,204,113,0.08);
+    transform: translateY(-2px);
 }
 .metric-value {
     font-size: 1.8rem;
@@ -428,7 +516,7 @@ html, body, [class*="st-"] {
     font-weight: 600;
     color: white;
     transition: width 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+    box-shadow: 0 0 16px rgba(46,204,113,0.2);
 }
 
 /* ── Severity Badge ── */
@@ -471,19 +559,185 @@ html, body, [class*="st-"] {
     line-height: 1.6;
 }
 
-/* ── Sidebar ── */
+/* ══════════════════════════════════════════
+   SIDEBAR — Premium Navigation
+   ══════════════════════════════════════════ */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #080c16 0%, #0e1525 50%, #111827 100%);
-    border-right: 1px solid rgba(255,255,255,0.04);
+    background: linear-gradient(180deg, #060a14 0%, #0c1220 50%, #111827 100%);
+    border-right: 1px solid rgba(46,204,113,0.08);
 }
-section[data-testid="stSidebar"] .stRadio > label {
-    font-size: 0.85rem;
+section[data-testid="stSidebar"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    z-index: 10;
+}
+/* Nav radio items as pill buttons */
+section[data-testid="stSidebar"] .stRadio > div {
+    gap: 2px !important;
+}
+section[data-testid="stSidebar"] .stRadio > div > label {
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    border: 1px solid transparent !important;
+    transition: all 0.25s ease !important;
+    margin: 1px 0 !important;
+    font-size: 0.88rem !important;
+}
+section[data-testid="stSidebar"] .stRadio > div > label:hover {
+    background: rgba(46,204,113,0.06) !important;
+    border-color: rgba(46,204,113,0.12) !important;
+}
+section[data-testid="stSidebar"] .stRadio > div > label[data-checked="true"],
+section[data-testid="stSidebar"] .stRadio > div [data-testid="stMarkdownContainer"] {
+    font-weight: 500 !important;
+}
+
+/* ══════════════════════════════════════════
+   BUTTONS — Gradient Primary
+   ══════════════════════════════════════════ */
+button[kind="primary"], .stButton > button[kind="primary"] {
+    background: var(--gradient-primary) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    border-radius: 12px !important;
+    padding: 0.6rem 1.5rem !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(46,204,113,0.25) !important;
+}
+button[kind="primary"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(46,204,113,0.35) !important;
+    filter: brightness(1.08) !important;
+}
+button[kind="primary"]:active {
+    transform: translateY(0) !important;
+}
+/* Secondary/default buttons */
+.stButton > button:not([kind="primary"]) {
+    border-radius: 12px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    transition: all 0.25s ease !important;
+}
+.stButton > button:not([kind="primary"]):hover {
+    border-color: rgba(46,204,113,0.3) !important;
+    background: rgba(46,204,113,0.06) !important;
+}
+
+/* ══════════════════════════════════════════
+   TABS — Gradient Underline
+   ══════════════════════════════════════════ */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 10px 10px 0 0;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    color: var(--text-secondary);
+}
+.stTabs [data-baseweb="tab"]:hover {
+    background: rgba(46,204,113,0.06);
+    color: var(--text-primary);
+}
+.stTabs [aria-selected="true"] {
+    color: var(--accent-green) !important;
+    font-weight: 700 !important;
+}
+.stTabs [data-baseweb="tab-highlight"] {
+    background: var(--gradient-primary) !important;
+    height: 3px !important;
+    border-radius: 3px 3px 0 0 !important;
+}
+
+/* ══════════════════════════════════════════
+   PROGRESS BAR — Glowing Gradient
+   ══════════════════════════════════════════ */
+.stProgress > div > div > div > div {
+    background: var(--gradient-primary) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 12px rgba(46,204,113,0.3);
+}
+.stProgress > div > div {
+    border-radius: 8px !important;
+    background: rgba(255,255,255,0.04) !important;
+}
+
+/* ══════════════════════════════════════════
+   EXPANDER — Rounded + Accent
+   ══════════════════════════════════════════ */
+.streamlit-expanderHeader {
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.25s ease !important;
+}
+.streamlit-expanderHeader:hover {
+    color: var(--accent-green) !important;
+}
+[data-testid="stExpander"] {
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+    transition: border-color 0.3s ease;
+}
+[data-testid="stExpander"]:hover {
+    border-color: rgba(46,204,113,0.15) !important;
+}
+[data-testid="stExpander"] details[open] {
+    border-color: rgba(46,204,113,0.2) !important;
+}
+
+/* ══════════════════════════════════════════
+   FILE UPLOADER — Animated Border
+   ══════════════════════════════════════════ */
+[data-testid="stFileUploader"] > section {
+    border: 2px dashed rgba(46,204,113,0.25) !important;
+    border-radius: 16px !important;
+    background: rgba(46,204,113,0.02) !important;
+    transition: all 0.3s ease !important;
+    padding: 1.5rem !important;
+}
+[data-testid="stFileUploader"] > section:hover {
+    border-color: rgba(46,204,113,0.45) !important;
+    background: rgba(46,204,113,0.04) !important;
+    box-shadow: 0 0 20px rgba(46,204,113,0.08) !important;
+}
+
+/* ══════════════════════════════════════════
+   SELECT BOX & INPUTS — Polish
+   ══════════════════════════════════════════ */
+[data-baseweb="select"] > div {
+    border-radius: 12px !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    transition: all 0.25s ease !important;
+}
+[data-baseweb="select"] > div:hover {
+    border-color: rgba(46,204,113,0.25) !important;
+}
+.stNumberInput > div > div > input,
+.stTextInput > div > div > input {
+    border-radius: 12px !important;
+}
+
+/* ══════════════════════════════════════════
+   DATAFRAMES — Premium Table
+   ══════════════════════════════════════════ */
+[data-testid="stDataFrame"] {
+    border-radius: 14px !important;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06) !important;
 }
 
 /* ── About / Info Cards ── */
 .info-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: 1.8rem;
@@ -512,7 +766,22 @@ section[data-testid="stSidebar"] .stRadio > label {
 }
 .tech-badge:hover {
     background: rgba(46,204,113,0.18);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46,204,113,0.15);
+}
+
+/* ── Badge Pill (floating labels) ── */
+.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border: 1px solid;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 0 4px;
+    letter-spacing: 0.3px;
 }
 
 /* ── Reference Card ── */
@@ -530,6 +799,7 @@ section[data-testid="stSidebar"] .stRadio > label {
 .ref-card:hover {
     border-color: rgba(155,89,182,0.3);
     background: rgba(26,35,55,0.5);
+    transform: translateX(4px);
 }
 .ref-number {
     display: inline-flex;
@@ -657,7 +927,96 @@ section[data-testid="stSidebar"] .stRadio > label {
 .topk-name { color: #ccd; font-size: 0.85rem; }
 .topk-conf { color: #2ecc71; font-weight: 600; font-size: 0.85rem; }
 
-/* ── Animations ── */
+/* ══════════════════════════════════════════
+   WEATHER STRIP — Glass Bar
+   ══════════════════════════════════════════ */
+.weather-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    background: linear-gradient(135deg, rgba(17,24,39,0.7), rgba(26,35,55,0.8));
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    margin: 0.8rem 0;
+}
+.weather-strip-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1.5rem;
+}
+.weather-strip-icon { font-size: 1.4rem; margin-bottom: 4px; }
+.weather-strip-val { font-size: 1.1rem; font-weight: 700; color: #f0f2f5; }
+.weather-strip-lbl { font-size: 0.65rem; color: #8899aa; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.weather-strip-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255,255,255,0.08);
+}
+
+/* ══════════════════════════════════════════
+   HOW IT WORKS — Step Flow
+   ══════════════════════════════════════════ */
+.hiw-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 2rem 1rem;
+}
+.hiw-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    max-width: 200px;
+}
+.hiw-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.8rem;
+    box-shadow: 0 4px 20px rgba(46,204,113,0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hiw-step:hover .hiw-circle {
+    transform: scale(1.12);
+    box-shadow: 0 6px 28px rgba(46,204,113,0.4);
+}
+.hiw-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+}
+.hiw-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.hiw-connector {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(46,204,113,0.4), rgba(52,152,219,0.4));
+    margin: 0 0.5rem;
+    margin-bottom: 2rem;
+    border-radius: 1px;
+}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════ */
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(24px); }
     to { opacity: 1; transform: translateY(0); }
@@ -687,11 +1046,20 @@ section[data-testid="stSidebar"] .stRadio > label {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+@keyframes floatUp {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+@keyframes borderGlow {
+    0%, 100% { border-color: rgba(46,204,113,0.15); }
+    50% { border-color: rgba(46,204,113,0.35); }
+}
 
 .fade-in { animation: fadeInUp 0.6s ease-out; }
 .fade-in-left { animation: fadeInLeft 0.5s ease-out; }
 .scale-in { animation: scaleIn 0.4s ease-out; }
 .pulse { animation: pulse 2s infinite; }
+.float-up { animation: floatUp 3s ease-in-out infinite; }
 
 .shimmer-text {
     background: linear-gradient(90deg, #2ecc71 25%, #1abc9c 50%, #3498db 75%, #2ecc71 100%);
@@ -701,35 +1069,34 @@ section[data-testid="stSidebar"] .stRadio > label {
     animation: shimmer 4s linear infinite;
 }
 
-/* ── Hero Banner (Home) ── */
+/* ── Hero Banner (Home) — Animated ── */
 .hero-banner {
-    background: linear-gradient(135deg, rgba(10,15,26,0.95), rgba(17,24,39,0.85));
+    background: linear-gradient(135deg, rgba(10,15,26,0.96), rgba(17,24,39,0.88));
     border: 1px solid rgba(46,204,113,0.15);
     border-radius: var(--radius-xl);
     padding: 3rem 2.5rem;
     margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
+    animation: borderGlow 4s ease-in-out infinite;
 }
 .hero-banner::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -30%;
-    width: 60%;
-    height: 200%;
-    background: radial-gradient(ellipse, rgba(46,204,113,0.06) 0%, transparent 70%);
+    top: -50%; right: -30%;
+    width: 60%; height: 200%;
+    background: radial-gradient(ellipse, rgba(46,204,113,0.08) 0%, transparent 70%);
     pointer-events: none;
+    animation: floatUp 6s ease-in-out infinite;
 }
 .hero-banner::after {
     content: '';
     position: absolute;
-    bottom: -50%;
-    left: -20%;
-    width: 50%;
-    height: 200%;
-    background: radial-gradient(ellipse, rgba(52,152,219,0.05) 0%, transparent 70%);
+    bottom: -50%; left: -20%;
+    width: 50%; height: 200%;
+    background: radial-gradient(ellipse, rgba(52,152,219,0.06) 0%, transparent 70%);
     pointer-events: none;
+    animation: floatUp 8s ease-in-out infinite reverse;
 }
 
 /* ── Methodology Card ── */
@@ -746,6 +1113,7 @@ section[data-testid="stSidebar"] .stRadio > label {
 .method-card:hover {
     border-color: rgba(26,188,156,0.3);
     transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(26,188,156,0.08);
 }
 .method-number {
     display: inline-flex;
@@ -771,6 +1139,22 @@ section[data-testid="stSidebar"] .stRadio > label {
     font-size: 0.85rem;
     color: var(--text-secondary);
     line-height: 1.6;
+}
+
+/* ── Streamlit metric polish ── */
+[data-testid="stMetric"] {
+    background: linear-gradient(145deg, rgba(17,24,39,0.7), rgba(26,35,55,0.8));
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: all 0.3s ease;
+}
+[data-testid="stMetric"]:hover {
+    border-color: rgba(46,204,113,0.2);
+    transform: translateY(-2px);
+}
+[data-testid="stMetricValue"] {
+    font-weight: 800 !important;
 }
 
 /* ── Global Material Icons Fix ── */
@@ -811,6 +1195,18 @@ section[data-testid="stSidebar"] .stRadio > label {
 }
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(46,204,113,0.5);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .hero-banner { padding: 2rem 1.5rem; }
+    .hero-title { font-size: 1.8rem !important; }
+    .feature-card { min-height: 160px; padding: 1.2rem; }
+    .weather-strip { flex-wrap: wrap; gap: 0.5rem; }
+    .weather-strip-divider { display: none; }
+    .hiw-container { flex-direction: column; }
+    .hiw-connector { width: 2px; height: 30px; margin: 0.3rem 0; }
+    .stat-value { font-size: 1.5rem; }
 }
 
 </style>
