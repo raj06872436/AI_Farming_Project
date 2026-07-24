@@ -338,9 +338,9 @@ To estimate your crop yield, I need:
 {"⚠️ High humidity — watch for fungal diseases." if humidity >= 80 else ""}
 {"✅ Favorable conditions for farming." if 20 <= temp <= 30 and 50 <= humidity <= 75 else ""}
 
-👉 Go to **🌦️ Weather & Location** for full forecast!"""
+👉 Go to **🌾 Crop Advisor** (Weather tab) for full forecast!"""
         else:
-            return "Weather data is not available. Please check the **🌦️ Weather & Location** page."
+            return "Weather data is not available. Please check the **🌾 Crop Advisor** (Location tab)."
 
     else:
         # General response

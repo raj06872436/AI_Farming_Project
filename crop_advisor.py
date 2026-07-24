@@ -308,12 +308,20 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
             f"from weather data for **📍 {city_name}**. You can override rainfall below."
         )
 
+    # Auto-fill soil type if detected, matching keys in SOIL_TYPES
+    detected_soil = location.get("soil_type", "Loamy") if location else "Loamy"
+    soil_index = 5  # default to Loamy (index 5)
+    for idx, s_type in enumerate(SOIL_TYPES):
+        if s_type.lower() in detected_soil.lower() or detected_soil.lower() in s_type.lower():
+            soil_index = idx
+            break
+
     col1, col2, col3 = st.columns(3)
     with col1:
         land_area = st.number_input("🏞️ Land Area", min_value=0.1, max_value=10000.0, value=5.0, step=0.5, key="crop_land")
         unit = st.selectbox("Unit", ["Acres", "Hectares", "Bigha"], key="crop_unit")
     with col2:
-        soil = st.selectbox("🪨 Soil Type", SOIL_TYPES, index=5, key="crop_soil")
+        soil = st.selectbox("🪨 Soil Type", SOIL_TYPES, index=soil_index, key="crop_soil")
         season = st.selectbox("🗓️ Season", ["Auto-detect", "Kharif", "Rabi", "Zaid"], key="crop_season")
     with col3:
         est_rainfall = st.number_input(

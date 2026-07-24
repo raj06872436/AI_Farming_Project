@@ -25,7 +25,7 @@ from app_utils import (
 )
 
 # Phase-2 service modules
-from location_service import detect_location, render_location_card, render_location_override_form
+from location_service import detect_location, render_location_card, render_location_override_form, render_location_details
 from weather_service import (
     fetch_weather, get_current_weather, get_hourly_forecast,
     get_daily_forecast, render_current_weather_card,
@@ -200,7 +200,6 @@ with st.sidebar:
         [
             "🏠 Home",
             "🔬 Disease Detection",
-            "🌦️ Weather & Location",
             "🌾 Crop Advisor",
             "🤖 Farmer Assistant",
             "📊 Research Dashboard",
@@ -481,89 +480,135 @@ elif page == "🔬 Disease Detection":
 
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE: WEATHER & LOCATION
 # ══════════════════════════════════════════════════════════════════
-elif page == "🌦️ Weather & Location":
-    st.markdown('<h1 class="hero-title fade-in">🌦️ Weather & Location Intelligence</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Real-time weather data and location detection for precision agriculture</p>', unsafe_allow_html=True)
+# PAGE: CROP ADVISOR (unified: location + weather + terrain + crops + insights)
+# ══════════════════════════════════════════════════════════════════
+elif page == "🌾 Crop Advisor":
+    st.markdown('<h1 class="hero-title fade-in">🌾 Crop Advisor & Agricultural Intelligence</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub fade-in">Location, weather, soil analysis, crop recommendations, yield prediction — all in one place</p>', unsafe_allow_html=True)
 
-    # Location section
-    render_location_card(location)
-    render_location_override_form()
+    tab_loc, tab_weather, tab_forecast, tab_terrain, tab_crop, tab_insights = st.tabs([
+        "📍 Location", "☀️ Weather", "📅 Forecast", "⛰️ Terrain & Soil", "🌾 Crops & Yield", "🧠 Insights"
+    ])
 
-    # Refresh weather button
-    if st.button("🔄 Refresh Weather Data", key="refresh_weather"):
-        loc = detect_location()
-        raw = fetch_weather(loc["latitude"], loc["longitude"])
-        st.session_state["weather_raw"] = raw
-        st.session_state["weather_current"] = get_current_weather(raw) if raw else {}
-        st.rerun()
+    # ── TAB: Location ──
+    with tab_loc:
+        render_location_card(location)
+        render_location_override_form()
 
-    st.divider()
+        if st.button("🔄 Refresh All Data", key="refresh_weather", use_container_width=True):
+            loc = detect_location()
+            raw = fetch_weather(loc["latitude"], loc["longitude"])
+            st.session_state["weather_raw"] = raw
+            st.session_state["weather_current"] = get_current_weather(raw) if raw else {}
+            st.rerun()
 
-    # Current weather
-    if weather_current:
-        st.markdown("### ☀️ Current Weather")
-        render_current_weather_card(weather_current)
+    # ── TAB: Current Weather ──
+    with tab_weather:
+        if weather_current:
+            render_current_weather_card(weather_current)
 
-        # Hourly
+            # Agricultural weather alerts
+            temp = weather_current.get("temperature", 0)
+            humidity = weather_current.get("humidity", 0)
+            wind = weather_current.get("wind_speed", 0)
+            uv = weather_current.get("uv_index", 0)
+            precip = weather_current.get("precipitation", 0)
+
+            alerts = []
+            if temp >= 40:
+                alerts.append(("🔴", "Extreme Heat", f"Temperature at {temp:.1f}°C — crop heat stress likely. Increase irrigation.", "#e74c3c"))
+            elif temp >= 35:
+                alerts.append(("🟠", "High Temperature", f"Temperature at {temp:.1f}°C — monitor for wilting and water stress.", "#f39c12"))
+            elif temp <= 5:
+                alerts.append(("🔵", "Frost Risk", f"Temperature at {temp:.1f}°C — protect frost-sensitive crops.", "#3498db"))
+            if humidity >= 85:
+                alerts.append(("🟡", "High Humidity", f"Humidity at {humidity}% — increased risk of fungal diseases.", "#f1c40f"))
+            if wind >= 40:
+                alerts.append(("🟠", "Strong Winds", f"Wind at {wind:.0f} km/h — risk of crop lodging and physical damage.", "#e67e22"))
+            if uv >= 8:
+                alerts.append(("🔴", "High UV Index", f"UV index at {uv:.1f} — sunscald risk on fruits and vegetables.", "#9b59b6"))
+            if precip >= 20:
+                alerts.append(("🟡", "Heavy Rainfall", f"Rainfall at {precip:.1f}mm — check drainage, risk of waterlogging.", "#3498db"))
+
+            if alerts:
+                st.markdown("### ⚠️ Agricultural Weather Alerts")
+                for dot, title, desc, color in alerts:
+                    st.markdown(f"""
+                    <div class="glass-card" style="border-left:4px solid {color};padding:0.8rem 1.2rem;margin-bottom:0.5rem;">
+                        <div style="font-weight:700;color:{color};font-size:0.95rem;">{dot} {title}</div>
+                        <div style="color:#aabbcc;font-size:0.85rem;margin-top:0.2rem;">{desc}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="glass-card" style="border-left:4px solid #2ecc71;padding:0.8rem 1.2rem;">
+                    <div style="font-weight:700;color:#2ecc71;font-size:0.95rem;">✅ No Weather Alerts</div>
+                    <div style="color:#aabbcc;font-size:0.85rem;margin-top:0.2rem;">Current conditions are favorable for agricultural activities.</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Hourly
+            if weather_raw:
+                st.divider()
+                hourly = get_hourly_forecast(weather_raw, hours=12)
+                render_hourly_forecast(hourly)
+        else:
+            st.warning("Unable to fetch weather data. Go to the Location tab and click Refresh All Data.")
+
+    # ── TAB: 7-Day Forecast ──
+    with tab_forecast:
         if weather_raw:
-            hourly = get_hourly_forecast(weather_raw, hours=12)
-            render_hourly_forecast(hourly)
-
-            st.divider()
-
-            # Daily
             daily = get_daily_forecast(weather_raw)
             render_daily_forecast(daily)
 
-            # Temperature chart
             st.divider()
             st.markdown("### 📈 Temperature Trend")
             if daily:
                 fig = go.Figure()
                 dates = [d["day_name"] for d in daily]
-                fig.add_trace(go.Scatter(x=dates, y=[d["temp_max"] for d in daily], mode="lines+markers", name="Max", line=dict(color="#e74c3c", width=2), marker=dict(size=8)))
-                fig.add_trace(go.Scatter(x=dates, y=[d["temp_min"] for d in daily], mode="lines+markers", name="Min", line=dict(color="#3498db", width=2), marker=dict(size=8), fill="tonexty", fillcolor="rgba(52,152,219,0.1)"))
-                fig.update_layout(template="plotly_dark", height=350, margin=dict(t=30, b=30), yaxis_title="°C", showlegend=True, legend=dict(orientation="h", y=1.1))
+                fig.add_trace(go.Scatter(x=dates, y=[d["temp_max"] for d in daily], mode="lines+markers", name="Max Temp", line=dict(color="#e74c3c", width=3), marker=dict(size=8, symbol="circle")))
+                fig.add_trace(go.Scatter(x=dates, y=[d["temp_min"] for d in daily], mode="lines+markers", name="Min Temp", line=dict(color="#3498db", width=3), marker=dict(size=8, symbol="circle"), fill="tonexty", fillcolor="rgba(52,152,219,0.08)"))
+                fig.update_layout(template="plotly_dark", height=350, margin=dict(t=30, b=30, l=40, r=20), yaxis_title="°C", showlegend=True, legend=dict(orientation="h", y=1.12), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("Unable to fetch weather data. Check your internet connection or try refreshing.")
 
+            st.markdown("### 🌧️ Precipitation Forecast")
+            if daily:
+                fig2 = go.Figure()
+                fig2.add_trace(go.Bar(x=dates, y=[d["precipitation"] for d in daily], name="Rainfall (mm)", marker_color="#3498db", marker_line_color="#2980b9", marker_line_width=1))
+                fig2.update_layout(template="plotly_dark", height=280, margin=dict(t=20, b=30, l=40, r=20), yaxis_title="mm", showlegend=False, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig2, use_container_width=True)
 
-# ══════════════════════════════════════════════════════════════════
-# PAGE: CROP ADVISOR (includes location, yield prediction & insights)
-# ══════════════════════════════════════════════════════════════════
-elif page == "🌾 Crop Advisor":
-    # Location section at the top
-    st.markdown('<h1 class="hero-title fade-in">🌾 Crop Advisor & Yield Forecaster</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Set your location, get crop recommendations, and predict yield — all in one place</p>', unsafe_allow_html=True)
+            if daily:
+                st.markdown("### 💨 Wind & UV Summary")
+                wind_cols = st.columns(len(daily))
+                for i, d in enumerate(daily):
+                    wc = "#e74c3c" if d["wind_speed"] >= 40 else "#f39c12" if d["wind_speed"] >= 20 else "#2ecc71"
+                    uc = "#e74c3c" if d["uv_index"] >= 8 else "#f39c12" if d["uv_index"] >= 5 else "#2ecc71"
+                    with wind_cols[i]:
+                        st.markdown(f"""
+                        <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
+                            <div style="font-size:0.7rem;color:#8899aa;">{d['day_name'][:3]}</div>
+                            <div style="font-size:0.9rem;font-weight:700;color:{wc};margin:0.2rem 0;">💨{d['wind_speed']:.0f}</div>
+                            <div style="font-size:0.9rem;font-weight:700;color:{uc};">☀️{d['uv_index']:.0f}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+        else:
+            st.warning("No forecast data available. Go to the Location tab and click Refresh All Data.")
 
-    loc_col1, loc_col2 = st.columns([2, 1])
-    with loc_col1:
-        render_location_card(location)
-    with loc_col2:
-        if weather_current:
-            t = weather_current.get("temperature", 0)
-            h = weather_current.get("humidity", 0)
-            p = weather_current.get("precipitation", 0)
-            st.metric("🌡️ Temperature", f"{t:.1f}°C")
-            st.metric("💧 Humidity", f"{h:.0f}%")
-            st.metric("🌧️ Rainfall Now", f"{p:.1f} mm")
-    render_location_override_form()
+    # ── TAB: Terrain & Soil ──
+    with tab_terrain:
+        st.markdown("### ⛰️ Elevation & Soil Analysis")
+        st.markdown('<p style="color:#8899aa;font-size:0.9rem;margin-bottom:1rem;">Terrain and soil data for your location, powered by Open-Meteo Elevation API and ISRIC SoilGrids.</p>', unsafe_allow_html=True)
+        render_location_details(location)
 
-    st.divider()
-
-    tab_crop, tab_insights = st.tabs(["🌾 Crops & Yield", "🧠 Insights"])
-
+    # ── TAB: Crops & Yield ──
     with tab_crop:
         render_crop_advisor_page(location, weather_current, weather_raw)
-
         st.divider()
-        st.markdown("---")
-
         render_yield_page(weather_current)
 
+    # ── TAB: Insights ──
     with tab_insights:
         daily = get_daily_forecast(weather_raw) if weather_raw else []
         render_insights_dashboard(weather_current, daily, location)
