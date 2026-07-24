@@ -151,11 +151,8 @@ def generate_gradcam(model, img_array, layer_name):
         import matplotlib.cm as cm
         colormap = cm.jet(heatmap_full)[:, :, :3]
         original = img_array[0]
-        # Use heatmap intensity as alpha mask so only activated regions
-        # get the colormap overlay; non-activated areas show original clearly
-        alpha = np.expand_dims(heatmap_full, axis=-1)
-        alpha = np.clip(alpha * 1.5, 0, 1)            # boost for visibility
-        overlay = np.clip(original * (1 - alpha * 0.7) + colormap * (alpha * 0.7), 0, 1)
+        # Standard Grad-CAM blending
+        overlay = np.clip(original * 0.6 + colormap * 0.4, 0, 1)
         act_pct = float(np.sum(heatmap_full > 0.3) / heatmap_full.size * 100)
         return heatmap_full, overlay, act_pct
     except Exception as e:
@@ -358,7 +355,7 @@ elif page == "🔬 Disease Detection":
         uploaded = st.file_uploader("Upload a leaf image", type=["jpg","jpeg","png"], help="Drag and drop or browse — JPG, JPEG, PNG")
         if uploaded:
             image = Image.open(uploaded)
-            st.image(image, caption="Uploaded Image", use_container_width=True)
+            st.image(image, caption="Uploaded Image", width="stretch")
 
     with col_result:
         st.markdown("""
@@ -423,8 +420,17 @@ elif page == "🔬 Disease Detection":
                     if overlay is not None:
                         st.markdown("**🔥 Grad-CAM Explainability**")
                         gc1, gc2 = st.columns(2)
-                        gc1.image(img_arr[0], caption="Original", use_container_width=True)
-                        gc2.image(overlay, caption=f"Disease Activation ({act_pct:.1f}%)", use_container_width=True)
+                        gc1.image(image, caption="Original", width="stretch")
+                        
+                        # Apply heatmap to full-resolution original image for best quality
+                        import matplotlib.cm as cm
+                        hm_resized = Image.fromarray(np.uint8(heatmap * 255)).resize(image.size, Image.BILINEAR)
+                        hm_arr = np.array(hm_resized).astype(np.float32) / 255.0
+                        cmap_full = cm.jet(hm_arr)[:, :, :3]
+                        orig_arr = np.array(image.convert("RGB")).astype(np.float32) / 255.0
+                        overlay_fullres = np.clip(orig_arr * 0.6 + cmap_full * 0.4, 0, 1)
+                        
+                        gc2.image(overlay_fullres, caption=f"Disease Activation ({act_pct:.1f}%)", width="stretch")
 
                     # Disease Risk (weather-aware)
                     if weather_current:
@@ -593,13 +599,13 @@ elif page == "📊 Research Dashboard":
         comp_path = os.path.join(GRAPHS_DIR, "all_models_training_comparison.png")
         if os.path.exists(comp_path):
             st.markdown("**All Models — Training Comparison**")
-            st.image(comp_path, use_container_width=True)
+            st.image(comp_path, width="stretch")
             st.divider()
         for mname in REGISTRY:
             gpath = find_training_graph(mname)
             if gpath:
                 st.markdown(f"**{mname} — Training History**")
-                st.image(gpath, use_container_width=True)
+                st.image(gpath, width="stretch")
                 st.divider()
             else:
                 st.caption(f"⏳ {mname} — training graph not available")
@@ -608,7 +614,7 @@ elif page == "📊 Research Dashboard":
         combined_cm_path = os.path.join(CONFUSION_DIR, "all_models_confusion_matrix.png")
         if os.path.exists(combined_cm_path):
             st.markdown("**📊 Overall Confusion Matrix — All Models**")
-            st.image(combined_cm_path, use_container_width=True)
+            st.image(combined_cm_path, width="stretch")
             st.divider()
         st.markdown("**Individual Confusion Matrices**")
         cm_cols = st.columns(2)
@@ -618,7 +624,7 @@ elif page == "📊 Research Dashboard":
             if os.path.exists(cm_path):
                 with cm_cols[col_idx % 2]:
                     st.markdown(f"**{mname}**")
-                    st.image(cm_path, use_container_width=True)
+                    st.image(cm_path, width="stretch")
                 col_idx += 1
         if col_idx == 0:
             st.info("No confusion matrices found. Run evaluation to generate them.")
@@ -627,7 +633,7 @@ elif page == "📊 Research Dashboard":
         combined_roc_path = os.path.join(ROC_DIR, "all_models_roc_curves.png")
         if os.path.exists(combined_roc_path):
             st.markdown("**📈 ROC Curves — All Models (Macro-Average)**")
-            st.image(combined_roc_path, use_container_width=True)
+            st.image(combined_roc_path, width="stretch")
             st.divider()
         st.markdown("**Individual ROC & Precision-Recall Curves**")
         for mname in REGISTRY:
@@ -637,9 +643,9 @@ elif page == "📊 Research Dashboard":
                 st.markdown(f"#### {mname}")
                 rc1, rc2 = st.columns(2)
                 if os.path.exists(roc_path):
-                    rc1.image(roc_path, caption="ROC Curves", use_container_width=True)
+                    rc1.image(roc_path, caption="ROC Curves", width="stretch")
                 if os.path.exists(pr_path):
-                    rc2.image(pr_path, caption="PR Curves", use_container_width=True)
+                    rc2.image(pr_path, caption="PR Curves", width="stretch")
                 st.divider()
 
     with tab_gradcam:
@@ -649,7 +655,7 @@ elif page == "📊 Research Dashboard":
                 st.markdown(f"**{mname} — Grad-CAM Samples**")
                 cols = st.columns(min(len(gcimgs), 3))
                 for i, gp in enumerate(gcimgs[:6]):
-                    cols[i % 3].image(gp, use_container_width=True, caption=os.path.basename(gp).replace(".png","").replace("_"," "))
+                    cols[i % 3].image(gp, width="stretch", caption=os.path.basename(gp).replace(".png","").replace("_"," "))
                 st.divider()
 
     with tab_metrics:
@@ -680,7 +686,7 @@ elif page == "📊 Research Dashboard":
         if all_imgs:
             for fname, fpath in all_imgs.items():
                 with st.expander(fname.replace("_", " ").replace(".png", "")):
-                    st.image(fpath, use_container_width=True)
+                    st.image(fpath, width="stretch")
         else:
             st.info("No report images found. Run the training pipeline to generate evaluation reports.")
 
