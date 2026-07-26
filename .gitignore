@@ -32,14 +32,10 @@ desktop.ini
 # ── Environment Variables ──
 .env
 
-# ── Trained Models ──
+# ── Trained Models (Large files tracked via Git LFS) ──
 !saved_models/
 !saved_models/*.keras
 !saved_models/*.h5
-
-# Ignore models >100MB to avoid GitHub file size limits (unless Git LFS is enabled)
-saved_models/ResNet50_*.keras
-saved_models/ResNet50_*.h5
 
 # ── Reports & Research Data (tracked for reproducible dashboard & metrics) ──
 !reports/

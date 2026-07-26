@@ -1,0 +1,2 @@
+saved_models/ResNet50_*.keras filter=lfs diff=lfs merge=lfs -text
+saved_models/ResNet50_*.h5 filter=lfs diff=lfs merge=lfs -text
