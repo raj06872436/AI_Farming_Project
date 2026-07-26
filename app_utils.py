@@ -74,11 +74,14 @@ def find_training_graph(model_name):
 
 def find_gradcam_images(model_name):
     imgs = []
+    seen = set()
     for d in [GRADCAM_DIR, RESEARCH_FIGURES]:
         if os.path.isdir(d):
             for f in sorted(os.listdir(d)):
                 if f.startswith(model_name) and "sample" in f and f.endswith(".png"):
-                    imgs.append(os.path.join(d, f))
+                    if f not in seen:
+                        imgs.append(os.path.join(d, f))
+                        seen.add(f)
     return imgs
 
 def get_all_graph_images():

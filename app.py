@@ -140,19 +140,29 @@ def generate_gradcam(model, img_array, layer_name):
             class_out = predictions[:, pred_idx]
         grads = tape.gradient(class_out, conv_out)
         if grads is None: return None, None, 0.0
-        pooled = tf.reduce_mean(grads, axis=(0,1,2))
-        heatmap = conv_out[0] @ pooled[..., tf.newaxis]
-        heatmap = tf.squeeze(heatmap)
-        heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-8)
+        # Grad-CAM++ formulation: captures multiple distinct disease spots across the leaf
+        pos_grads = tf.maximum(grads[0], 0)
+        alpha_num = pos_grads ** 2
+        alpha_denom = 2 * alpha_num + tf.reduce_sum(conv_out[0] * (pos_grads ** 3), axis=(0, 1), keepdims=True) + 1e-8
+        alpha_weights = alpha_num / alpha_denom
+        weights = tf.reduce_sum(alpha_weights * pos_grads, axis=(0, 1))
+
+        heatmap = tf.reduce_sum(weights * conv_out[0], axis=-1)
+        heatmap = tf.maximum(heatmap, 0)
+        heatmap = heatmap / (tf.math.reduce_max(heatmap) + 1e-8)
         heatmap = heatmap.numpy()
+
         hm_uint8 = np.uint8(255 * heatmap)
         hm_img = Image.fromarray(hm_uint8).resize((224, 224), Image.BILINEAR)
         heatmap_full = np.array(hm_img).astype(np.float32) / 255.0
+
         import matplotlib.cm as cm
         colormap = cm.jet(heatmap_full)[:, :, :3]
         original = img_array[0]
-        # Standard Grad-CAM blending
-        overlay = np.clip(original * 0.6 + colormap * 0.4, 0, 1)
+
+        # Multi-spot contrast curve: preserves all secondary/tertiary spots while suppressing background noise (<0.12)
+        alpha = np.expand_dims(np.clip((heatmap_full - 0.12) / 0.88, 0, 1) * 0.75, axis=-1)
+        overlay = np.clip(original * (1.0 - alpha) + colormap * alpha, 0, 1)
         act_pct = float(np.sum(heatmap_full > 0.3) / heatmap_full.size * 100)
         return heatmap_full, overlay, act_pct
     except Exception as e:
@@ -421,13 +431,14 @@ elif page == "🔬 Disease Detection":
                         gc1, gc2 = st.columns(2)
                         gc1.image(image, caption="Original", width="stretch")
                         
-                        # Apply heatmap to full-resolution original image for best quality
+                        # Apply multi-spot contrast curve to highlight ALL infected spots while keeping background 100% clean
                         import matplotlib.cm as cm
                         hm_resized = Image.fromarray(np.uint8(heatmap * 255)).resize(image.size, Image.BILINEAR)
                         hm_arr = np.array(hm_resized).astype(np.float32) / 255.0
                         cmap_full = cm.jet(hm_arr)[:, :, :3]
                         orig_arr = np.array(image.convert("RGB")).astype(np.float32) / 255.0
-                        overlay_fullres = np.clip(orig_arr * 0.6 + cmap_full * 0.4, 0, 1)
+                        alpha_full = np.expand_dims(np.clip((hm_arr - 0.12) / 0.88, 0, 1) * 0.75, axis=-1)
+                        overlay_fullres = np.clip(orig_arr * (1.0 - alpha_full) + cmap_full * alpha_full, 0, 1)
                         
                         gc2.image(overlay_fullres, caption=f"Disease Activation ({act_pct:.1f}%)", width="stretch")
 

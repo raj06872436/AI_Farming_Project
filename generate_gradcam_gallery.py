@@ -131,10 +131,15 @@ def generate_gradcam(model, img_array, layer_name):
         if grads is None:
             return None
 
-        pooled = tf.reduce_mean(grads, axis=(0, 1, 2))
-        heatmap = conv_out[0] @ pooled[..., tf.newaxis]
-        heatmap = tf.squeeze(heatmap)
-        heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-8)
+        pos_grads = tf.maximum(grads[0], 0)
+        alpha_num = pos_grads ** 2
+        alpha_denom = 2 * alpha_num + tf.reduce_sum(conv_out[0] * (pos_grads ** 3), axis=(0, 1), keepdims=True) + 1e-8
+        alpha_weights = alpha_num / alpha_denom
+        weights = tf.reduce_sum(alpha_weights * pos_grads, axis=(0, 1))
+
+        heatmap = tf.reduce_sum(weights * conv_out[0], axis=-1)
+        heatmap = tf.maximum(heatmap, 0)
+        heatmap = heatmap / (tf.math.reduce_max(heatmap) + 1e-8)
         return heatmap.numpy()
 
     except Exception as e:
@@ -150,7 +155,9 @@ def save_gradcam_figure(img_array, heatmap, model_name, sample_idx, class_name):
 
     colormap = cm.jet(heatmap_resized)[:, :, :3]
     original = img_array[0]
-    overlay = np.clip(0.6 * original + 0.4 * colormap, 0, 1)
+
+    alpha = np.expand_dims(np.clip((heatmap_resized - 0.12) / 0.88, 0, 1) * 0.75, axis=-1)
+    overlay = np.clip(original * (1.0 - alpha) + colormap * alpha, 0, 1)
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4))
 
