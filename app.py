@@ -57,9 +57,12 @@ METRICS_DF = load_metrics_csv()
 GRADCAM_LAYERS = {
     "MobileNetV2": "out_relu",
     "ResNet50": "conv5_block3_out",
-    "EfficientNetB0": "top_conv",
+    "EfficientNetB0": "top_activation",
     "DenseNet121": "relu",
 }
+
+# Import the new modular disease heatmap pipeline
+from disease_heatmap import run_disease_heatmap_pipeline, run_fullres_overlay
 
 # ─── Location & Weather (session-cached) ───
 if "location" not in st.session_state:
@@ -94,80 +97,6 @@ def predict_image(model, image, class_names):
     top5 = np.argsort(preds[0])[::-1][:5]
     top5_list = [{"class": class_names[i], "confidence": float(preds[0][i])} for i in top5 if i < len(class_names)]
     return idx, conf, top5_list, arr, preds
-
-def generate_gradcam(model, img_array, layer_name):
-    try:
-        target = None
-        backbone = None
-        for layer in model.layers:
-            if layer.name == layer_name:
-                target = layer; break
-            if hasattr(layer, 'layers'):
-                try:
-                    target = layer.get_layer(layer_name); backbone = layer; break
-                except (ValueError, KeyError):
-                    continue
-        if target is None:
-            for layer in reversed(model.layers):
-                if isinstance(layer, tf.keras.layers.Conv2D):
-                    target = layer; break
-                if hasattr(layer, 'layers'):
-                    for sl in reversed(layer.layers):
-                        if isinstance(sl, tf.keras.layers.Conv2D):
-                            target = sl; backbone = layer; break
-                    if target: break
-        if target is None:
-            return None, None, 0.0
-        if backbone is None:
-            grad_model = tf.keras.models.Model(inputs=model.input, outputs=[target.output, model.output])
-        else:
-            backbone_dual = tf.keras.models.Model(inputs=backbone.input, outputs=[target.output, backbone.output])
-            inp = model.input; x = inp
-            for l in model.layers:
-                if isinstance(l, tf.keras.layers.InputLayer): continue
-                if l is backbone: break
-                x = l(x)
-            conv_out, bb_out = backbone_dual(x)
-            y = bb_out; past_backbone = False
-            for l in model.layers:
-                if l is backbone: past_backbone = True; continue
-                if past_backbone and not isinstance(l, tf.keras.layers.InputLayer):
-                    y = l(y)
-            grad_model = tf.keras.models.Model(inputs=inp, outputs=[conv_out, y])
-        with tf.GradientTape() as tape:
-            conv_out, predictions = grad_model(img_array)
-            pred_idx = tf.argmax(predictions[0])
-            class_out = predictions[:, pred_idx]
-        grads = tape.gradient(class_out, conv_out)
-        if grads is None: return None, None, 0.0
-        # Grad-CAM++ formulation: captures multiple distinct disease spots across the leaf
-        pos_grads = tf.maximum(grads[0], 0)
-        alpha_num = pos_grads ** 2
-        alpha_denom = 2 * alpha_num + tf.reduce_sum(conv_out[0] * (pos_grads ** 3), axis=(0, 1), keepdims=True) + 1e-8
-        alpha_weights = alpha_num / alpha_denom
-        weights = tf.reduce_sum(alpha_weights * pos_grads, axis=(0, 1))
-
-        heatmap = tf.reduce_sum(weights * conv_out[0], axis=-1)
-        heatmap = tf.maximum(heatmap, 0)
-        heatmap = heatmap / (tf.math.reduce_max(heatmap) + 1e-8)
-        heatmap = heatmap.numpy()
-
-        hm_uint8 = np.uint8(255 * heatmap)
-        hm_img = Image.fromarray(hm_uint8).resize((224, 224), Image.BILINEAR)
-        heatmap_full = np.array(hm_img).astype(np.float32) / 255.0
-
-        import matplotlib.cm as cm
-        colormap = cm.jet(heatmap_full)[:, :, :3]
-        original = img_array[0]
-
-        # Multi-spot contrast curve: preserves all secondary/tertiary spots while suppressing background noise (<0.12)
-        alpha = np.expand_dims(np.clip((heatmap_full - 0.12) / 0.88, 0, 1) * 0.75, axis=-1)
-        overlay = np.clip(original * (1.0 - alpha) + colormap * alpha, 0, 1)
-        act_pct = float(np.sum(heatmap_full > 0.3) / heatmap_full.size * 100)
-        return heatmap_full, overlay, act_pct
-    except Exception as e:
-        st.warning(f"Grad-CAM error: {e}")
-        return None, None, 0.0
 
 def estimate_severity(confidence, act_pct):
     score = 0.4 * confidence + 0.6 * min(act_pct / 100, 1.0)
@@ -413,7 +342,16 @@ elif page == "🔬 Disease Detection":
 
                 # Severity + Grad-CAM for diseased plants
                 if not is_healthy:
-                    heatmap, overlay, act_pct = generate_gradcam(model, img_arr, GRADCAM_LAYERS.get(model_choice, ""))
+                    with st.spinner("Generating disease heatmap..."):
+                        result = run_disease_heatmap_pipeline(model, img_arr, model_choice)
+
+                    if result is not None:
+                        act_pct = result["act_pct"]
+                        num_regions = result["num_regions"]
+                    else:
+                        act_pct = 0.0
+                        num_regions = 0
+
                     sev_name, sev_score, sev_color, sev_desc = estimate_severity(conf, act_pct)
 
                     # Store severity
@@ -426,21 +364,45 @@ elif page == "🔬 Disease Detection":
                     else:
                         st.info(f"🟡 **Severity: {sev_name}** — {sev_desc}")
 
-                    if overlay is not None:
-                        st.markdown("**🔥 Grad-CAM Explainability**")
+                    if result is not None:
+                        st.markdown("**🔥 Grad-CAM++ Disease Heatmap**")
+
+                        # Show region count
+                        if num_regions > 0:
+                            st.caption(f"🎯 Detected **{num_regions}** infected region{'s' if num_regions > 1 else ''} on the leaf")
+
+                        # Full-resolution overlay with leaf masking
                         gc1, gc2 = st.columns(2)
                         gc1.image(image, caption="Original", width="stretch")
-                        
-                        # Apply multi-spot contrast curve to highlight ALL infected spots while keeping background 100% clean
-                        import matplotlib.cm as cm
-                        hm_resized = Image.fromarray(np.uint8(heatmap * 255)).resize(image.size, Image.BILINEAR)
-                        hm_arr = np.array(hm_resized).astype(np.float32) / 255.0
-                        cmap_full = cm.jet(hm_arr)[:, :, :3]
-                        orig_arr = np.array(image.convert("RGB")).astype(np.float32) / 255.0
-                        alpha_full = np.expand_dims(np.clip((hm_arr - 0.12) / 0.88, 0, 1) * 0.75, axis=-1)
-                        overlay_fullres = np.clip(orig_arr * (1.0 - alpha_full) + cmap_full * alpha_full, 0, 1)
-                        
+
+                        overlay_fullres, _ = run_fullres_overlay(
+                            result["masked_heatmap"], image
+                        )
                         gc2.image(overlay_fullres, caption=f"Disease Activation ({act_pct:.1f}%)", width="stretch")
+
+                        # Detailed views in expander
+                        with st.expander("🔍 Detailed Heatmap Views", expanded=False):
+                            d1, d2, d3 = st.columns(3)
+                            # Leaf mask
+                            d1.image(result["leaf_mask"], caption="Leaf Mask", width="stretch", clamp=True)
+                            # Raw heatmap (jet colormap)
+                            import matplotlib.cm as cm_detail
+                            raw_colored = cm_detail.jet(result["raw_heatmap"])[:, :, :3]
+                            d2.image(raw_colored, caption="Raw Grad-CAM++", width="stretch", clamp=True)
+                            # Masked heatmap
+                            masked_colored = cm_detail.jet(result["masked_heatmap"])[:, :, :3]
+                            d3.image(masked_colored, caption="Leaf-Masked Heatmap", width="stretch", clamp=True)
+
+                        # Per-region statistics
+                        if result["region_stats"]:
+                            with st.expander(f"📊 Infection Region Details ({num_regions} regions)", expanded=False):
+                                for rs in result["region_stats"]:
+                                    sev_emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
+                                    st.markdown(f"""
+                                    {sev_emoji} **Region {rs['id']}** — {rs['severity'].title()}
+                                    &nbsp;&nbsp;Area: {rs['area_pct']:.1f}% of image &nbsp;|&nbsp;
+                                    Intensity: {rs['max_intensity']:.0%} peak, {rs['mean_intensity']:.0%} avg
+                                    """)
 
                     # Disease Risk (weather-aware)
                     if weather_current:
