@@ -170,41 +170,64 @@ def _find_output_and_penultimate(model):
 
 
 def _build_grad_model(model, target_layer, backbone, penultimate_layer):
-    """Build a gradient model that outputs conv activations + penultimate output."""
-    if backbone is None:
-        # Flat model (MobileNetV2)
+    """
+    Build a gradient model that outputs conv activations + penultimate output.
+
+    CRITICAL: Always builds from model.input so that ALL preprocessing layers
+    (Rescaling, preprocess_input, etc.) are preserved in the computation graph.
+    This prevents MobileNetV2's preprocessing mismatch that causes scattered
+    heatmaps when the model expects [-1,1] but receives [0,1] raw input.
+    """
+    # Resolve output tensors by walking the model graph
+    # This works for BOTH flat and nested architectures because
+    # model.input → ... → target_layer.output is always a valid path
+    # through the original model's graph.
+    try:
+        if backbone is not None:
+            # For nested backbones: target_layer.output lives inside the
+            # backbone submodel.  We need to find the corresponding tensor
+            # in the *outer* model's graph.
+            # Build a temporary model inside the backbone to get the conv output
+            backbone_dual = tf.keras.models.Model(
+                inputs=backbone.input,
+                outputs=[target_layer.output, backbone.output]
+            )
+            # Replay outer layers up to (but not including) the backbone
+            inp = model.input
+            x = inp
+            for l in model.layers:
+                if isinstance(l, tf.keras.layers.InputLayer):
+                    continue
+                if l is backbone:
+                    break
+                x = l(x)
+            conv_out_tensor, bb_out = backbone_dual(x)
+
+            # Continue from backbone output through remaining layers
+            y = bb_out
+            past_backbone = False
+            for l in model.layers:
+                if l is backbone:
+                    past_backbone = True
+                    continue
+                if past_backbone and not isinstance(l, tf.keras.layers.InputLayer):
+                    y = l(y)
+                    if l is penultimate_layer:
+                        break
+
+            return tf.keras.models.Model(inputs=inp, outputs=[conv_out_tensor, y])
+        else:
+            # Flat model — target_layer.output is directly in the model graph
+            return tf.keras.models.Model(
+                inputs=model.input,
+                outputs=[target_layer.output, penultimate_layer.output]
+            )
+    except Exception:
+        # Fallback: try direct tensor extraction from the model graph
         return tf.keras.models.Model(
             inputs=model.input,
             outputs=[target_layer.output, penultimate_layer.output]
         )
-
-    # Nested backbone model
-    backbone_dual = tf.keras.models.Model(
-        inputs=backbone.input,
-        outputs=[target_layer.output, backbone.output]
-    )
-    inp = model.input
-    x = inp
-    for l in model.layers:
-        if isinstance(l, tf.keras.layers.InputLayer):
-            continue
-        if l is backbone:
-            break
-        x = l(x)
-    conv_out_tensor, bb_out = backbone_dual(x)
-
-    y = bb_out
-    past_backbone = False
-    for l in model.layers:
-        if l is backbone:
-            past_backbone = True
-            continue
-        if past_backbone and not isinstance(l, tf.keras.layers.InputLayer):
-            y = l(y)
-            if l is penultimate_layer:
-                break
-
-    return tf.keras.models.Model(inputs=inp, outputs=[conv_out_tensor, y])
 
 
 def generate_gradcam(model, img_array, layer_name):
@@ -267,13 +290,14 @@ def generate_gradcam(model, img_array, layer_name):
     heatmap = heatmap / (tf.math.reduce_max(heatmap) + 1e-8)
     heatmap = heatmap.numpy()
 
-    # Upscale to 224x224 with light smoothing
+    # Upscale to 224x224 with sharp interpolation (LANCZOS preserves edges)
     hm_uint8 = np.uint8(255 * heatmap)
-    hm_img = Image.fromarray(hm_uint8).resize((224, 224), Image.BILINEAR)
+    hm_img = Image.fromarray(hm_uint8).resize((224, 224), Image.LANCZOS)
     heatmap_224 = np.array(hm_img).astype(np.float32) / 255.0
 
-    # Light gaussian blur — just enough to remove block artifacts
-    heatmap_224 = gaussian_filter(heatmap_224, sigma=2)
+    # Very light gaussian blur — minimal smoothing to remove block artifacts
+    # while preserving distinct multi-spot activation peaks
+    heatmap_224 = gaussian_filter(heatmap_224, sigma=0.8)
     hm_min, hm_max = heatmap_224.min(), heatmap_224.max()
     heatmap_224 = (heatmap_224 - hm_min) / (hm_max - hm_min + 1e-8)
 
@@ -281,34 +305,144 @@ def generate_gradcam(model, img_array, layer_name):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 3. MULTI-REGION DISEASE DETECTION
+# 3. COLOR-BASED LESION DETECTION (supplements Grad-CAM)
 # ═══════════════════════════════════════════════════════════════════
 
-def detect_infected_regions(heatmap, threshold=0.25, min_area_pct=0.3):
+def _detect_lesions_by_color(image_rgb_uint8, leaf_mask_binary=None):
     """
-    Detect ALL infected regions from the Grad-CAM heatmap using
-    connected component analysis.
+    Detect brown/necrotic lesion spots using HSV + LAB color analysis.
+
+    Grad-CAM operates at 7×7 resolution (each cell ≈ 32×32 pixels) so it
+    fundamentally cannot resolve multiple small spots — they merge into one
+    large blob. This function provides the spatial precision that Grad-CAM
+    lacks by detecting lesion-colored pixels directly in the image.
+
+    Args:
+        image_rgb_uint8: np.ndarray (H, W, 3) uint8 RGB image.
+        leaf_mask_binary: optional np.ndarray (H, W) uint8 {0,255}.
+
+    Returns:
+        lesion_mask: np.ndarray (H, W) float32 [0, 1]. Per-pixel lesion score.
+    """
+    h, w = image_rgb_uint8.shape[:2]
+    hsv = cv2.cvtColor(image_rgb_uint8, cv2.COLOR_RGB2HSV)
+    lab = cv2.cvtColor(image_rgb_uint8, cv2.COLOR_RGB2LAB)
+
+    # ── Brown / tan necrotic tissue (most common lesion color) ──
+    mask_brown = cv2.inRange(hsv, np.array([5, 40, 30]), np.array([25, 220, 200]))
+
+    # ── Dark brown / black spots (severe necrosis) ──
+    mask_dark_brown = cv2.inRange(hsv, np.array([0, 20, 15]), np.array([20, 200, 100]))
+
+    # ── Reddish-brown lesions ──
+    mask_red_brown = cv2.inRange(hsv, np.array([0, 50, 30]), np.array([10, 255, 180]))
+
+    # ── LAB: high A-channel (reddish) with low-mid L (dark) = lesion ──
+    l_ch, a_ch, b_ch = lab[:, :, 0], lab[:, :, 1], lab[:, :, 2]
+    # Reddish-brownish pixels: A > 135 (reddish), L < 180 (not bright white)
+    mask_lab_lesion = ((a_ch > 135) & (l_ch < 180) & (l_ch > 15)).astype(np.uint8) * 255
+
+    # ── Combine all lesion color masks ──
+    combined = cv2.bitwise_or(mask_brown, mask_dark_brown)
+    combined = cv2.bitwise_or(combined, mask_red_brown)
+    combined = cv2.bitwise_or(combined, mask_lab_lesion)
+
+    # ── Constrain to leaf area if mask is provided ──
+    if leaf_mask_binary is not None:
+        if leaf_mask_binary.shape != (h, w):
+            leaf_mask_binary = cv2.resize(leaf_mask_binary, (w, h),
+                                          interpolation=cv2.INTER_NEAREST)
+        combined = cv2.bitwise_and(combined, leaf_mask_binary)
+
+    # ── Morphological cleanup: preserve small spots ──
+    kern_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kern_open)
+    kern_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kern_close)
+
+    # Convert to float [0, 1] with soft edges
+    lesion_mask = combined.astype(np.float32) / 255.0
+    lesion_mask = gaussian_filter(lesion_mask, sigma=1.5)
+    lesion_mask = np.clip(lesion_mask / (lesion_mask.max() + 1e-8), 0, 1)
+
+    return lesion_mask
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 4. HYBRID MULTI-REGION DISEASE DETECTION
+# ═══════════════════════════════════════════════════════════════════
+
+def detect_infected_regions(heatmap, threshold=0.12, min_area_pct=0.08,
+                            image_rgb_uint8=None, leaf_mask_binary=None):
+    """
+    Detect ALL infected regions using a hybrid approach:
+      1. Grad-CAM heatmap → model attention signal (what the model sees)
+      2. Color-based lesion detection → spatial precision (where lesions are)
+      3. Fusion: multiply color lesion map with Grad-CAM to get model-validated
+         lesion spots with precise spatial boundaries.
+
+    This solves the fundamental limitation of Grad-CAM's 7×7 resolution
+    which merges nearby spots into a single blob.
 
     Args:
         heatmap: np.ndarray (H, W) float32 [0, 1].
-        threshold: Minimum activation to consider as infected.
+        threshold: Fallback minimum activation to consider as infected.
         min_area_pct: Minimum region area as percentage of image.
+        image_rgb_uint8: optional np.ndarray (H, W, 3) uint8 RGB for color detection.
+        leaf_mask_binary: optional np.ndarray (H, W) uint8 {0,255}.
 
     Returns:
         disease_mask: np.ndarray (H, W) float32 [0, 1].
-            Each pixel's value = intensity of disease activation.
         num_regions: int — number of distinct infected regions found.
         region_stats: list of dicts with per-region statistics.
     """
     h, w = heatmap.shape
 
-    # Binary threshold to find candidate infected pixels
-    binary = (heatmap > threshold).astype(np.uint8) * 255
+    # ── HYBRID: Fuse Grad-CAM with color-based lesion detection ──
+    if image_rgb_uint8 is not None:
+        color_lesions = _detect_lesions_by_color(image_rgb_uint8, leaf_mask_binary)
+        # Resize to match heatmap if needed
+        if color_lesions.shape != (h, w):
+            color_lesions = cv2.resize(color_lesions, (w, h),
+                                       interpolation=cv2.INTER_LINEAR)
 
-    # Morphological cleanup — remove tiny noise, fill small holes
-    kern_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        # Fusion: color provides spatial precision, Grad-CAM provides
+        # disease-relevance weighting.
+        #
+        # SOFT GATING: Use a floor so color spots are NEVER fully silenced,
+        # even when Grad-CAM doesn't reach them.  This is critical because
+        # the 7×7 Grad-CAM resolution cannot distinguish spots that are
+        # close together — they merge into one blob, leaving other spots
+        # with zero Grad-CAM activation.
+        #
+        #   - Grad-CAM high + color → full signal (strong confidence)
+        #   - Grad-CAM low  + color → partial signal (color still contributes)
+        #   - Grad-CAM high + no color → moderate signal (model attention only)
+        gradcam_gate = np.clip(heatmap * 1.5 + 0.25, 0, 1)  # Soft gate with 0.25 floor
+        color_gated = color_lesions * gradcam_gate
+
+        # Blend: 65% color-gated spots + 35% raw Grad-CAM
+        fused = 0.65 * color_gated + 0.35 * heatmap
+        fused = np.clip(fused / (fused.max() + 1e-8), 0, 1)  # Re-normalize
+    else:
+        fused = heatmap
+
+    # ── Adaptive threshold using Otsu's method ──
+    hm_uint8 = np.uint8(np.clip(fused, 0, 1) * 255)
+    otsu_thresh_val, _ = cv2.threshold(hm_uint8, 0, 255,
+                                        cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    otsu_thresh = otsu_thresh_val / 255.0
+
+    # Use the lower of Otsu and explicit threshold
+    effective_threshold = max(min(otsu_thresh * 0.7, threshold), 0.08)
+
+    # Binary threshold
+    binary = (fused > effective_threshold).astype(np.uint8) * 255
+
+    # Morphological cleanup — gentle: preserve separate spots
+    kern_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
     binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kern_open)
-    kern_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    kern_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kern_close)
 
     # Connected component analysis — find every distinct region
@@ -323,27 +457,27 @@ def detect_infected_regions(heatmap, threshold=0.25, min_area_pct=0.3):
     for i in range(1, num_labels):  # Skip background (label 0)
         area = stats[i, cv2.CC_STAT_AREA]
         if area < min_area:
-            continue  # Skip tiny noise blobs
+            continue
 
         # Create mask for this region
         region_mask = (labels == i).astype(np.float32)
 
         # Dilate slightly to capture full lesion boundary
-        kern_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        kern_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         region_mask = cv2.dilate(region_mask, kern_dilate, iterations=1)
 
-        # Intensity = original heatmap values within this region
-        region_intensity = heatmap * region_mask
+        # Intensity = fused signal values within this region
+        region_intensity = fused * region_mask
 
-        # Accumulate into disease mask (preserving per-region intensity)
+        # Accumulate into disease mask
         disease_mask = np.maximum(disease_mask, region_intensity)
 
-        # Compute stats for this region
+        # Compute stats
         cx, cy = centroids[i]
-        mean_intensity = float(np.mean(heatmap[labels == i]))
-        max_intensity = float(np.max(heatmap[labels == i]))
+        mean_intensity = float(np.mean(fused[labels == i]))
+        max_intensity = float(np.max(fused[labels == i]))
         region_stats.append({
-            "id": i,
+            "id": len(region_stats) + 1,
             "area_px": int(area),
             "area_pct": float(area / (h * w) * 100),
             "center": (int(cx), int(cy)),
@@ -539,8 +673,12 @@ def run_disease_heatmap_pipeline(model, img_array, model_name):
         if raw_heatmap is None:
             return None
 
-        # Step 3: Detect all infected regions
-        disease_mask, num_regions, region_stats = detect_infected_regions(raw_heatmap)
+        # Step 3: Detect all infected regions (hybrid: Grad-CAM + color)
+        disease_mask, num_regions, region_stats = detect_infected_regions(
+            raw_heatmap,
+            image_rgb_uint8=original_uint8,
+            leaf_mask_binary=leaf_mask_binary,
+        )
 
         # Step 4: Apply leaf mask — strictly constrain to leaf
         masked_heatmap = apply_leaf_mask(raw_heatmap, leaf_mask_float)
@@ -586,12 +724,12 @@ def run_fullres_overlay(heatmap_224, original_pil_image):
     h_orig, w_orig = orig_arr.shape[:2]
     orig_float = orig_arr.astype(np.float32) / 255.0
 
-    # Upscale heatmap to original resolution
-    hm_resized = cv2.resize(heatmap_224, (w_orig, h_orig), interpolation=cv2.INTER_LINEAR)
+    # Upscale heatmap to original resolution (CUBIC for sharper edges)
+    hm_resized = cv2.resize(heatmap_224, (w_orig, h_orig), interpolation=cv2.INTER_CUBIC)
 
-    # Light blur scaled to resolution
+    # Minimal blur scaled to resolution — preserve multi-spot separation
     scale = max(w_orig, h_orig) / 224.0
-    hm_resized = gaussian_filter(hm_resized, sigma=2 * scale)
+    hm_resized = gaussian_filter(hm_resized, sigma=0.8 * scale)
     hm_min, hm_max = hm_resized.min(), hm_resized.max()
     hm_resized = (hm_resized - hm_min) / (hm_max - hm_min + 1e-8)
 

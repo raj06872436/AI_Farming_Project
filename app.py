@@ -290,9 +290,9 @@ elif page == "🔬 Disease Detection":
         mcols[0].metric("Accuracy", f"{meta.get('accuracy',0):.0%}")
         mcols[1].metric("Size", f"{meta.get('size_mb','?')} MB")
         mcols[2].metric("Speed", f"{meta.get('inference_ms','?')} ms")
-        uploaded = st.file_uploader("Upload a leaf image", type=["jpg","jpeg","png"], help="Drag and drop or browse — JPG, JPEG, PNG")
+        uploaded = st.file_uploader("Upload a leaf image", type=["jpg","jpeg","png","webp","bmp","tiff"], help="Drag and drop or browse — JPG, JPEG, PNG, WEBP")
         if uploaded:
-            image = Image.open(uploaded)
+            image = Image.open(uploaded).convert("RGB")
             st.image(image, caption="Uploaded Image", width="stretch")
 
     with col_result:
@@ -303,7 +303,7 @@ elif page == "🔬 Disease Detection":
         """, unsafe_allow_html=True)
         if uploaded and model_choice:
             if st.button("🔍 Analyze Disease", use_container_width=True, type="primary"):
-                image = Image.open(uploaded)
+                image = Image.open(uploaded).convert("RGB")
                 model_path = find_model_path(model_choice)
                 with st.spinner(f"Loading {model_choice}..."):
                     model = cached_load_model(model_path)
