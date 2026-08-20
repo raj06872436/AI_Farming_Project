@@ -68,7 +68,19 @@ from disease_heatmap import run_disease_heatmap_pipeline, run_fullres_overlay
 if "location" not in st.session_state:
     st.session_state["location"] = None
 
+# Track previous location to detect changes and clear stale results
+_prev_location_key = None
+if st.session_state.get("location"):
+    _prev = st.session_state["location"]
+    _prev_location_key = f"{_prev.get('latitude',0):.4f},{_prev.get('longitude',0):.4f}"
+
 location = detect_location()
+
+# Clear stale crop/yield results if location changed
+_new_location_key = f"{location['latitude']:.4f},{location['longitude']:.4f}" if location else None
+if _prev_location_key and _new_location_key and _prev_location_key != _new_location_key:
+    for key in ["crop_results", "crop_params", "yield_result", "selected_yield_crop"]:
+        st.session_state.pop(key, None)
 
 if "weather_raw" not in st.session_state:
     st.session_state["weather_raw"] = None
@@ -579,7 +591,7 @@ elif page == "🌾 Crop Advisor":
     with tab_crop:
         render_crop_advisor_page(location, weather_current, weather_raw)
         st.divider()
-        render_yield_page(weather_current)
+        render_yield_page(location, weather_current, weather_raw)
 
     # ── TAB: Insights ──
     with tab_insights:

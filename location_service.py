@@ -228,6 +228,10 @@ def set_manual_location(lat, lon, city, state, country):
         "soil_type": soil_type,
     }
 
+    # Clear stale crop/yield results from previous location
+    for key in ["crop_results", "crop_params", "yield_result", "selected_yield_crop"]:
+        st.session_state.pop(key, None)
+
 
 def detect_location():
     """

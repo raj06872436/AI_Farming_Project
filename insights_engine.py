@@ -219,18 +219,31 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
         with st.expander(f"{sug['category']} — {sug['title']}", expanded=False):
             st.write(sug["detail"])
 
-    # Yield potential
+    # Yield potential — uses unified crop database and full location data
     st.markdown("### 📊 Crop Yield Potential")
     if weather_current:
         temp = weather_current.get("temperature", 25)
         humidity = weather_current.get("humidity", 60)
-        from yield_predictor import YIELD_DB, _calc_weather_factor
+        from crop_advisor import UNIFIED_CROP_DB, calculate_soil_quality, estimate_annual_rainfall
+        from yield_predictor import _calc_weather_factor
+
+        # Get soil quality from location
+        soil_data = location.get("soil_data") if location else None
+        soil_quality, _ = calculate_soil_quality(soil_data)
+        soil_type = location.get("soil_type", "Loamy") if location else "Loamy"
+        elevation = location.get("elevation") if location else None
+
         potentials = []
-        for name, crop in YIELD_DB.items():
+        for name, crop in UNIFIED_CROP_DB.items():
             if name in season_info["suitable_crops"]:
                 tf = _calc_weather_factor(temp, crop["optimal_temp"])
                 hf = _calc_weather_factor(humidity, crop["optimal_humidity"])
-                overall = (tf + hf) / 2
+                # Include soil match in suitability
+                soil_match = 1.0 if any(
+                    s.lower() in soil_type.lower() or soil_type.lower() in s.lower()
+                    for s in crop.get("soil", [])
+                ) else 0.5
+                overall = (tf * 0.35 + hf * 0.25 + soil_quality * 0.20 + soil_match * 0.20)
                 potentials.append((name, crop["icon"], overall))
         potentials.sort(key=lambda x: x[2], reverse=True)
 
@@ -248,3 +261,4 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
                         <div style="font-size:0.7rem;color:#8899aa;">Suitability</div>
                     </div>
                     """, unsafe_allow_html=True)
+
