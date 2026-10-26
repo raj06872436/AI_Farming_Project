@@ -87,3 +87,8 @@ Tomato__Tomato_YellowLeaf__Curl_Virus/
 
 # ── LesionNet training labels (regenerate with research/lesion_net/make_pseudo_masks.py) ──
 research/lesion_net/pseudo_masks/
+
+# Datasets / transfer files / logs (LesionNet research)
+research/datasets/PlantDoc/
+research/datasets/_transfer/
+research/lesion_net/logs/
