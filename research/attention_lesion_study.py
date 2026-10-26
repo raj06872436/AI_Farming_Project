@@ -51,29 +51,47 @@ SIZE = 224
 
 def _load_compat(p):
     """
-    Load a model saved by a NEWER Keras than the one installed. Newer Keras stores extra
-    BatchNormalization options ('renorm', ...) that older versions don't accept, so drop
-    any option the installed BatchNormalization doesn't know about.
+    Load a model saved by a NEWER Keras than the one installed. Newer Keras writes extra
+    layer options (BatchNormalization 'renorm', Dense 'quantization_config', ...) that older
+    versions reject. While loading, drop any option the installed Keras reports as
+    unrecognised and try again; the weights are unaffected.
     """
-    import inspect
-    BN = tf.keras.layers.BatchNormalization
-    allowed = set(inspect.signature(BN.__init__).parameters) | {"name", "trainable", "dtype"}
-    original = BN.__dict__.get("from_config")
+    import ast
+    import re
+    from keras.src.ops.operation import Operation
+
+    original = Operation.__dict__["from_config"]
+    pattern = re.compile(r"Unrecognized keyword arguments passed to \w+: (\{.*\})", re.S)
 
     @classmethod
     def from_config(cls, config):
-        config = {k: v for k, v in config.items() if k in allowed or k not in
-                  ("renorm", "renorm_clipping", "renorm_momentum")}
-        return cls(**config)
+        config = dict(config)
+        for _ in range(10):
+            try:
+                return original.__func__(cls, config)
+            except TypeError as e:
+                m = None
+                for m in pattern.finditer(str(e)):
+                    pass
+                if m is None:
+                    raise
+                text = m.group(1)
+                try:
+                    bad = list(ast.literal_eval(text))
+                except Exception:
+                    bad = re.findall(r"[{,]\s*'(\w+)':", text)
+                bad = [k for k in bad if k in config]
+                if not bad:
+                    raise
+                for k in bad:
+                    config.pop(k)
+        return original.__func__(cls, config)
 
-    BN.from_config = from_config
+    Operation.from_config = from_config
     try:
         return tf.keras.models.load_model(p, compile=False)
     finally:
-        if original is not None:
-            BN.from_config = original
-        else:
-            del BN.from_config
+        Operation.from_config = original
 
 
 def load_model(name):
