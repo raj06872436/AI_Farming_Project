@@ -99,8 +99,12 @@ def make_dataset(rows, classes, batch, training, bg_swap=0.5, class_weights=None
     return ds.batch(batch, drop_remainder=training).prefetch(tf.data.AUTOTUNE)
 
 
+JIT = False  # XLA + mixed precision hits a dtype bug in ReluGrad on some TF builds; --xla turns it on
+
+
 def compile_model(model, lr, lambda_seg):
     model.compile(
+        jit_compile=JIT,
         optimizer=tf.keras.optimizers.Adam(lr),
         loss={"cls": tf.keras.losses.SparseCategoricalCrossentropy(), "seg": seg_loss()},
         loss_weights={"cls": 1.0, "seg": lambda_seg},
@@ -154,11 +158,14 @@ def main():
                     "(note: that model may have seen your test images — use ImageNet weights for the paper)")
     ap.add_argument("--tag", default="")
     ap.add_argument("--no-mixed-precision", action="store_true")
+    ap.add_argument("--xla", action="store_true", help="enable XLA compilation (faster if it works on your TF build)")
     args = ap.parse_args()
 
     gpus = tf.config.list_physical_devices("GPU")
     for g in gpus:
         tf.config.experimental.set_memory_growth(g, True)
+    global JIT
+    JIT = args.xla
     if gpus and not args.no_mixed_precision:
         tf.keras.mixed_precision.set_global_policy("mixed_float16")
     print(f"GPU: {gpus[0].name if gpus else 'none (CPU — will be slow)'}")
