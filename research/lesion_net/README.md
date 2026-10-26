@@ -32,10 +32,25 @@ python research/lesion_net/train_lesionnet.py --tag A3_full
 
 # 3. Compare with your 4 existing models on the held-out test split (≈15–30 min)
 python research/lesion_net/evaluate.py
+
+# 4. Second dataset — PlantDoc field photos (downloads ~300 MB once, then ≈5 min)
+python research/datasets/fetch_plantdoc.py
+python research/lesion_net/eval_external.py
+
+# Or run the training + ablations + evaluation unattended (≈3–4 h):
+bash run_overnight.sh
 ```
 
-Results land in `research/lesion_net/results/`: `eval_summary.md`, `eval_summary.csv`
-and `fig_lesionnet_vs_baselines.png`. The trained model is saved as
+**Results so far: [RESULTS.md](RESULTS.md).** LesionNet is used by the app automatically
+(Disease Detection → model "LesionNet") when `saved_models/LesionNet_A3_full.keras` exists.
+
+Notes for this GPU setup: training runs with XLA off (an XLA + mixed-precision bug crashed
+`model.fit`); add `--xla` to try it. Older baseline `.keras` files saved by a newer Keras are
+loaded by `attention_lesion_study.load_model`, which drops layer options the installed Keras
+doesn't know.
+
+Results land in `research/lesion_net/results/`: `eval_summary.md`, `eval_summary.csv`,
+`fig_lesionnet_vs_baselines.png` and `plantdoc_summary.md`. The trained model is saved as
 `saved_models/LesionNet_A3_full.keras`.
 
 If the GPU runs out of memory, add `--batch 16` to the training command.
@@ -81,8 +96,7 @@ python research/lesion_net/evaluate.py      # evaluates every saved_models/Lesio
   different split, so their test accuracy here may be slightly optimistic. LesionNet's
   test photos were never used in its training. The `A0_plain` ablation is the clean
   like-for-like baseline.
-- **Smoke test only so far.** On 420 photos, CPU, 4 short epochs, starting from your
-  EfficientNetB0 backbone, the pipeline ran end to end (val accuracy 21 % → 70 %).
-  Real numbers need the full GPU run above.
+- **Field photos are still hard.** On PlantDoc every model, LesionNet included, scores about
+  20 % (chance 8 %). See RESULTS.md, section 4.
 - **Use ImageNet weights for the paper.** `--init-backbone` exists only for quick tests:
   that backbone may already have seen your test photos.

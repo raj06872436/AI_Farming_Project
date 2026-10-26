@@ -66,6 +66,7 @@ GRADCAM_LAYERS = {
 # Import the new modular disease heatmap pipeline
 from disease_heatmap import run_disease_heatmap_pipeline
 from lesion_segmentation import analyze_leaf
+import lesionnet_inference as lni
 
 # ─── Location & Weather (session-cached) ───
 if "location" not in st.session_state:
@@ -107,6 +108,10 @@ weather_current = st.session_state["weather_current"]
 @st.cache_resource
 def cached_load_model(path):
     return tf.keras.models.load_model(path, compile=False)
+
+@st.cache_resource
+def cached_load_lesionnet(path):
+    return lni.load(path)
 
 def predict_image(model, image, class_names):
     img = image.convert("RGB").resize((224, 224))
@@ -173,6 +178,16 @@ def go_to(page_name):
 available = get_available_models(REGISTRY)
 all_models = list(REGISTRY.keys())
 
+# LesionNet (our model, research/lesion_net) — listed first when its weights are present
+LESIONNET_PATH = lni.find_lesionnet_path()
+DETECT_MODELS = ([lni.NAME] if LESIONNET_PATH else []) + available
+
+
+def model_meta(m):
+    if m == lni.NAME:
+        return {"accuracy": lni.META["accuracy"], "size_mb": lni.META["size_mb"], "inference_ms": "≈600"}
+    return REGISTRY.get(m, {})
+
 with st.sidebar:
     st.markdown("""
     <div class="sb-brand">
@@ -194,13 +209,13 @@ with st.sidebar:
                   f"{weather_current.get('description', '')}</div>")
         st.markdown(f'<div class="sb-card">{place}{wx}</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div class="sb-label">AI models · {len(available)}/{len(all_models)} ready</div>',
+    st.markdown(f'<div class="sb-label">AI models · {len(DETECT_MODELS)}/{len(all_models) + 1} ready</div>',
                 unsafe_allow_html=True)
     rows = []
-    for m in all_models:
-        acc = REGISTRY[m].get("accuracy", 0)
+    for m in [lni.NAME] + all_models:
+        acc = model_meta(m).get("accuracy", 0)
         color = theme.MODEL_COLORS.get(m, theme.GREEN)
-        dot = "🟢" if m in available else "⚪"
+        dot = "🟢" if m in DETECT_MODELS else "⚪"
         rows.append(f"""
         <div class="sb-model">
             <span style="font-size:0.6rem;">{dot}</span>
@@ -325,7 +340,7 @@ elif page == "🔬 Disease Detection":
         "and tells you what to do next.",
     ), unsafe_allow_html=True)
 
-    if not available:
+    if not DETECT_MODELS:
         st.error("No trained models found in `saved_models/`. Please train models first.")
         st.stop()
 
@@ -343,20 +358,27 @@ elif page == "🔬 Disease Detection":
                 st.image(Image.open(uploaded).convert("RGB"), width="stretch")
 
             st.markdown("#### 2 · Choose a model")
-            default_model = max(available, key=lambda m: REGISTRY.get(m, {}).get("accuracy", 0))
+            default_model = DETECT_MODELS[0] if LESIONNET_PATH else max(
+                available, key=lambda m: REGISTRY.get(m, {}).get("accuracy", 0))
             model_choice = st.selectbox(
-                "Model", available, index=available.index(default_model),
-                format_func=lambda m: f"{m} · {REGISTRY.get(m, {}).get('accuracy', 0):.1%} accurate",
-                help="ResNet50 is the most accurate; MobileNetV2 is the fastest.",
+                "Model", DETECT_MODELS, index=DETECT_MODELS.index(default_model),
+                format_func=lambda m: (f"{m} ⭐ recommended · {model_meta(m).get('accuracy', 0):.1%} accurate"
+                                       if m == lni.NAME else f"{m} · {model_meta(m).get('accuracy', 0):.1%} accurate"),
+                help="LesionNet finds the diseased spots first and names the disease from them, so a messy "
+                     "background fools it far less. ResNet50 is the most accurate classic model; MobileNetV2 is the fastest.",
                 label_visibility="collapsed",
             )
-            meta = REGISTRY.get(model_choice, {})
+            meta = model_meta(model_choice)
             st.markdown(
                 chip_html(f"🎯 {meta.get('accuracy', 0):.1%} accuracy", "green") + " "
                 + chip_html(f"⚡ {meta.get('inference_ms', '?')} ms", "sky") + " "
-                + chip_html(f"💾 {meta.get('size_mb', '?')} MB", "gray"),
+                + chip_html(f"💾 {meta.get('size_mb', '?')} MB", "gray")
+                + (" " + chip_html(f"🛡️ {lni.META['grey_bg_accuracy']:.0%} on a new background", "green")
+                   if model_choice == lni.NAME else ""),
                 unsafe_allow_html=True,
             )
+            if model_choice == lni.NAME:
+                st.caption("🔎 " + lni.META["description"] + " The red map you'll see is exactly what it used.")
             st.write("")
             analyze = st.button("🔍 Analyze leaf", type="primary", use_container_width=True,
                                 disabled=not uploaded)
@@ -365,11 +387,16 @@ elif page == "🔬 Disease Detection":
     upload_id = f"{uploaded.name}:{uploaded.size}" if uploaded else None
     if analyze and uploaded:
         image = Image.open(uploaded).convert("RGB")
+        use_ln = model_choice == lni.NAME
         with st.spinner(f"Loading {model_choice}..."):
-            model = cached_load_model(find_model_path(model_choice))
+            model = cached_load_lesionnet(LESIONNET_PATH) if use_ln else cached_load_model(find_model_path(model_choice))
         with st.spinner("Analyzing the leaf..."):
             t0 = time.time()
-            idx, conf, top5, img_arr, preds = predict_image(model, image, CLASS_NAMES)
+            if use_ln:
+                ln_out = lni.predict(model, image, CLASS_NAMES)
+                idx, conf, top5, img_arr = ln_out["idx"], ln_out["confidence"], ln_out["top5"], ln_out["arr"]
+            else:
+                idx, conf, top5, img_arr, preds = predict_image(model, image, CLASS_NAMES)
             inf_time = (time.time() - t0) * 1000
         pred_class = CLASS_NAMES[idx] if idx < len(CLASS_NAMES) else "Unknown"
         is_healthy = "healthy" in pred_class.lower()
@@ -385,10 +412,18 @@ elif page == "🔬 Disease Detection":
         }
         if not is_healthy:
             with st.spinner("Measuring the diseased area..."):
-                # Grad-CAM = where the model looked; lesion segmentation = the actual sick tissue
-                hm = run_disease_heatmap_pipeline(model, img_arr, model_choice)
-                attention = hm["masked_heatmap"] if hm is not None else None
-                lesion, overlay, analysed = analyze_leaf(image, attention=attention, disease_class=pred_class)
+                if use_ln:
+                    # LesionNet's own lesion map: the evidence its decision was computed from
+                    hm = None
+                    lesion = lni.lesion_result(image, ln_out["seg"])
+                    overlay = lni.make_overlay(lesion)
+                    analysed = lesion["view"]
+                    diag["lesion_heat"] = lni.heat_image(lesion)
+                else:
+                    # Grad-CAM = where the model looked; lesion segmentation = the actual sick tissue
+                    hm = run_disease_heatmap_pipeline(model, img_arr, model_choice)
+                    attention = hm["masked_heatmap"] if hm is not None else None
+                    lesion, overlay, analysed = analyze_leaf(image, attention=attention, disease_class=pred_class)
             diag["heatmap"] = hm
             diag["lesion"] = lesion
             diag["analysed"] = analysed
@@ -463,7 +498,7 @@ elif page == "🔬 Disease Detection":
                 advice_style = "background:var(--red-soft);color:var(--red);"
             if low_conf:
                 advice += (" <br><b>The AI is not very sure.</b> Try a sharper photo of a single leaf in daylight, "
-                           "or pick a more accurate model (ResNet50).")
+                           "or pick LesionNet / ResNet50.")
 
             reliable = (diag.get("lesion") or {}).get("reliable", True)
             area_txt = f"{'≈ ' if not reliable else ''}{diag['act_pct']:.1f}% of leaf"
@@ -494,10 +529,14 @@ elif page == "🔬 Disease Detection":
                 gc1.image(diag["image"], caption="Your photo", width="stretch")
                 gc2.image(diag["overlay"], width="stretch",
                           caption=f"Diseased tissue: {diag['act_pct']:.1f}% of the leaf")
-                st.markdown(
-                    chip_html("🟥 dead / spotted", "red") + " " + chip_html("🟨 yellowing", "amber")
-                    + (" " + chip_html("🟦 mould", "sky") if (diag.get('lesion') or {}).get('breakdown', {}).get('pale / mould', 0) > 0 else ""),
-                    unsafe_allow_html=True)
+                if (diag.get("lesion") or {}).get("source") == lni.NAME:
+                    st.markdown(chip_html("🟥 diseased tissue found by LesionNet (darker red = more certain)", "red"),
+                                unsafe_allow_html=True)
+                else:
+                    st.markdown(
+                        chip_html("🟥 dead / spotted", "red") + " " + chip_html("🟨 yellowing", "amber")
+                        + (" " + chip_html("🟦 mould", "sky") if (diag.get('lesion') or {}).get('breakdown', {}).get('pale / mould', 0) > 0 else ""),
+                        unsafe_allow_html=True)
 
     # Details below the summary
     if diag:
@@ -532,6 +571,27 @@ elif page == "🔬 Disease Detection":
             hm = diag.get("heatmap")
             if lesion is None:
                 st.info("Disease maps are only made for diseased leaves.")
+            elif lesion.get("source") == lni.NAME:
+                regions = lesion.get("regions", [])
+                st.markdown(
+                    chip_html(f"🍃 Diseased: {lesion['affected_pct']:.1f}% of leaf", "red") + " "
+                    + chip_html(f"🎯 {len(regions)} spot{'s' if len(regions) != 1 else ''}", "gray") + " "
+                    + chip_html("🧠 map = the evidence LesionNet used", "green"),
+                    unsafe_allow_html=True)
+                st.caption("LesionNet first marks every pixel as background, healthy leaf or diseased tissue. "
+                           "It then names the disease using only the leaf and diseased pixels, so the background "
+                           "cannot influence the answer. This map is not a guess about where it looked — it is "
+                           "the input to its decision.")
+                d1, d2, d3 = st.columns(3)
+                d1.image(lesion["leaf_mask"], caption="Leaf found by LesionNet", width="stretch", clamp=True)
+                d2.image(diag["lesion_heat"], caption="How sure it is each pixel is diseased", width="stretch")
+                d3.image(diag["overlay"], caption="Diseased tissue", width="stretch")
+                if regions:
+                    st.markdown("**Largest spots**")
+                    for rs in regions[:8]:
+                        emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
+                        st.markdown(f"{emoji} **Spot {rs['id']}** — {rs['area_pct']:.1f}% of the leaf · "
+                                    f"{rs['confidence']:.0%} sure")
             else:
                 bd = lesion.get("breakdown", {})
                 st.markdown(
@@ -851,6 +911,9 @@ elif page == "📈 Model Comparison":
         "📈 Models", "Compare the AI models",
         "Accuracy, speed and size of each model — and where each one fits best.",
     ), unsafe_allow_html=True)
+
+    import robustness_view
+    robustness_view.render()
 
     if METRICS_DF is not None:
         st.markdown("### 📊 Performance Metrics")

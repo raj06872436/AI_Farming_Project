@@ -32,6 +32,7 @@
 
 AGRI-X AI is a comprehensive deep learning framework that addresses the critical challenge of early and accurate plant disease detection in agriculture. The framework provides:
 
+- **LesionNet (new, our model)** — a classifier that must outline the diseased spots before naming the disease. Same accuracy as the best CNN (99.5 % vs 99.8 %) but it keeps **98.7 %** when the photo background is replaced (classic CNNs: 45–81 %), and its lesion map gives a severity estimate that matches the measured diseased area (ρ = 0.90). See [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md)
 - **Multi-architecture comparison** of 4 state-of-the-art CNN models (MobileNetV2, ResNet50, EfficientNetB0, DenseNet121) with optional Vision Transformer support
 - **Explainable AI** through Gradient-weighted Class Activation Mapping (Grad-CAM) for transparent disease region identification
 - **Disease severity estimation** using activation area analysis from Grad-CAM heatmaps
@@ -44,6 +45,7 @@ AGRI-X AI is a comprehensive deep learning framework that addresses the critical
 
 | Feature | Description |
 |---------|-------------|
+| 🛡️ **LesionNet** | Segment-then-classify model: the disease is named only from the leaf and lesion pixels it outlines, so backgrounds can't fool it; the lesion map is its explanation and its severity measure |
 | 🧠 **Multi-Model Training** | Two-phase transfer learning (frozen → fine-tuned) across 4+ architectures |
 | 🔥 **Grad-CAM Explainability** | Visual explanations highlighting disease-affected regions on leaf images |
 | 📊 **Research Analytics** | K-fold CV, ablation study, statistical significance tests, compression analysis |
@@ -382,6 +384,7 @@ The dashboard has 7 pages: 🏠 Home, 🔬 Disease Detection, 🌾 Crop Advisor,
 
 ### 🔬 Disease Detection
 - Upload leaf image for AI-powered diagnosis
+- **LesionNet is the default model** when `saved_models/LesionNet_A3_full.keras` is present: one pass gives the disease, a per-pixel lesion map and the diseased share of the leaf
 - Model selector (choose from trained architectures)
 - Prediction with confidence score and top-5 classes
 - Grad-CAM explainability visualization
@@ -394,6 +397,7 @@ The dashboard has 7 pages: 🏠 Home, 🔬 Disease Detection, 🌾 Crop Advisor,
 - Browse all generated evaluation reports
 
 ### 📈 Model Comparison
+- **LesionNet vs the classic models**: accuracy with changed backgrounds, on PlantDoc field photos, and where each model's evidence comes from
 - Multi-model comparison table
 - Interactive Plotly bar charts (accuracy & model size)
 - Architecture analysis with strengths/weaknesses
@@ -464,6 +468,20 @@ After training, the following results were achieved on the PlantVillage test set
 *Source: `reports/metrics/model_comparison.csv`.*
 
 > **Best Model:** ResNet50 achieves 99.50% accuracy with the highest F1 score, at the cost of larger model size (259.2 MB). For mobile/edge deployment, MobileNetV2 offers the best speed (62.7 ms) with 91.63% accuracy.
+
+### LesionNet and robustness tests
+
+Held-out PlantVillage test split (3,109 photos) plus PlantDoc field photos (1,012 photos, never used for training):
+
+| Model | Accuracy | Grey background | Swapped background | Evidence on lesions | PlantDoc (12 classes) |
+|---|---|---|---|---|---|
+| MobileNetV2 | 93.0 % | 76.0 % | 71.6 % | 9 % | 23.6 % |
+| ResNet50 | 99.8 % | 45.1 % | 60.0 % | 9 % | 19.6 % |
+| EfficientNetB0 | 96.4 % | 81.2 % | 62.3 % | 12 % | 20.2 % |
+| DenseNet121 | 96.1 % | 56.3 % | 57.6 % | 7 % | 20.1 % |
+| **LesionNet** | 99.5 % | **98.7 %** | **81.8 %** | **44 %** | 20.8 % |
+
+All models — LesionNet included — drop to about 20 % on field photos: lab-photo training does not transfer to the field. Details, caveats and ablations: [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md). How to reproduce: [`research/lesion_net/README.md`](research/lesion_net/README.md).
 
 ### Output Locations
 

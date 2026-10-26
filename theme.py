@@ -46,6 +46,7 @@ MODEL_COLORS = {
     "ResNet50": SKY,
     "EfficientNetB0": AMBER,
     "DenseNet121": PURPLE,
+    "LesionNet": "#0F766E",
 }
 
 FONT_FAMILY = "Inter, 'Segoe UI', system-ui, -apple-system, sans-serif"
