@@ -49,11 +49,41 @@ MODELS = ["MobileNetV2", "ResNet50", "EfficientNetB0", "DenseNet121"]
 SIZE = 224
 
 
+def _load_compat(p):
+    """
+    Load a model saved by a NEWER Keras than the one installed. Newer Keras stores extra
+    BatchNormalization options ('renorm', ...) that older versions don't accept, so drop
+    any option the installed BatchNormalization doesn't know about.
+    """
+    import inspect
+    BN = tf.keras.layers.BatchNormalization
+    allowed = set(inspect.signature(BN.__init__).parameters) | {"name", "trainable", "dtype"}
+    original = BN.__dict__.get("from_config")
+
+    @classmethod
+    def from_config(cls, config):
+        config = {k: v for k, v in config.items() if k in allowed or k not in
+                  ("renorm", "renorm_clipping", "renorm_momentum")}
+        return cls(**config)
+
+    BN.from_config = from_config
+    try:
+        return tf.keras.models.load_model(p, compile=False)
+    finally:
+        if original is not None:
+            BN.from_config = original
+        else:
+            del BN.from_config
+
+
 def load_model(name):
     for ext in ("_best.keras", "_final.keras"):
         p = os.path.join(ROOT, "saved_models", name + ext)
         if os.path.exists(p):
-            return tf.keras.models.load_model(p, compile=False)
+            try:
+                return tf.keras.models.load_model(p, compile=False)
+            except TypeError:  # saved with a newer Keras (e.g. BatchNormalization 'renorm' options)
+                return _load_compat(p)
     raise FileNotFoundError(name)
 
 
