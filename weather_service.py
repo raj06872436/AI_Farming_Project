@@ -94,36 +94,36 @@ def render_current_weather_card(current):
     if not current:
         st.warning("Weather data unavailable."); return
     temp = current["temperature"]
-    tc = "#e74c3c" if temp >= 35 else "#f39c12" if temp >= 25 else "#2ecc71" if temp >= 15 else "#3498db"
+    tc = "#B91C1C" if temp >= 35 else "#B45309" if temp >= 25 else "#2E7D32" if temp >= 15 else "#2563A8"
     uv = current.get("uv_index", 0)
-    uc = "#e74c3c" if uv >= 8 else "#f39c12" if uv >= 5 else "#2ecc71"
+    uc = "#B91C1C" if uv >= 8 else "#B45309" if uv >= 5 else "#2E7D32"
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {tc};padding:1.5rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
             <div><span style="font-size:2.5rem;">{current['icon']}</span>
             <span style="font-size:2rem;font-weight:800;color:{tc};margin-left:0.5rem;">{temp:.1f}°C</span></div>
-            <div style="text-align:right;"><div style="color:#fff;font-weight:600;">{current['description']}</div>
-            <div style="color:#8899aa;font-size:0.8rem;">Current Conditions</div></div>
+            <div style="text-align:right;"><div style="color:#1E2A22;font-weight:600;">{current['description']}</div>
+            <div style="color:#6B776E;font-size:0.8rem;">Current Conditions</div></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;">
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.7rem;color:#8899aa;">HUMIDITY</div>
-                <div style="font-size:1.2rem;font-weight:700;color:#3498db;">💧 {current['humidity']}%</div></div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.7rem;color:#8899aa;">WIND</div>
-                <div style="font-size:1.2rem;font-weight:700;color:#2ecc71;">💨 {current['wind_speed']:.1f} km/h</div></div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.7rem;color:#8899aa;">RAINFALL</div>
-                <div style="font-size:1.2rem;font-weight:700;color:#9b59b6;">🌧️ {current['precipitation']:.1f} mm</div></div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.7rem;color:#8899aa;">PRESSURE</div>
-                <div style="font-size:1.2rem;font-weight:700;color:#e67e22;">🔽 {current['pressure']:.0f} hPa</div></div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.7rem;color:#8899aa;">UV INDEX</div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.7rem;color:#6B776E;">HUMIDITY</div>
+                <div style="font-size:1.2rem;font-weight:700;color:#2563A8;">💧 {current['humidity']}%</div></div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.7rem;color:#6B776E;">WIND</div>
+                <div style="font-size:1.2rem;font-weight:700;color:#2E7D32;">💨 {current['wind_speed']:.1f} km/h</div></div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.7rem;color:#6B776E;">RAINFALL</div>
+                <div style="font-size:1.2rem;font-weight:700;color:#6D28D9;">🌧️ {current['precipitation']:.1f} mm</div></div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.7rem;color:#6B776E;">PRESSURE</div>
+                <div style="font-size:1.2rem;font-weight:700;color:#C2410C;">🔽 {current['pressure']:.0f} hPa</div></div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.7rem;color:#6B776E;">UV INDEX</div>
                 <div style="font-size:1.2rem;font-weight:700;color:{uc};">☀️ {uv:.1f}</div></div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.7rem;color:#8899aa;">CLOUD COVER</div>
-                <div style="font-size:1.2rem;font-weight:700;color:#95a5a6;">☁️ {current['cloud_cover']}%</div></div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.7rem;color:#6B776E;">CLOUD COVER</div>
+                <div style="font-size:1.2rem;font-weight:700;color:#6B776E;">☁️ {current['cloud_cover']}%</div></div>
         </div>
     </div>""", unsafe_allow_html=True)
 
@@ -132,11 +132,11 @@ def render_hourly_forecast(hourly):
     st.markdown("#### ⏰ Hourly Forecast")
     cards = ""
     for h in hourly[:12]:
-        cards += f"""<div style="min-width:90px;text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:12px;flex-shrink:0;">
-            <div style="font-size:0.7rem;color:#8899aa;">{h['hour']}</div>
+        cards += f"""<div style="min-width:90px;text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:12px;flex-shrink:0;">
+            <div style="font-size:0.7rem;color:#6B776E;">{h['hour']}</div>
             <div style="font-size:1.4rem;margin:0.3rem 0;">{h['icon']}</div>
-            <div style="font-size:1rem;font-weight:700;color:#fff;">{h['temperature']:.0f}°</div>
-            <div style="font-size:0.65rem;color:#3498db;">💧{h['humidity']}%</div></div>"""
+            <div style="font-size:1rem;font-weight:700;color:#1E2A22;">{h['temperature']:.0f}°</div>
+            <div style="font-size:0.65rem;color:#2563A8;">💧{h['humidity']}%</div></div>"""
     st.markdown(f'<div style="display:flex;gap:0.5rem;overflow-x:auto;padding:0.5rem 0;">{cards}</div>', unsafe_allow_html=True)
 
 def render_daily_forecast(daily):
@@ -144,12 +144,12 @@ def render_daily_forecast(daily):
     st.markdown("#### 📅 7-Day Forecast")
     for d in daily:
         bw = max(10, min(100, (d["temp_max"] - d["temp_min"]) * 5))
-        st.markdown(f"""<div style="display:flex;align-items:center;padding:0.5rem 0.8rem;margin:0.3rem 0;background:rgba(255,255,255,0.03);border-radius:10px;">
-            <div style="width:100px;font-size:0.85rem;color:#ccd;">{d['day_name']}</div>
+        st.markdown(f"""<div style="display:flex;align-items:center;padding:0.5rem 0.8rem;margin:0.3rem 0;background:rgba(30,42,34,0.03);border-radius:10px;">
+            <div style="width:100px;font-size:0.85rem;color:#47554B;">{d['day_name']}</div>
             <div style="width:40px;font-size:1.2rem;text-align:center;">{d['icon']}</div>
             <div style="flex:1;display:flex;align-items:center;gap:0.5rem;margin:0 1rem;">
-                <span style="font-size:0.85rem;color:#3498db;min-width:35px;">{d['temp_min']:.0f}°</span>
-                <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
-                    <div style="width:{bw}%;height:100%;background:linear-gradient(90deg,#3498db,#e74c3c);border-radius:3px;"></div></div>
-                <span style="font-size:0.85rem;color:#e74c3c;min-width:35px;">{d['temp_max']:.0f}°</span></div>
-            <div style="width:60px;font-size:0.75rem;color:#9b59b6;text-align:right;">🌧️{d['precipitation']:.1f}mm</div></div>""", unsafe_allow_html=True)
+                <span style="font-size:0.85rem;color:#2563A8;min-width:35px;">{d['temp_min']:.0f}°</span>
+                <div style="flex:1;height:6px;background:rgba(30,42,34,0.08);border-radius:3px;overflow:hidden;">
+                    <div style="width:{bw}%;height:100%;background:linear-gradient(90deg,#2563A8,#B91C1C);border-radius:3px;"></div></div>
+                <span style="font-size:0.85rem;color:#B91C1C;min-width:35px;">{d['temp_max']:.0f}°</span></div>
+            <div style="width:60px;font-size:0.75rem;color:#6D28D9;text-align:right;">🌧️{d['precipitation']:.1f}mm</div></div>""", unsafe_allow_html=True)

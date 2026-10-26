@@ -90,7 +90,7 @@ def calculate_risk(disease_class: str, temperature: float, humidity: float, prec
     """
     profile = DISEASE_RISK_PROFILES.get(disease_class)
     if not profile:
-        return {"risk_level": "Unknown", "risk_score": 0, "risk_color": "#888",
+        return {"risk_level": "Unknown", "risk_score": 0, "risk_color": "#6B776E",
                 "reason": "Disease profile not found.", "disease_name": disease_class}
 
     # Start from base risk
@@ -128,13 +128,13 @@ def calculate_risk(disease_class: str, temperature: float, humidity: float, prec
 
     # Classify
     if score >= 75:
-        level, color = "Critical", "#DC143C"
+        level, color = "Critical", "#B91C1C"
     elif score >= 55:
-        level, color = "High", "#e74c3c"
+        level, color = "High", "#B91C1C"
     elif score >= 35:
-        level, color = "Moderate", "#f39c12"
+        level, color = "Moderate", "#B45309"
     else:
-        level, color = "Low", "#2ecc71"
+        level, color = "Low", "#2E7D32"
 
     # Build reason
     reasons = []
@@ -171,20 +171,20 @@ def render_risk_card(risk: dict):
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {color};">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
-            <span style="font-size:1rem;font-weight:700;color:#fff;">⚠️ Disease Risk Assessment</span>
-            <span style="font-size:0.8rem;color:{color};background:rgba(255,255,255,0.08);padding:4px 12px;border-radius:12px;font-weight:600;">
+            <span style="font-size:1rem;font-weight:700;color:#1E2A22;">⚠️ Disease Risk Assessment</span>
+            <span style="font-size:0.8rem;color:{color};background:rgba(30,42,34,0.08);padding:4px 12px;border-radius:12px;font-weight:600;">
                 {icon} {level}</span>
         </div>
         <div style="margin-bottom:0.8rem;">
             <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
-                <span style="color:#8899aa;font-size:0.8rem;">Risk Score</span>
+                <span style="color:#6B776E;font-size:0.8rem;">Risk Score</span>
                 <span style="color:{color};font-weight:700;">{score}%</span>
             </div>
-            <div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
+            <div style="height:8px;background:rgba(30,42,34,0.06);border-radius:4px;overflow:hidden;">
                 <div style="width:{score}%;height:100%;background:{color};border-radius:4px;transition:width 0.8s;"></div>
             </div>
         </div>
-        <div style="color:#ccd;font-size:0.85rem;line-height:1.5;">
+        <div style="color:#47554B;font-size:0.85rem;line-height:1.5;">
             <strong>Disease:</strong> {risk['disease_name']}<br>
             <strong>Analysis:</strong> {risk['reason']}
         </div>

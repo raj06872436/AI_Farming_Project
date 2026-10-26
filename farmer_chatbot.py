@@ -2,9 +2,19 @@
 AGRI-X AI — Farmer Assistant Chatbot (Module 9)
 Rule-based agricultural AI assistant using prediction, weather, crop, and disease knowledge bases.
 """
-import streamlit as st
+import html
 import re
 from datetime import datetime
+
+import streamlit as st
+
+
+def _to_html(text: str) -> str:
+    """Render the assistant's simple markdown (**bold**, newlines) as safe HTML."""
+    safe = html.escape(text)
+    safe = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", safe)
+    safe = re.sub(r"(?<!\*)\*(?!\*)(.+?)\*", r"<i>\1</i>", safe)
+    return safe.replace("\n", "<br>")
 
 
 # ── Knowledge patterns ──
@@ -372,8 +382,10 @@ Or describe any symptoms you're seeing!"""
 
 def render_chatbot(weather_current=None, prediction_result=None, location=None):
     """Render the farmer assistant chatbot interface."""
-    st.markdown('<h1 class="hero-title fade-in">🤖 Farmer Assistant</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">AI-powered agricultural assistant — ask anything about farming, diseases, crops, or weather</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-header fade-in"><div class="page-eyebrow">🤖 Farmer Assistant</div>'
+                '<h1 class="page-title">Ask anything about your farm</h1>'
+                '<p class="page-sub">Diseases, treatments, crops, fertilizer or weather — ask in plain words. '
+                'Answers use your latest diagnosis, weather and location.</p></div>', unsafe_allow_html=True)
 
     # Initialize chat history
     if "chat_history" not in st.session_state:
@@ -400,25 +412,25 @@ def render_chatbot(weather_current=None, prediction_result=None, location=None):
             # Welcome message
             welcome = get_response("hello", weather_current, prediction_result, location)
             st.markdown(f"""
-            <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:12px;padding:1rem;margin:0.5rem 0;">
-                <div style="font-size:0.75rem;color:#2ecc71;font-weight:600;margin-bottom:0.3rem;">🤖 AGRI-X AI</div>
-                <div style="color:#dde;font-size:0.9rem;line-height:1.6;">{welcome.replace(chr(10), '<br>')}</div>
+            <div style="background:rgba(46,125,50,0.08);border:1px solid rgba(46,125,50,0.2);border-radius:12px;padding:1rem;margin:0.5rem 0;">
+                <div style="font-size:0.75rem;color:#2E7D32;font-weight:600;margin-bottom:0.3rem;">🤖 AGRI-X AI</div>
+                <div style="color:#2F3B33;font-size:0.9rem;line-height:1.6;">{_to_html(welcome)}</div>
             </div>
             """, unsafe_allow_html=True)
 
         for msg in st.session_state["chat_history"]:
             if msg["role"] == "user":
                 st.markdown(f"""
-                <div style="background:rgba(52,152,219,0.1);border:1px solid rgba(52,152,219,0.2);border-radius:12px;padding:0.8rem;margin:0.5rem 0;margin-left:20%;">
-                    <div style="font-size:0.75rem;color:#3498db;font-weight:600;margin-bottom:0.3rem;">👤 You</div>
-                    <div style="color:#dde;font-size:0.9rem;">{msg['content']}</div>
+                <div style="background:rgba(37,99,168,0.1);border:1px solid rgba(37,99,168,0.2);border-radius:12px;padding:0.8rem;margin:0.5rem 0;margin-left:20%;">
+                    <div style="font-size:0.75rem;color:#2563A8;font-weight:600;margin-bottom:0.3rem;">👤 You</div>
+                    <div style="color:#2F3B33;font-size:0.9rem;">{html.escape(msg['content'])}</div>
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:12px;padding:1rem;margin:0.5rem 0;margin-right:10%;">
-                    <div style="font-size:0.75rem;color:#2ecc71;font-weight:600;margin-bottom:0.3rem;">🤖 AGRI-X AI</div>
-                    <div style="color:#dde;font-size:0.9rem;line-height:1.6;">{msg['content'].replace(chr(10), '<br>').replace('**', '<b>').replace('*', '')}</div>
+                <div style="background:rgba(46,125,50,0.08);border:1px solid rgba(46,125,50,0.2);border-radius:12px;padding:1rem;margin:0.5rem 0;margin-right:10%;">
+                    <div style="font-size:0.75rem;color:#2E7D32;font-weight:600;margin-bottom:0.3rem;">🤖 AGRI-X AI</div>
+                    <div style="color:#2F3B33;font-size:0.9rem;line-height:1.6;">{_to_html(msg['content'])}</div>
                 </div>
                 """, unsafe_allow_html=True)
 

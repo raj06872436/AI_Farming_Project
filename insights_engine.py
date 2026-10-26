@@ -12,21 +12,21 @@ def _get_season_info():
     if month in [6, 7, 8, 9, 10]:
         return {
             "season": "Kharif", "period": "June – October",
-            "icon": "🌧️", "color": "#3498db",
+            "icon": "🌧️", "color": "#2563A8",
             "description": "Monsoon season. Ideal for rain-fed crops like rice, maize, cotton, soybean.",
             "suitable_crops": ["Rice", "Maize", "Cotton", "Soybean", "Groundnut", "Chilli", "Tomato", "Bell Pepper"],
         }
     elif month in [11, 12, 1, 2, 3]:
         return {
             "season": "Rabi", "period": "November – March",
-            "icon": "❄️", "color": "#2ecc71",
+            "icon": "❄️", "color": "#2E7D32",
             "description": "Winter season. Cool and dry — ideal for wheat, mustard, potato, onion.",
             "suitable_crops": ["Wheat", "Mustard", "Potato", "Onion", "Tomato", "Bell Pepper", "Sugarcane"],
         }
     else:
         return {
             "season": "Zaid", "period": "April – May",
-            "icon": "☀️", "color": "#f39c12",
+            "icon": "☀️", "color": "#B45309",
             "description": "Summer season. Short-duration crops with irrigation support.",
             "suitable_crops": ["Tomato", "Bell Pepper", "Onion", "Sugarcane"],
         }
@@ -46,43 +46,43 @@ def generate_weather_alerts(weather_current, daily_forecast=None):
 
     # Temperature alerts
     if temp >= 40:
-        alerts.append({"level": "Critical", "icon": "🔴", "color": "#DC143C",
+        alerts.append({"level": "Critical", "icon": "🔴", "color": "#B91C1C",
                         "title": "Extreme Heat Alert",
                         "message": f"Temperature is {temp:.0f}°C. Provide shade for crops, increase irrigation frequency, and avoid mid-day field work."})
     elif temp >= 35:
-        alerts.append({"level": "Warning", "icon": "🟠", "color": "#e74c3c",
+        alerts.append({"level": "Warning", "icon": "🟠", "color": "#B91C1C",
                         "title": "Heat Stress Warning",
                         "message": f"Temperature is {temp:.0f}°C. Crops may experience heat stress. Increase watering and apply mulch."})
     elif temp <= 5:
-        alerts.append({"level": "Critical", "icon": "🔴", "color": "#3498db",
+        alerts.append({"level": "Critical", "icon": "🔴", "color": "#2563A8",
                         "title": "Frost Alert",
                         "message": f"Temperature is {temp:.0f}°C. Risk of frost damage. Cover sensitive crops and avoid irrigation at night."})
 
     # Humidity alerts
     if humidity >= 90:
-        alerts.append({"level": "Warning", "icon": "🟡", "color": "#f39c12",
+        alerts.append({"level": "Warning", "icon": "🟡", "color": "#B45309",
                         "title": "High Humidity — Disease Risk",
                         "message": f"Humidity at {humidity}%. Fungal diseases (blight, mold) risk is elevated. Apply preventive fungicides."})
     elif humidity <= 25:
-        alerts.append({"level": "Warning", "icon": "🟡", "color": "#e67e22",
+        alerts.append({"level": "Warning", "icon": "🟡", "color": "#C2410C",
                         "title": "Very Low Humidity",
                         "message": f"Humidity at {humidity}%. Spider mite risk increases. Mist plants and increase watering."})
 
     # Rainfall alerts
     if precipitation >= 20:
-        alerts.append({"level": "Warning", "icon": "🟠", "color": "#9b59b6",
+        alerts.append({"level": "Warning", "icon": "🟠", "color": "#6D28D9",
                         "title": "Heavy Rainfall",
                         "message": f"Precipitation at {precipitation:.1f}mm. Check field drainage. Avoid pesticide application."})
 
     # Wind alerts
     if wind >= 40:
-        alerts.append({"level": "Warning", "icon": "🟠", "color": "#e74c3c",
+        alerts.append({"level": "Warning", "icon": "🟠", "color": "#B91C1C",
                         "title": "High Wind Warning",
                         "message": f"Wind speed {wind:.0f} km/h. Stake tall crops, secure greenhouse covers."})
 
     # UV alerts
     if uv >= 9:
-        alerts.append({"level": "Info", "icon": "🟡", "color": "#f39c12",
+        alerts.append({"level": "Info", "icon": "🟡", "color": "#B45309",
                         "title": "High UV Index",
                         "message": f"UV index {uv:.0f}. Protect workers and consider shade nets for sensitive crops."})
 
@@ -90,12 +90,12 @@ def generate_weather_alerts(weather_current, daily_forecast=None):
     if daily_forecast:
         rain_days = sum(1 for d in daily_forecast if d.get("precipitation", 0) > 5)
         if rain_days >= 4:
-            alerts.append({"level": "Warning", "icon": "🟠", "color": "#3498db",
+            alerts.append({"level": "Warning", "icon": "🟠", "color": "#2563A8",
                             "title": "Extended Wet Period",
                             "message": f"{rain_days} rainy days in forecast. High disease risk. Apply preventive fungicides now."})
 
     if not alerts:
-        alerts.append({"level": "Info", "icon": "🟢", "color": "#2ecc71",
+        alerts.append({"level": "Info", "icon": "🟢", "color": "#2E7D32",
                         "title": "Favorable Conditions",
                         "message": "Current weather conditions are favorable for farming. Continue regular practices."})
 
@@ -178,8 +178,8 @@ def generate_farming_suggestions(weather_current, season_info):
 
 def render_insights_dashboard(weather_current, daily_forecast, location):
     """Render the full insights dashboard."""
-    st.markdown('<h1 class="hero-title fade-in">🧠 Agricultural Insights</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Intelligent farming insights powered by weather, location, and seasonal analysis</p>', unsafe_allow_html=True)
+    st.markdown('<div class="section-head" style="margin-top:0;"><div class="sh-title">🧠 Farming insights</div>'
+                '<span>Based on today\'s weather, your location and the season</span></div>', unsafe_allow_html=True)
 
     season_info = _get_season_info()
 
@@ -189,14 +189,14 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
         <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
                 <span style="font-size:1.8rem;">{season_info['icon']}</span>
-                <span style="font-size:1.2rem;font-weight:700;color:#fff;margin-left:0.5rem;">{season_info['season']} Season</span>
-                <span style="color:#8899aa;font-size:0.85rem;margin-left:0.5rem;">({season_info['period']})</span>
+                <span style="font-size:1.2rem;font-weight:700;color:#1E2A22;margin-left:0.5rem;">{season_info['season']} Season</span>
+                <span style="color:#6B776E;font-size:0.85rem;margin-left:0.5rem;">({season_info['period']})</span>
             </div>
             <span style="color:{season_info['color']};font-size:0.85rem;font-weight:600;">📍 {location.get('city', 'Unknown')}, {location.get('state', '')}</span>
         </div>
-        <p style="color:#ccd;font-size:0.9rem;margin:0.8rem 0 0.5rem 0;line-height:1.5;">{season_info['description']}</p>
+        <p style="color:#47554B;font-size:0.9rem;margin:0.8rem 0 0.5rem 0;line-height:1.5;">{season_info['description']}</p>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-            {"".join(f'<span style="background:rgba(255,255,255,0.06);color:#2ecc71;padding:3px 10px;border-radius:8px;font-size:0.8rem;">{c}</span>' for c in season_info['suitable_crops'])}
+            {"".join(f'<span style="background:rgba(30,42,34,0.06);color:#2E7D32;padding:3px 10px;border-radius:8px;font-size:0.8rem;">{c}</span>' for c in season_info['suitable_crops'])}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -238,9 +238,11 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
         potentials = []
         for name, crop in UNIFIED_CROP_DB.items():
             if name in season_info["suitable_crops"]:
-                # Same agronomic model as the Yield Prediction engine, so both views agree
+                # Same agronomic model as the Yield Prediction engine, so both views agree.
+                # Rainfed (no irrigation) so the score reflects natural suitability and
+                # doesn't saturate at 100% for every crop.
                 res = predict_yield(name, 1.0, temp, humidity, monthly_rain,
-                                    soil_quality, True, elevation)
+                                    soil_quality, False, elevation)
                 env = min(1.0, res["env_factor"]) if res else 0.5
                 soil_match = 1.0 if any(
                     s.lower() in soil_type.lower() or soil_type.lower() in s.lower()
@@ -254,14 +256,14 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
             cols = st.columns(min(len(potentials), 4))
             for i, (name, icon, score) in enumerate(potentials[:4]):
                 sc = score * 100
-                color = "#2ecc71" if sc >= 75 else "#f39c12" if sc >= 50 else "#e74c3c"
+                color = "#2E7D32" if sc >= 75 else "#B45309" if sc >= 50 else "#B91C1C"
                 with cols[i]:
                     st.markdown(f"""
-                    <div style="text-align:center;padding:1rem;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="text-align:center;padding:1rem;background:rgba(30,42,34,0.03);border-radius:12px;border:1px solid rgba(30,42,34,0.06);">
                         <div style="font-size:1.8rem;">{icon}</div>
-                        <div style="font-size:0.9rem;font-weight:600;color:#fff;margin:0.3rem 0;">{name}</div>
+                        <div style="font-size:0.9rem;font-weight:600;color:#1E2A22;margin:0.3rem 0;">{name}</div>
                         <div style="font-size:1.2rem;font-weight:800;color:{color};">{sc:.0f}%</div>
-                        <div style="font-size:0.7rem;color:#8899aa;">Suitability</div>
+                        <div style="font-size:0.7rem;color:#6B776E;">Rainfed suitability</div>
                     </div>
                     """, unsafe_allow_html=True)
 

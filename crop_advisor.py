@@ -4,6 +4,7 @@ Unified crop database + GDD thermal modeling + nutrient feasibility + companion/
 """
 import streamlit as st
 import plotly.graph_objects as go
+import theme  # registers the light "agrix" Plotly template
 from datetime import datetime, timedelta
 
 # ── Unified Crop Database (merged agronomic parameters) ──
@@ -551,49 +552,49 @@ def recommend_crops(temp, humidity, annual_rainfall, soil, season, land_area_acr
 def render_crop_card(crop, rank):
     """Render a comprehensive crop recommendation card with rotation & companion info."""
     sc = crop["score"]
-    border_color = "#2ecc71" if sc >= 75 else "#f39c12" if sc >= 50 else "#e74c3c"
-    profit_color = "#2ecc71" if crop["profit_min"] > 0 else "#e74c3c"
-    msp_badge = f'<span style="background:rgba(46,204,113,0.15);color:#2ecc71;padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:700;">🏛️ MSP: ₹{crop["msp"]}/q</span>' if crop["msp"] > 0 else '<span style="background:rgba(255,255,255,0.06);color:#8899aa;padding:3px 10px;border-radius:10px;font-size:0.75rem;">Open Market</span>'
+    border_color = "#2E7D32" if sc >= 75 else "#B45309" if sc >= 50 else "#B91C1C"
+    profit_color = "#2E7D32" if crop["profit_min"] > 0 else "#B91C1C"
+    msp_badge = f'<span style="background:rgba(46,125,50,0.15);color:#2E7D32;padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:700;">🏛️ MSP: ₹{crop["msp"]}/q</span>' if crop["msp"] > 0 else '<span style="background:rgba(30,42,34,0.06);color:#6B776E;padding:3px 10px;border-radius:10px;font-size:0.75rem;">Open Market</span>'
 
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {border_color};margin-bottom:0.8rem;padding:1.2rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
             <div>
                 <span style="font-size:1.6rem;">{crop['icon']}</span>
-                <span style="font-size:1.25rem;font-weight:800;color:#fff;margin-left:0.5rem;">#{rank} {crop['name']}</span>
+                <span style="font-size:1.25rem;font-weight:800;color:#1E2A22;margin-left:0.5rem;">#{rank} {crop['name']}</span>
                 <span style="margin-left:0.6rem;">{msp_badge}</span>
             </div>
-            <span style="background:rgba(255,255,255,0.08);color:{border_color};padding:5px 14px;border-radius:12px;font-size:0.9rem;font-weight:800;">
+            <span style="background:rgba(30,42,34,0.08);color:{border_color};padding:5px 14px;border-radius:12px;font-size:0.9rem;font-weight:800;">
                 {sc}% Agronomic Match</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:0.8rem;">
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">Estimated Yield</div>
-                <div style="font-size:1.15rem;font-weight:800;color:#3498db;">📦 {crop['yield_min']:.1f} – {crop['yield_max']:.1f} t</div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">Estimated Yield</div>
+                <div style="font-size:1.15rem;font-weight:800;color:#2563A8;">📦 {crop['yield_min']:.1f} – {crop['yield_max']:.1f} t</div>
             </div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">Gross Revenue</div>
-                <div style="font-size:1.15rem;font-weight:800;color:#f39c12;">💰 ₹{crop['revenue_min']/1000:.0f}K – ₹{crop['revenue_max']/1000:.0f}K</div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">Gross Revenue</div>
+                <div style="font-size:1.15rem;font-weight:800;color:#B45309;">💰 ₹{crop['revenue_min']/1000:.0f}K – ₹{crop['revenue_max']/1000:.0f}K</div>
             </div>
-            <div style="text-align:center;padding:0.6rem;background:rgba(255,255,255,0.04);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">Estimated Net Profit</div>
+            <div style="text-align:center;padding:0.6rem;background:rgba(30,42,34,0.04);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">Estimated Net Profit</div>
                 <div style="font-size:1.15rem;font-weight:800;color:{profit_color};">📈 ₹{crop['profit_min']/1000:.0f}K – ₹{crop['profit_max']/1000:.0f}K</div>
             </div>
         </div>
-        <div style="display:flex;gap:0.8rem;flex-wrap:wrap;font-size:0.82rem;color:#aab;margin-bottom:0.5rem;">
+        <div style="display:flex;gap:0.8rem;flex-wrap:wrap;font-size:0.82rem;color:#47554B;margin-bottom:0.5rem;">
             <span>🗓️ <b>Season:</b> {crop['season']}</span>
             <span>⏱️ <b>Cycle:</b> {crop['duration']} days</span>
             <span>💧 <b>Water Demand:</b> {crop['water_need']}</span>
             <span>💸 <b>Est. Cost:</b> ₹{crop['cost_per_acre']:,}/acre</span>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid rgba(255,255,255,0.06);font-size:0.78rem;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid rgba(30,42,34,0.06);font-size:0.78rem;">
             <div>
-                <span style="color:#2ecc71;font-weight:700;">🔄 Recommended Rotation:</span>
-                <span style="color:#ccd;"> {", ".join(crop['rotation_crops'][:3])}</span>
+                <span style="color:#2E7D32;font-weight:700;">🔄 Recommended Rotation:</span>
+                <span style="color:#47554B;"> {", ".join(crop['rotation_crops'][:3])}</span>
             </div>
             <div>
-                <span style="color:#f39c12;font-weight:700;">🌿 Companion Intercropping:</span>
-                <span style="color:#ccd;"> {", ".join(crop['companion_crops'][:2])}</span>
+                <span style="color:#B45309;font-weight:700;">🌿 Companion Intercropping:</span>
+                <span style="color:#47554B;"> {", ".join(crop['companion_crops'][:2])}</span>
             </div>
         </div>
     </div>
@@ -612,18 +613,18 @@ def render_revenue_comparison_chart(crops):
 
     fig = go.Figure()
     fig.add_trace(go.Bar(name="Min Revenue", x=names, y=rev_min,
-                         marker_color="rgba(52,152,219,0.7)", text=[f"₹{v:.0f}K" for v in rev_min], textposition="outside"))
+                         marker_color="rgba(37,99,168,0.7)", text=[f"₹{v:.0f}K" for v in rev_min], textposition="outside"))
     fig.add_trace(go.Bar(name="Max Revenue", x=names, y=rev_max,
-                         marker_color="rgba(46,204,113,0.7)", text=[f"₹{v:.0f}K" for v in rev_max], textposition="outside"))
+                         marker_color="rgba(46,125,50,0.7)", text=[f"₹{v:.0f}K" for v in rev_max], textposition="outside"))
     fig.add_trace(go.Bar(name="Input Cost", x=names, y=costs,
-                         marker_color="rgba(231,76,60,0.7)", text=[f"₹{v:.0f}K" for v in costs], textposition="outside"))
+                         marker_color="rgba(185,28,28,0.7)", text=[f"₹{v:.0f}K" for v in costs], textposition="outside"))
     fig.add_trace(go.Scatter(name="Avg Net Profit", x=names, y=profit_avg, mode="lines+markers",
-                             line=dict(color="#f1c40f", width=3), marker=dict(size=8, symbol="diamond")))
+                             line=dict(color="#A16207", width=3), marker=dict(size=8, symbol="diamond")))
 
     fig.update_layout(
         title="💰 Farm Financial Forecast: Revenue vs Input Cost vs Net Profit",
-        barmode="group", template="plotly_dark", height=420, margin=dict(t=50, b=30),
-        yaxis_title="Amount (₹ Thousands)", legend=dict(orientation="h", y=1.14),
+        barmode="group", template="agrix", height=420, margin=dict(t=50, b=30),
+        yaxis_title="Amount (₹ Thousands)", legend=dict(orientation="h", y=-0.12, x=0),
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)"
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -633,51 +634,51 @@ def _render_auto_detected_summary(city, temp, humidity, soil_type, soil_quality_
                                    rainfall_est, rainfall_confidence, rainfall_method,
                                    season, elevation, soil_breakdown):
     """Render a rich summary card showing auto-detected parameters and soil chemistry."""
-    conf_color = {"high": "#2ecc71", "low": "#f39c12", "fallback": "#e74c3c"}.get(rainfall_confidence, "#888")
+    conf_color = {"high": "#2E7D32", "low": "#B45309", "fallback": "#B91C1C"}.get(rainfall_confidence, "#6B776E")
     elev_text = f"{elevation:.0f}m" if elevation is not None else "—"
     nutrients = soil_breakdown.get("nutrients", {})
 
     st.markdown(f"""
-    <div class="glass-card" style="border-left:4px solid #3498db;margin-bottom:1rem;padding:1.2rem;">
+    <div class="glass-card" style="border-left:4px solid #2563A8;margin-bottom:1rem;padding:1.2rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
-            <span style="font-size:1.05rem;font-weight:700;color:#fff;">🌐 Auto-Detected Environmental Profile</span>
-            <span style="font-size:0.75rem;color:#8899aa;">Live APIs · Open-Meteo & ISRIC SoilGrids</span>
+            <span style="font-size:1.05rem;font-weight:700;color:#1E2A22;">🌐 Auto-Detected Environmental Profile</span>
+            <span style="font-size:0.75rem;color:#6B776E;">Live APIs · Open-Meteo & ISRIC SoilGrids</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:0.8rem;">
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">📍 Location</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#3498db;">{city}</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">📍 Location</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#2563A8;">{city}</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">🌡️ Temperature</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#e74c3c;">{temp:.1f}°C</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">🌡️ Temperature</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#B91C1C;">{temp:.1f}°C</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">💧 Humidity</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#3498db;">{humidity:.0f}%</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">💧 Humidity</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#2563A8;">{humidity:.0f}%</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">🗓️ Season</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#f39c12;">{season}</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">🗓️ Season</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#B45309;">{season}</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">🪨 Soil Texture</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#CD853F;">{soil_type}</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">🪨 Soil Texture</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#8B5E34;">{soil_type}</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">🧪 Fertility Index</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#2ecc71;">{soil_quality_score:.0%}</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">🧪 Fertility Index</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#2E7D32;">{soil_quality_score:.0%}</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">🌧️ Est. Annual Rain</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">🌧️ Est. Annual Rain</div>
                 <div style="font-size:0.95rem;font-weight:700;color:{conf_color};">~{rainfall_est} mm</div>
             </div>
-            <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="font-size:0.65rem;color:#8899aa;text-transform:uppercase;">⛰️ Elevation</div>
-                <div style="font-size:0.95rem;font-weight:700;color:#9b59b6;">{elev_text}</div>
+            <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="font-size:0.65rem;color:#6B776E;text-transform:uppercase;">⛰️ Elevation</div>
+                <div style="font-size:0.95rem;font-weight:700;color:#6D28D9;">{elev_text}</div>
             </div>
         </div>
-        <div style="font-size:0.75rem;color:#8899aa;background:rgba(255,255,255,0.02);padding:0.5rem 0.8rem;border-radius:8px;display:flex;justify-content:space-between;">
+        <div style="font-size:0.75rem;color:#6B776E;background:rgba(30,42,34,0.02);padding:0.5rem 0.8rem;border-radius:8px;display:flex;justify-content:space-between;">
             <span>🧪 <b>pH Nutrient Availability:</b> N: {nutrients.get('nitrogen',0.8):.0%} · P: {nutrients.get('phosphorus',0.8):.0%} · K: {nutrients.get('potassium',0.8):.0%}</span>
             <span>💧 <b>AWHC:</b> {soil_breakdown.get('awhc_val', 140)} mm/m</span>
         </div>
@@ -687,11 +688,11 @@ def _render_auto_detected_summary(city, temp, humidity, soil_type, soil_quality_
 
 def render_crop_advisor_page(location, weather_current, weather_raw=None):
     """Full crop advisor page renderer — location-aware with GDD & nutrient intelligence."""
-    st.markdown("### 🌾 Smart Crop Recommendations & Rotation Planner")
+    st.markdown('<div class="section-head" style="margin-top:0;"><div class="sh-title">🌾 Best crops for your farm</div>'
+                '<span>Ranked by season, climate and soil</span></div>', unsafe_allow_html=True)
 
     temp = weather_current.get("temperature", 25) if weather_current else 25
     humidity = weather_current.get("humidity", 60) if weather_current else 60
-    city_name = location.get("city", "Unknown") if location else "Unknown"
     elevation = location.get("elevation") if location else None
 
     detected_soil = location.get("soil_type", "Loamy") if location else "Loamy"
@@ -701,20 +702,31 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
     rainfall_est, rainfall_conf, rainfall_method = estimate_annual_rainfall(location, weather_raw)
     auto_season = _get_current_season()
 
-    _render_auto_detected_summary(
-        city_name, temp, humidity, detected_soil, soil_quality,
-        rainfall_est, rainfall_conf, rainfall_method, auto_season, elevation, soil_breakdown
-    )
+    # Compact soil & rain facts (location, weather and season are in the bar above the tabs)
+    nutrients = soil_breakdown.get("nutrients", {})
+    rain_tone = {"high": "green", "low": "amber"}.get(rainfall_conf, "gray")
+    facts = [
+        f'<span class="chip chip-{rain_tone}">🌧️ ~{rainfall_est} mm rain / year · {rainfall_method}</span>',
+        f'<span class="chip chip-gray">🧪 pH {soil_breakdown.get("ph_value", 6.5)}</span>',
+        f'<span class="chip chip-gray">N {nutrients.get("nitrogen", 0.8):.0%} · P {nutrients.get("phosphorus", 0.8):.0%} · K {nutrients.get("potassium", 0.8):.0%} available</span>',
+        f'<span class="chip chip-sky">💧 Holds {soil_breakdown.get("awhc_val", 140)} mm water / m</span>',
+    ]
+    st.markdown(f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0.9rem;">{"".join(facts)}</div>',
+                unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        land_area = st.number_input(
-            "🏞️ Farm Land Area", min_value=0.1, max_value=10000.0,
-            value=5.0, step=0.5, key="crop_land",
-        )
-        unit = st.selectbox("Land Area Unit", ["Acres", "Hectares", "Bigha"], key="crop_unit")
-    with col2:
-        irrigation = st.checkbox("🚰 Drip / Canal Irrigation Available", value=True, key="crop_irrigation")
+    with st.container(border=True, key="panel_crop_inputs"):
+        col1, col2, col3 = st.columns([1.2, 1, 1.2])
+        with col1:
+            land_area = st.number_input(
+                "🏞️ Farm land area", min_value=0.1, max_value=10000.0,
+                value=5.0, step=0.5, key="crop_land",
+            )
+        with col2:
+            unit = st.selectbox("Unit", ["Acres", "Hectares", "Bigha"], key="crop_unit")
+        with col3:
+            st.write("")
+            st.write("")
+            irrigation = st.checkbox("🚰 Drip / canal irrigation available", value=True, key="crop_irrigation")
 
     with st.expander("⚙️ Override Farm & Soil Parameters (Optional)", expanded=False):
         ov1, ov2, ov3 = st.columns(3)

@@ -199,15 +199,15 @@ def render_treatment_cards(treatment: dict):
 
     # Disease info header
     severity = treatment.get("severity", "Unknown")
-    sev_colors = {"None": "#2ecc71", "Moderate": "#f39c12", "Moderate to High": "#e67e22",
-                  "High": "#e74c3c", "High (incurable)": "#DC143C", "Critical": "#DC143C"}
-    sev_color = sev_colors.get(severity, "#f39c12")
+    sev_colors = {"None": "#2E7D32", "Moderate": "#B45309", "Moderate to High": "#C2410C",
+                  "High": "#B91C1C", "High (incurable)": "#B91C1C", "Critical": "#B91C1C"}
+    sev_color = sev_colors.get(severity, "#B45309")
 
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {sev_color};">
-        <h3 style="margin:0 0 0.5rem 0;color:#fff;">🔬 {treatment['disease']} — {treatment['plant']}</h3>
-        <p style="color:#ccd;font-size:0.9rem;line-height:1.6;margin:0 0 0.5rem 0;">{treatment['description']}</p>
-        <span style="background:rgba(255,255,255,0.08);color:{sev_color};padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;">
+        <h3 style="margin:0 0 0.5rem 0;color:#1E2A22;">🔬 {treatment['disease']} — {treatment['plant']}</h3>
+        <p style="color:#47554B;font-size:0.9rem;line-height:1.6;margin:0 0 0.5rem 0;">{treatment['description']}</p>
+        <span style="background:rgba(30,42,34,0.08);color:{sev_color};padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;">
             Severity: {severity}</span>
     </div>
     """, unsafe_allow_html=True)
