@@ -104,8 +104,8 @@ class HyperparameterPipeline:
             best_params["best_val_accuracy"] = round(val_acc, 4)
             best_params["best_val_loss"] = round(val_loss, 4)
 
-            # Save search summary
-            tuner_summary = tuner.results_summary(num_trials=5)
+            # Print search summary (results_summary() prints and returns None)
+            tuner.results_summary(num_trials=5)
 
         except ImportError:
             logger.warning("keras-tuner not installed. Running manual grid search...")

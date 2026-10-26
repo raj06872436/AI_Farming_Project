@@ -354,10 +354,10 @@ def main():
 
     # Previous CPU results for comparison
     print("\n📊 Previous CPU Results (for comparison):")
-    print(f"  ResNet50:       99.50%  (already excellent — no retrain needed)")
-    print(f"  DenseNet121:    95.99%  → check new result above")
-    print(f"  EfficientNetB0: 95.80%  → check new result above")
-    print(f"  MobileNetV2:    91.63%")
+    print("  ResNet50:       99.50%  (already excellent — no retrain needed)")
+    print("  DenseNet121:    95.99%  → check new result above")
+    print("  EfficientNetB0: 95.80%  → check new result above")
+    print("  MobileNetV2:    91.63%")
 
 
 if __name__ == "__main__":

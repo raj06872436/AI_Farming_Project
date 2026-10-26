@@ -85,7 +85,8 @@ def _calc_water_balance_factor(monthly_rain, optimal_monthly_rain, irrigation=Tr
 
 def predict_yield(crop_name, area_acres, temperature, humidity, monthly_rainfall,
                   soil_quality=0.8, irrigation_access=True, elevation=None,
-                  sim_irr_bonus=0.0, sim_soc_boost=0.0, sim_shade_bonus=0.0):
+                  sim_irr_bonus=0.0, sim_soc_boost=0.0, sim_shade_bonus=0.0,
+                  sim_water_bonus=0.0):
     """
     Predict yield using non-linear agronomic modeling and factor decomposition.
     Returns metrics, factor breakdowns for waterfall visualization, and recommendations.
@@ -108,7 +109,8 @@ def predict_yield(crop_name, area_acres, temperature, humidity, monthly_rainfall
     # Non-linear factors (0.25 to 1.0)
     temp_factor = _calc_cardinal_temp_factor(eff_temp, t_min, opt_temp, t_max)
     humid_factor = _calc_humidity_vpd_factor(humidity, opt_humid)
-    rain_factor = _calc_water_balance_factor(monthly_rainfall, opt_rain, irrigation=irrigation_access)
+    rain_factor = _calc_water_balance_factor(monthly_rainfall + sim_water_bonus, opt_rain,
+                                             irrigation=irrigation_access)
 
     # Soil fertility factor
     adj_soil_q = min(1.0, soil_quality + sim_soc_boost)
@@ -119,7 +121,7 @@ def predict_yield(crop_name, area_acres, temperature, humidity, monthly_rainfall
     if elevation is not None:
         if crop_name in ["Rice", "Sugarcane"] and elevation > 1500:
             elev_factor = 0.72
-        elif crop_name in ["Wheat", "Potato", "Mustard"] and 400 < elevation < 1800:
+        elif crop_name in ["Wheat", "Potato", "Mustard"] and 400 < elevation < 2000:
             elev_factor = 1.05
 
     # Irrigation efficiency & Simulation modifier
@@ -144,12 +146,19 @@ def predict_yield(crop_name, area_acres, temperature, humidity, monthly_rainfall
 
     confidence = min(0.95, (temp_factor + humid_factor + rain_factor + adj_soil_q) / 4 * 0.9 + 0.08)
 
-    # Limiting factor loss decomposition (per acre)
-    loss_temp = round(base_potential * (1.0 - temp_factor) * 0.32, 2)
-    loss_humid = round(base_potential * (1.0 - humid_factor) * 0.18, 2)
-    loss_water = round(base_potential * (1.0 - rain_factor) * 0.25, 2)
-    loss_soil = round(base_potential * (1.0 - soil_factor) * 0.25, 2)
-    gain_irr = round(base_potential * (irr_factor - 1.0), 2) if irr_factor > 1.0 else 0.0
+    # Limiting-factor decomposition (per acre). Each factor is applied in turn to the
+    # running yield, so the bars of the waterfall chart add up exactly to the final yield.
+    running = base_potential
+    stage_losses = []
+    for factor, weight in ((temp_factor, 0.32), (humid_factor, 0.18),
+                           (rain_factor, 0.25), (soil_factor, 0.25)):
+        new_running = running * (factor ** weight)
+        stage_losses.append(running - new_running)
+        running = new_running
+    loss_temp, loss_humid, loss_water, loss_soil = (round(x, 2) for x in stage_losses)
+    # Whatever remains (irrigation boost, elevation, safety clamp) is the net adjustment
+    gain_irr = round(estimated_yield_per_acre - (base_potential - loss_temp - loss_humid
+                                                 - loss_water - loss_soil), 2)
 
     # Dynamic recommendations
     recs = []
@@ -255,7 +264,7 @@ def render_yield_waterfall_chart(result):
         name="Yield Factors",
         orientation="v",
         measure=["absolute", "relative", "relative", "relative", "relative", "relative", "total"],
-        x=["Potential Yield", "Thermal Stress", "Humidity / VPD", "Water Deficit", "Soil Fertility", "Irrigation Buffer", "Final Yield"],
+        x=["Potential Yield", "Thermal Stress", "Humidity / VPD", "Water Deficit", "Soil Fertility", "Irrigation & Terrain", "Final Yield"],
         textposition="outside",
         text=[
             f"{b['potential']:.2f} t",
@@ -263,7 +272,7 @@ def render_yield_waterfall_chart(result):
             f"-{b['loss_humid']:.2f} t" if b['loss_humid'] > 0 else "0",
             f"-{b['loss_water']:.2f} t" if b['loss_water'] > 0 else "0",
             f"-{b['loss_soil']:.2f} t" if b['loss_soil'] > 0 else "0",
-            f"+{b['gain_irr']:.2f} t" if b['gain_irr'] > 0 else "0",
+            f"{b['gain_irr']:+.2f} t" if b['gain_irr'] != 0 else "0",
             f"{b['final']:.2f} t"
         ],
         y=[
@@ -345,7 +354,8 @@ def render_scenario_simulator(crop, area, temp, humidity, monthly_rain, soil_qua
         # Map simulator choices to parameter boosts
         sim_irr_bonus = 0.18 if "Drip" in irr_method else (0.10 if "Sprinkler" in irr_method else 0.0)
         sim_soc_boost = 0.15 if "+15%" in soil_amend else (0.30 if "+30%" in soil_amend else 0.0)
-        sim_shade_bonus = 3.0 if "Shade Net" in micro_climate else (1.5 if "Mulch" in micro_climate else 0.0)
+        sim_shade_bonus = 3.0 if "Shade Net" in micro_climate else 0.0
+        sim_water_bonus = 15.0 if "Mulch" in micro_climate else 0.0  # mm/month retained
 
         # Baseline prediction
         base_res = predict_yield(
@@ -353,25 +363,29 @@ def render_scenario_simulator(crop, area, temp, humidity, monthly_rain, soil_qua
         )
         # Simulated prediction
         sim_res = predict_yield(
-            crop, area, temp, humidity, monthly_rain, soil_quality, True, elevation,
-            sim_irr_bonus=sim_irr_bonus, sim_soc_boost=sim_soc_boost, sim_shade_bonus=sim_shade_bonus
+            crop, area, temp, humidity, monthly_rain, soil_quality,
+            irrigation or sim_irr_bonus > 0, elevation,
+            sim_irr_bonus=sim_irr_bonus, sim_soc_boost=sim_soc_boost,
+            sim_shade_bonus=sim_shade_bonus, sim_water_bonus=sim_water_bonus,
         )
 
         if base_res and sim_res:
             diff_yield = sim_res["expected_yield"] - base_res["expected_yield"]
             diff_rev = sim_res["expected_revenue"] - base_res["expected_revenue"]
-            pct_gain = ((sim_res["expected_yield"] - base_res["expected_yield"]) / max(0.1, base_res["expected_yield"])) * 100
+            pct_gain = (diff_yield / max(0.1, base_res["expected_yield"])) * 100
+            gain_color = "#2ecc71" if diff_yield >= 0 else "#e74c3c"
+            rev_sign = "+" if diff_rev >= 0 else "−"
 
             st.markdown(f"""
             <div style="background:rgba(46,204,113,0.08);border:1px solid #2ecc71;border-radius:12px;padding:1rem;margin-top:0.8rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
                         <div style="font-size:0.8rem;color:#8899aa;text-transform:uppercase;">Simulated Total Yield</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:#2ecc71;">📦 {sim_res['expected_yield']:.1f} tonnes <span style="font-size:0.85rem;color:#2ecc71;">(+{diff_yield:.1f} t / +{pct_gain:.0f}%)</span></div>
+                        <div style="font-size:1.4rem;font-weight:800;color:#2ecc71;">📦 {sim_res['expected_yield']:.1f} tonnes <span style="font-size:0.85rem;color:{gain_color};">({diff_yield:+.1f} t / {pct_gain:+.0f}%)</span></div>
                     </div>
                     <div>
                         <div style="font-size:0.8rem;color:#8899aa;text-transform:uppercase;">Simulated Gross Revenue</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:#f39c12;">💰 ₹{sim_res['expected_revenue']:,} <span style="font-size:0.85rem;color:#2ecc71;">(+₹{diff_rev:,})</span></div>
+                        <div style="font-size:1.4rem;font-weight:800;color:#f39c12;">💰 ₹{sim_res['expected_revenue']:,} <span style="font-size:0.85rem;color:{gain_color};">({rev_sign}₹{abs(diff_rev):,})</span></div>
                     </div>
                     <div>
                         <div style="font-size:0.8rem;color:#8899aa;text-transform:uppercase;">Efficiency Rating</div>
@@ -396,6 +410,14 @@ def render_yield_page(location, weather_current, weather_raw):
     soil_quality, soil_breakdown = calculate_soil_quality(soil_data)
 
     rainfall_est, rainfall_conf, rainfall_method = estimate_annual_rainfall(location, weather_raw)
+
+    # Reuse the overrides the farmer set in the Crop Advisor (soil fertility, rainfall)
+    crop_params = st.session_state.get("crop_params", {})
+    if crop_params.get("soil_quality") is not None:
+        soil_quality = crop_params["soil_quality"]
+    if crop_params.get("rainfall"):
+        rainfall_est = crop_params["rainfall"]
+        rainfall_method = "Crop Advisor setting"
     monthly_rain = rainfall_est / 12
 
     # Metric strip
@@ -405,19 +427,19 @@ def render_yield_page(location, weather_current, weather_raw):
     m3.metric("🌧️ Est. Monthly Rain", f"{monthly_rain:.0f} mm")
     m4.metric("🧪 Soil Fertility", f"{soil_quality:.0%}")
 
-    # Crop selector
-    selected = st.session_state.get("selected_yield_crop")
+    # Crop selector — a crop picked via "Predict Yield" in the Crop Advisor is applied once.
+    # (Setting the widget's session key is required: Streamlit ignores `index` once the
+    # widget already exists.)
     crop_names = list(UNIFIED_CROP_DB.keys())
-    default_idx = 0
-    if selected and selected in crop_names:
-        default_idx = crop_names.index(selected)
+    selected = st.session_state.pop("selected_yield_crop", None)
+    if selected in crop_names:
+        st.session_state["yield_crop"] = selected
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        crop = st.selectbox("🌱 Select Crop", crop_names, index=default_idx, key="yield_crop")
+        crop = st.selectbox("🌱 Select Crop", crop_names, key="yield_crop")
     with col2:
-        crop_params = st.session_state.get("crop_params", {})
-        default_area = crop_params.get("acres", 5.0)
+        default_area = float(crop_params.get("acres", 5.0))
         area = st.number_input(
             "🏞️ Land Area (acres)", min_value=0.1, max_value=10000.0,
             value=default_area, step=0.5, key="yield_area",
@@ -425,30 +447,21 @@ def render_yield_page(location, weather_current, weather_raw):
     with col3:
         irrigation = st.checkbox("🚰 Irrigation Available", value=True, key="yield_irr")
 
-    # Auto-trigger if clicked from crop advisor
-    auto_trigger = st.session_state.get("yield_auto_trigger", False)
-    if auto_trigger:
-        st.session_state["yield_auto_trigger"] = False
-        with st.spinner("Calculating non-linear agronomic yield forecast..."):
-            result = predict_yield(
-                crop, area, temp, humidity, monthly_rain,
-                soil_quality, irrigation, elevation,
-            )
-            if result:
-                st.session_state["yield_result"] = result
-
+    # Once requested (button here, or "Predict Yield" in the Crop Advisor), the forecast is
+    # recomputed from the current inputs on every rerun, so it never goes stale when the
+    # crop, area, irrigation or location changes. The model is pure arithmetic — cheap.
+    if st.session_state.pop("yield_auto_trigger", False):
+        st.session_state["yield_active"] = True
     if st.button("📊 Calculate Detailed Yield Forecast", type="primary", use_container_width=True, key="btn_yield"):
-        with st.spinner("Calculating non-linear agronomic yield forecast..."):
-            result = predict_yield(
-                crop, area, temp, humidity, monthly_rain,
-                soil_quality, irrigation, elevation,
-            )
-        if result:
-            st.session_state["yield_result"] = result
-            if "selected_yield_crop" in st.session_state:
-                del st.session_state["selected_yield_crop"]
+        st.session_state["yield_active"] = True
 
-    result = st.session_state.get("yield_result")
+    result = None
+    if st.session_state.get("yield_active"):
+        result = predict_yield(
+            crop, area, temp, humidity, monthly_rain,
+            soil_quality, irrigation, elevation,
+        )
+        st.session_state["yield_result"] = result
     if result:
         render_yield_prediction(result)
 
@@ -475,5 +488,5 @@ def render_yield_page(location, weather_current, weather_raw):
         🌡️ Thermal Modeling: Open-Meteo API & Non-linear Cardinal Temperature Plateau
         🪨 Soil & Chemistry: {soil_src} (pH={soil_breakdown.get('ph_value', 6.5)}, SOC={soil_breakdown.get('soc_value', 10)} g/kg, AWHC={soil_breakdown.get('awhc_val', 140)} mm/m)
         🌧️ Water Balance: {rainfall_method} (~{rainfall_est} mm/yr → ~{monthly_rain:.0f} mm/mo)
-        ⛰️ Topography: {f'{elevation:.0f}m Elevation' if elevation else 'Standard Lowland'}
+        ⛰️ Topography: {f'{elevation:.0f}m Elevation' if elevation is not None else 'Standard Lowland'}
         """)

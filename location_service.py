@@ -4,6 +4,7 @@ Automatic geolocation via Browser GPS / IP + dual-depth soil analysis + AWHC + P
 """
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import pydeck as pdk
 
@@ -311,11 +312,7 @@ def detect_location():
             g_lon = float(params["gps_lon"])
             del st.query_params["gps_lat"]
             del st.query_params["gps_lon"]
-            rev = reverse_geocode(g_lat, g_lon) or {}
-            c_name = rev.get("city", "My Field")
-            s_name = rev.get("state", "Local Region")
-            ctry_name = rev.get("country", "India")
-            set_manual_location(g_lat, g_lon, c_name, s_name, ctry_name, source="gps")
+            _apply_gps_coordinates(g_lat, g_lon)
             return st.session_state["location"]
         except Exception:
             pass
@@ -525,69 +522,118 @@ def render_location_details(loc: dict):
             st.info("ISRIC Soil data unavailable for this location.")
 
 
+def _apply_gps_coordinates(lat: float, lon: float):
+    """Resolve GPS coordinates to a place name and make them the active farm location."""
+    lat, lon = round(float(lat), 4), round(float(lon), 4)
+    rev = reverse_geocode(lat, lon) or {}
+    set_manual_location(
+        lat, lon,
+        rev.get("city") or "My Field",
+        rev.get("state") or "",
+        rev.get("country") or "India",
+        source="gps",
+    )
+    st.session_state["weather_raw"] = None
+    st.session_state["weather_current"] = {}
+
+
 def render_browser_gps_button():
-    """Render a one-click browser GPS button using HTML5 navigator.geolocation."""
+    """
+    One-click device GPS.
+
+    Uses `streamlit-js-eval` to read navigator.geolocation and send the coordinates
+    straight back to Python (no page reload, session is kept). If that package is not
+    installed, falls back to a plain HTML button.
+    """
+    try:
+        from streamlit_js_eval import get_geolocation
+    except ImportError:
+        _render_gps_fallback_html()
+        return
+
+    if st.button("📍 Detect My Precise Device GPS (1-Click)", key="btn_device_gps",
+                 use_container_width=True):
+        st.session_state["_gps_pending"] = True
+        st.session_state["_gps_attempt"] = st.session_state.get("_gps_attempt", 0) + 1
+
+    if not st.session_state.get("_gps_pending"):
+        return
+
+    st.caption("⏳ Waiting for your browser — please allow location access in the popup.")
+    # A fresh key per attempt so a retry asks the browser again instead of reusing the last answer
+    result = get_geolocation(component_key=f"gps_geolocation_{st.session_state['_gps_attempt']}")
+    if not result:
+        return  # component still waiting for the browser
+
+    st.session_state["_gps_pending"] = False
+    coords = result.get("coords") if isinstance(result, dict) else None
+    if coords and coords.get("latitude") is not None:
+        _apply_gps_coordinates(coords["latitude"], coords["longitude"])
+        st.rerun()
+    else:
+        code = (result.get("error") or {}).get("code") if isinstance(result, dict) else None
+        if code == 1:
+            st.warning("⚠️ Location permission denied by the browser. Use the search below instead.")
+        else:
+            st.warning("⚠️ GPS signal unavailable. Use the search below instead.")
+
+
+def _render_gps_fallback_html():
+    """
+    GPS button for installs without streamlit-js-eval.
+
+    Streamlit sandboxes components in an iframe that may not navigate the main page, so we
+    try that first and otherwise open the app in a new tab with the coordinates attached
+    (detect_location() picks up ?gps_lat=&gps_lon=). The coordinates are also shown so they
+    can be typed into the "Enter Exact Coordinates" tab.
+    """
     gps_html = """
     <div style="margin: 0.5rem 0 1rem 0;">
         <button id="gps-btn" onclick="getLocation()" style="
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 14px rgba(46, 204, 113, 0.3);
-            transition: all 0.2s ease;
-        ">
+            background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none;
+            padding: 10px 18px; font-size: 0.95rem; font-weight: 700; border-radius: 10px;
+            cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(46, 204, 113, 0.3);">
             📍 Detect My Precise Device GPS (1-Click)
         </button>
         <p id="gps-status" style="font-size: 0.78rem; color: #8899aa; margin-top: 6px; text-align: center;"></p>
     </div>
-
     <script>
     function getLocation() {
         const btn = document.getElementById("gps-btn");
         const status = document.getElementById("gps-status");
-        if (navigator.geolocation) {
-            btn.innerHTML = "⏳ Acquiring GPS Satellites...";
-            status.innerText = "Please allow location access in your browser popup.";
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude.toFixed(4);
-                    const lon = position.coords.longitude.toFixed(4);
-                    const acc = Math.round(position.coords.accuracy);
-                    btn.innerHTML = "✅ GPS Found (±" + acc + "m)! Updating...";
-                    status.innerText = "Coordinates: " + lat + "°, " + lon + "° — applying to farm...";
-                    
-                    const currentUrl = new URL(window.parent.location.href);
-                    currentUrl.searchParams.set("gps_lat", lat);
-                    currentUrl.searchParams.set("gps_lon", lon);
-                    window.parent.location.href = currentUrl.toString();
-                },
-                function(error) {
-                    btn.innerHTML = "📍 Retry Device GPS";
-                    if (error.code == error.PERMISSION_DENIED) {
-                        status.innerText = "⚠️ Location permission denied by browser. Use search below.";
-                    } else {
-                        status.innerText = "⚠️ GPS signal unavailable. Use search below.";
-                    }
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
+        if (!navigator.geolocation) {
             status.innerText = "Geolocation is not supported by this browser.";
+            return;
         }
+        btn.innerHTML = "⏳ Acquiring GPS...";
+        status.innerText = "Please allow location access in your browser popup.";
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude.toFixed(4);
+                const lon = position.coords.longitude.toFixed(4);
+                btn.innerHTML = "✅ GPS Found (±" + Math.round(position.coords.accuracy) + "m)";
+                status.innerText = "Coordinates: " + lat + ", " + lon +
+                    " — enter these under 'Enter Exact Coordinates' if the page does not update.";
+                let target;
+                try { target = new URL(window.top.location.href); }
+                catch (e) { target = new URL(document.referrer || window.location.href); }
+                target.searchParams.set("gps_lat", lat);
+                target.searchParams.set("gps_lon", lon);
+                try { window.top.location.href = target.toString(); }
+                catch (e) { window.open(target.toString(), "_blank"); }
+            },
+            function(error) {
+                btn.innerHTML = "📍 Retry Device GPS";
+                status.innerText = error.code == error.PERMISSION_DENIED
+                    ? "⚠️ Location permission denied by browser. Use search below."
+                    : "⚠️ GPS signal unavailable. Use search below.";
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     }
     </script>
     """
-    st.components.v1.html(gps_html, height=80)
+    components.html(gps_html, height=90)
 
 
 def render_location_override_form():
