@@ -51,8 +51,15 @@ class LesionGatedPool(layers.Layer):
         probs = tf.cast(probs, tf.float32)
         if self.detach_gate:
             probs = tf.stop_gradient(probs)
-        size = tf.shape(feats)[1:3]
-        probs = tf.image.resize(probs, size, method="area")
+        # Shrink the 56x56 seg map to the 14x14 feature grid by averaging 4x4 blocks.
+        # (Same result as an "area" resize, but avg-pool also works under XLA on GPU.)
+        fh, ph = feats.shape[1], probs.shape[1]
+        if fh and ph and ph % fh == 0:
+            if ph != fh:
+                k = ph // fh
+                probs = tf.nn.avg_pool2d(probs, ksize=k, strides=k, padding="VALID")
+        else:
+            probs = tf.image.resize(probs, tf.shape(feats)[1:3], method="bilinear")
         lesion = probs[..., 2:3]
         leaf = probs[..., 1:2] + lesion
         def pool(w):
