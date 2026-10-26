@@ -2,9 +2,9 @@
 
 > **An end-to-end, research-grade framework combining transfer learning, explainable AI (Grad-CAM), and smart agricultural decision support for automated plant disease identification.**
 
-[![Python 3.13+](https://img.shields.io/badge/Python-3.13+-3776AB?logo=python&logoColor=white)](#)
-[![TensorFlow 2.21+](https://img.shields.io/badge/TensorFlow-2.21+-FF6F00?logo=tensorflow&logoColor=white)](#)
-[![Streamlit 1.55+](https://img.shields.io/badge/Streamlit-1.55+-FF4B4B?logo=streamlit&logoColor=white)](#)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](#)
+[![TensorFlow 2.18+](https://img.shields.io/badge/TensorFlow-2.18+-FF6F00?logo=tensorflow&logoColor=white)](#)
+[![Streamlit 1.57+](https://img.shields.io/badge/Streamlit-1.57+-FF4B4B?logo=streamlit&logoColor=white)](#)
 [![License: Research](https://img.shields.io/badge/License-Research%20%26%20Education-green)](#)
 
 ---
@@ -52,6 +52,11 @@ AGRI-X AI is a comprehensive deep learning framework that addresses the critical
 | 📈 **Interactive Dashboard** | Professional Streamlit app with model comparison, prediction, and research views |
 | ⚙️ **Hyperparameter Tuning** | Keras Tuner integration for automated hyperparameter optimization |
 | 🏗️ **Modular Architecture** | Clean separation of concerns: config → data → models → evaluation → visualization |
+| 📍 **Location Intelligence** | Device GPS, city/village search or exact coordinates; elevation + ISRIC SoilGrids soil profile |
+| 🌦️ **Weather & Risk** | Open-Meteo current/7-day forecast, farm weather alerts, disease risk scoring |
+| 🌾 **Crop Advisor** | Season, climate and soil-based crop ranking with revenue, profit, rotation & companion crops |
+| 📦 **Yield Prediction** | Non-linear yield model, limiting-factor waterfall chart and a "what-if" intervention simulator |
+| 🤖 **Farmer Assistant** | Rule-based chatbot that uses the latest diagnosis, weather and location |
 
 ---
 
@@ -130,8 +135,18 @@ AI_Farming_Project_Final/
 │       ├── helpers.py                # Seed, Timer, JSON/CSV I/O
 │       └── recommendations.py        # Rule-based agricultural recommendation engine
 │
-├── app.py                            # Streamlit dashboard (4 pages)
+├── app.py                            # Streamlit dashboard (7 pages)
 ├── app_utils.py                      # Dashboard CSS & helper functions
+├── location_service.py               # GPS / IP / manual location, elevation, SoilGrids soil data
+├── weather_service.py                # Open-Meteo weather + forecast cards
+├── risk_engine.py                    # Weather-driven disease risk scoring
+├── treatment_engine.py               # Treatment plans per disease
+├── crop_advisor.py                   # Crop database, crop ranking, revenue/profit forecast
+├── yield_predictor.py                # Yield model, waterfall chart, what-if simulator
+├── insights_engine.py                # Seasonal insights & crop yield potential
+├── farmer_chatbot.py                 # Farmer Assistant chatbot
+├── disease_heatmap.py                # Leaf segmentation + lesion heatmap pipeline
+├── report_generator.py               # Downloadable diagnosis reports
 ├── train.py                          # CLI: python train.py
 ├── evaluate.py                       # CLI: python evaluate.py
 │
@@ -159,7 +174,8 @@ AI_Farming_Project_Final/
 
 ### Prerequisites
 
-- **Python 3.10+** (tested with Python 3.13.11)
+- **Python 3.11+** (tested with Python 3.11 on Windows)
+- **Git LFS** — the ResNet50 weights in `saved_models/` are stored with Git LFS (`git lfs install` before cloning)
 - **pip** package manager
 - **8GB+ RAM** recommended for training
 - **GPU (optional)**: CUDA-compatible GPU for faster training
@@ -274,10 +290,10 @@ print(f"Recommendation: {result['recommendation']}")
 
 | Architecture | Accuracy | Parameters | Size | Inference | Key Innovation |
 |-------------|----------|-----------|------|-----------|---------------|
-| **MobileNetV2** | 91.63% | 2.6M | 27.6 MB | 64.9 ms | Depthwise separable convolutions, inverted residuals |
-| **ResNet50** | 99.50% | 24.8M | 259.2 MB | 106.8 ms | Skip connections for deep residual learning |
-| **EfficientNetB0** | 95.80% | 4.4M | 31.5 MB | 83.1 ms | Compound scaling (depth × width × resolution) |
-| **DenseNet121** | 95.99% | 7.3M | 38.1 MB | 122.6 ms | Dense connectivity for feature reuse |
+| **MobileNetV2** | 91.63% | 2.6M | 27.6 MB | 62.7 ms | Depthwise separable convolutions, inverted residuals |
+| **ResNet50** | 99.50% | 24.8M | 259.2 MB | 135.7 ms | Skip connections for deep residual learning |
+| **EfficientNetB0** | 95.80% | 4.4M | 31.5 MB | 102.9 ms | Compound scaling (depth × width × resolution) |
+| **DenseNet121** | 95.99% | 7.3M | 38.1 MB | 146.7 ms | Dense connectivity for feature reuse |
 | **ViT** (optional) | — | ~6M | ~24 MB | ~50 ms | Self-attention mechanism for global context |
 
 ### Transfer Learning Pipeline
@@ -349,7 +365,15 @@ Dense(15, Softmax) → Output Predictions
 
 ## 🖥️ Streamlit Dashboard
 
-The dashboard features 4 interactive pages:
+The dashboard has 7 pages: 🏠 Home, 🔬 Disease Detection, 🌾 Crop Advisor, 🤖 Farmer Assistant,
+📊 Research Dashboard, 📈 Model Comparison and 📋 Reports & About. The main ones:
+
+### 🌾 Crop Advisor
+- Location tab: one-click device GPS, city/village search or exact coordinates
+- Live weather, 7-day forecast and agricultural weather alerts
+- Terrain & soil profile (elevation, texture, pH, organic carbon, water-holding capacity)
+- Ranked crop recommendations with revenue/profit estimates, rotation and companion crops
+- Yield forecast with a limiting-factor waterfall chart and a "what-if" simulator
 
 ### 🔬 Disease Detection
 - Upload leaf image for AI-powered diagnosis
@@ -427,12 +451,14 @@ After training, the following results were achieved on the PlantVillage test set
 
 | Model | Accuracy | Precision | Recall | F1 Score | AUC | Inference (ms) | Size (MB) |
 |-------|----------|-----------|--------|----------|-----|---------------|-----------|
-| **MobileNetV2** | 91.63% | 91.50% | 91.63% | 91.48% | 98.90% | 64.9 | 27.6 |
-| **ResNet50** | 99.50% | 99.50% | 99.50% | 99.50% | 99.99% | 106.8 | 259.2 |
-| **EfficientNetB0** | 95.80% | 95.98% | 95.80% | 95.82% | 99.91% | 83.1 | 31.5 |
-| **DenseNet121** | 95.99% | 96.14% | 95.99% | 96.01% | 99.92% | 122.6 | 38.1 |
+| **MobileNetV2** | 91.63% | 92.06% | 91.63% | 91.61% | 99.68% | 62.7 | 27.6 |
+| **ResNet50** | 99.50% | 99.50% | 99.50% | 99.50% | 99.99% | 135.7 | 259.2 |
+| **EfficientNetB0** | 95.80% | 95.98% | 95.80% | 95.82% | 99.91% | 102.9 | 31.5 |
+| **DenseNet121** | 95.99% | 96.14% | 95.99% | 96.01% | 99.92% | 146.7 | 38.1 |
 
-> **Best Model:** ResNet50 achieves 99.50% accuracy with the highest F1 score, at the cost of larger model size (259.2 MB). For mobile/edge deployment, MobileNetV2 offers the best speed (64.9 ms) with 91.63% accuracy.
+*Source: `reports/metrics/model_comparison.csv`.*
+
+> **Best Model:** ResNet50 achieves 99.50% accuracy with the highest F1 score, at the cost of larger model size (259.2 MB). For mobile/edge deployment, MobileNetV2 offers the best speed (62.7 ms) with 91.63% accuracy.
 
 ### Output Locations
 

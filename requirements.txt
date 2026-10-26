@@ -1,14 +1,15 @@
 # ==============================================================================
-# AI Agriculture Project — Plant Disease Detection Framework
+# AGRI-X AI — Plant Disease Detection & Agricultural Intelligence Platform
 # Requirements File
+# Tested with Python 3.11 (Windows), TensorFlow 2.18, Streamlit 1.57
 # ==============================================================================
 
 # ── Core Deep Learning ──
-tensorflow>=2.15.0
-keras-tuner>=1.4.0
+tensorflow>=2.18.0
+keras-tuner>=1.4.0          # only needed for the hyperparameter tuning pipeline
 
 # ── Data Science ──
-numpy>=1.24.0
+numpy>=2.0.0
 pandas>=2.0.0
 scipy>=1.11.0
 
@@ -25,7 +26,12 @@ seaborn>=0.12.0
 plotly>=5.15.0
 
 # ── Web Dashboard ──
-streamlit>=1.28.0
+streamlit>=1.57.0
+pydeck>=0.9.0               # location map
+streamlit-js-eval>=1.0.0    # one-click device GPS (falls back to an HTML button if missing)
+
+# ── Reports ──
+python-docx>=1.1.0          # generate_*_doc.py / generate_xai_report.py (.docx reports)
 
 # ── Utilities ──
 python-dotenv>=1.0.0

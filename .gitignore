@@ -55,6 +55,11 @@ logs/
 *.tmp
 *.bak
 train_remaining.py
+temp_cuda_dl/
+*.whl
+
+# ── Office lock files (created while a .docx is open in Word) ──
+~$*
 
 # ── Jupyter ──
 .ipynb_checkpoints/
