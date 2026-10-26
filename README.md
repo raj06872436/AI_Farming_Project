@@ -54,7 +54,7 @@ AGRI-X AI is a comprehensive deep learning framework that addresses the critical
 | 🏗️ **Modular Architecture** | Clean separation of concerns: config → data → models → evaluation → visualization |
 | 📍 **Location Intelligence** | Device GPS, city/village search or exact coordinates; elevation + ISRIC SoilGrids soil profile |
 | 🌦️ **Weather & Risk** | Open-Meteo current/7-day forecast, farm weather alerts, disease risk scoring |
-| 🌾 **Crop Advisor** | Season, climate and soil-based crop ranking with revenue, profit, rotation & companion crops |
+| 🌾 **Crop Advisor** | 40 crops ranked against your growing-season climate, soil type & pH, water and region — with MSP-aware profit estimates |
 | 📦 **Yield Prediction** | Non-linear yield model, limiting-factor waterfall chart and a "what-if" intervention simulator |
 | 🤖 **Farmer Assistant** | Rule-based chatbot that uses the latest diagnosis, weather and location |
 
@@ -146,7 +146,11 @@ AI_Farming_Project_Final/
 ├── yield_predictor.py                # Yield model, waterfall chart, what-if simulator
 ├── insights_engine.py                # Seasonal insights & crop yield potential
 ├── farmer_chatbot.py                 # Farmer Assistant chatbot
-├── disease_heatmap.py                # Leaf segmentation + lesion heatmap pipeline
+├── disease_heatmap.py                # Grad-CAM++ "where the model looked" heatmaps
+├── lesion_segmentation.py            # Measures diseased leaf area pixel-by-pixel (leaf + lesion segmentation)
+├── crop_database.py                  # 40 Indian crops: needs, yields, costs, MSP 2026-27 / 2027-28
+├── india_agro_data.py                # Soil & climate profiles for every state/UT + 45 agro-climatic regions
+├── climate_service.py                # 5-year local climate normals (ERA5 via Open-Meteo) with regional fallback
 ├── report_generator.py               # Downloadable diagnosis reports
 ├── train.py                          # CLI: python train.py
 ├── evaluate.py                       # CLI: python evaluate.py

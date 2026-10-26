@@ -8,27 +8,31 @@ from datetime import datetime
 
 def _get_season_info():
     """Determine current season and related agricultural info."""
-    month = datetime.now().month
-    if month in [6, 7, 8, 9, 10]:
+    # Same "season you are planning for" as the Crop Advisor, so pages never disagree
+    from crop_advisor import _get_current_season
+    season = _get_current_season()
+    if season == "Kharif":
         return {
             "season": "Kharif", "period": "June – October",
             "icon": "🌧️", "color": "#2563A8",
-            "description": "Monsoon season. Ideal for rain-fed crops like rice, maize, cotton, soybean.",
-            "suitable_crops": ["Rice", "Maize", "Cotton", "Soybean", "Groundnut", "Chilli", "Tomato", "Bell Pepper"],
+            "description": "Monsoon season. Ideal for rain-fed crops like rice, maize, cotton, soybean and pulses.",
+            "suitable_crops": ["Rice", "Maize", "Cotton", "Soybean", "Groundnut", "Tur (Arhar)", "Bajra", "Jowar",
+                               "Chilli", "Tomato"],
         }
-    elif month in [11, 12, 1, 2, 3]:
+    elif season == "Rabi":
         return {
             "season": "Rabi", "period": "November – March",
             "icon": "❄️", "color": "#2E7D32",
-            "description": "Winter season. Cool and dry — ideal for wheat, mustard, potato, onion.",
-            "suitable_crops": ["Wheat", "Mustard", "Potato", "Onion", "Tomato", "Bell Pepper", "Sugarcane"],
+            "description": "Winter season. Cool and dry — ideal for wheat, chickpea, mustard, potato and onion.",
+            "suitable_crops": ["Wheat", "Chickpea", "Mustard", "Potato", "Onion", "Lentil (Masur)", "Garlic",
+                               "Coriander", "Tomato", "Cauliflower"],
         }
     else:
         return {
-            "season": "Zaid", "period": "April – May",
+            "season": "Zaid", "period": "March – June",
             "icon": "☀️", "color": "#B45309",
             "description": "Summer season. Short-duration crops with irrigation support.",
-            "suitable_crops": ["Tomato", "Bell Pepper", "Onion", "Sugarcane"],
+            "suitable_crops": ["Moong", "Watermelon", "Maize", "Okra (Bhindi)", "Sunflower", "Tomato", "Bajra"],
         }
 
 
@@ -222,34 +226,17 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
     # Yield potential — uses unified crop database and full location data
     st.markdown("### 📊 Crop Yield Potential")
     if weather_current:
-        temp = weather_current.get("temperature", 25)
-        humidity = weather_current.get("humidity", 60)
-        from crop_advisor import UNIFIED_CROP_DB, calculate_soil_quality, estimate_annual_rainfall
-        from yield_predictor import predict_yield
+        # Same scoring as the Crop Advisor (season climate, soil, pH, region) — rainfed,
+        # so it shows how well each crop suits the land without extra water.
+        from crop_advisor import UNIFIED_CROP_DB, build_context, score_crop
 
-        # Get soil quality from location
-        soil_data = location.get("soil_data") if location else None
-        soil_quality, _ = calculate_soil_quality(soil_data)
-        soil_type = location.get("soil_type", "Loamy") if location else "Loamy"
-        elevation = location.get("elevation") if location else None
-        annual_rain, _, _ = estimate_annual_rainfall(location, None)
-        monthly_rain = annual_rain / 12
-
+        ctx = build_context(location, season_info["season"], irrigation=False)
         potentials = []
-        for name, crop in UNIFIED_CROP_DB.items():
-            if name in season_info["suitable_crops"]:
-                # Same agronomic model as the Yield Prediction engine, so both views agree.
-                # Rainfed (no irrigation) so the score reflects natural suitability and
-                # doesn't saturate at 100% for every crop.
-                res = predict_yield(name, 1.0, temp, humidity, monthly_rain,
-                                    soil_quality, False, elevation)
-                env = min(1.0, res["env_factor"]) if res else 0.5
-                soil_match = 1.0 if any(
-                    s.lower() in soil_type.lower() or soil_type.lower() in s.lower()
-                    for s in crop.get("soil", [])
-                ) else 0.5
-                overall = env * 0.8 + soil_match * 0.2
-                potentials.append((name, crop["icon"], overall))
+        for name in season_info["suitable_crops"]:
+            crop = UNIFIED_CROP_DB.get(name)
+            if crop:
+                score, _, _ = score_crop(name, crop, ctx)
+                potentials.append((name, crop["icon"], score / 100))
         potentials.sort(key=lambda x: x[2], reverse=True)
 
         if potentials:
@@ -263,7 +250,7 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
                         <div style="font-size:1.8rem;">{icon}</div>
                         <div style="font-size:0.9rem;font-weight:600;color:#1E2A22;margin:0.3rem 0;">{name}</div>
                         <div style="font-size:1.2rem;font-weight:800;color:{color};">{sc:.0f}%</div>
-                        <div style="font-size:0.7rem;color:#6B776E;">Rainfed suitability</div>
+                        <div style="font-size:0.7rem;color:#6B776E;">Rainfed match</div>
                     </div>
                     """, unsafe_allow_html=True)
 

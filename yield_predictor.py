@@ -8,9 +8,8 @@ import theme  # registers the light "agrix" Plotly template
 import numpy as np
 from datetime import datetime, timedelta
 
-from crop_advisor import (
-    UNIFIED_CROP_DB, calculate_soil_quality, estimate_annual_rainfall,
-)
+from crop_advisor import UNIFIED_CROP_DB, calculate_soil_quality
+from climate_service import SEASON_LABEL, get_climate_normals, season_window
 
 
 def _calc_weather_factor(value, optimal_range):
@@ -405,32 +404,17 @@ def render_yield_page(location, weather_current, weather_raw):
                 '<span>How much you can expect to harvest — and what holds it back</span></div>',
                 unsafe_allow_html=True)
 
-    temp = weather_current.get("temperature", 25) if weather_current else 25
     humidity = weather_current.get("humidity", 60) if weather_current else 60
     elevation = location.get("elevation") if location else None
+    normals = get_climate_normals(location)
 
     soil_data = location.get("soil_data") if location else None
     soil_quality, soil_breakdown = calculate_soil_quality(soil_data)
 
-    rainfall_est, rainfall_conf, rainfall_method = estimate_annual_rainfall(location, weather_raw)
-
-    # Reuse the overrides the farmer set in the Crop Advisor (soil fertility, rainfall)
+    # Reuse the soil fertility the farmer set in the Crop Advisor
     crop_params = st.session_state.get("crop_params", {})
     if crop_params.get("soil_quality") is not None:
         soil_quality = crop_params["soil_quality"]
-    if crop_params.get("rainfall"):
-        rainfall_est = crop_params["rainfall"]
-        rainfall_method = "Crop Advisor setting"
-    monthly_rain = rainfall_est / 12
-
-    # Inputs the model uses (compact)
-    st.markdown(
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0.8rem;">'
-        f'<span class="chip chip-gray">🌡️ {temp:.1f}°C</span>'
-        f'<span class="chip chip-gray">💧 {humidity:.0f}% humidity</span>'
-        f'<span class="chip chip-sky">🌧️ ~{monthly_rain:.0f} mm rain / month</span>'
-        f'<span class="chip chip-green">🧪 Soil fertility {soil_quality:.0%}</span>'
-        '</div>', unsafe_allow_html=True)
 
     # Crop selector — a crop picked via "Predict Yield" in the Crop Advisor is applied once.
     # (Setting the widget's session key is required: Streamlit ignores `index` once the
@@ -454,6 +438,26 @@ def render_yield_page(location, weather_current, weather_raw):
             st.write("")
             st.write("")
             irrigation = st.checkbox("🚰 Irrigation available", value=True, key="yield_irr")
+
+    # The yield depends on the weather of the crop's own growing season (5-year normals),
+    # not on today's temperature.
+    crop_info = UNIFIED_CROP_DB[crop]
+    if "Perennial" in crop_info["season"]:
+        season = "Perennial"
+    else:
+        wanted = crop_params.get("season")
+        season = wanted if wanted in crop_info["season"] else crop_info["season"][0]
+    window = season_window(normals, season, crop_info["duration_days"])
+    temp = window["mean_temp"]
+    monthly_rain = window["monthly_rain"]
+    st.markdown(
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0.8rem;">'
+        f'<span class="chip chip-sky">🗓️ {season} season ({SEASON_LABEL[season]})</span>'
+        f'<span class="chip chip-gray">🌡️ ~{temp:.1f}°C season average</span>'
+        f'<span class="chip chip-gray">🌧️ ~{monthly_rain:.0f} mm rain / month</span>'
+        f'<span class="chip chip-gray">💧 {humidity:.0f}% humidity now</span>'
+        f'<span class="chip chip-green">🧪 Soil fertility {soil_quality:.0%}</span>'
+        '</div>', unsafe_allow_html=True)
 
     # Once requested (button here, or "Predict Yield" in the Crop Advisor), the forecast is
     # recomputed from the current inputs on every rerun, so it never goes stale when the
@@ -491,10 +495,10 @@ def render_yield_page(location, weather_current, weather_raw):
         # Data Sources
         st.markdown("---")
         st.markdown("##### 📡 Live Data Diagnostics")
-        soil_src = "ISRIC SoilGrids 2.0 (Dual Depth)" if soil_data else "Regional Agronomic Baseline"
+        soil_src = ("ISRIC SoilGrids (measured)" if soil_breakdown.get("source") == "soilgrids"
+                    else f"Typical soil for {location.get('agro_region', 'your region') if location else 'your region'}")
         st.caption(f"""
-        🌡️ Thermal Modeling: Open-Meteo API & Non-linear Cardinal Temperature Plateau
-        🪨 Soil & Chemistry: {soil_src} (pH={soil_breakdown.get('ph_value', 6.5)}, SOC={soil_breakdown.get('soc_value', 10)} g/kg, AWHC={soil_breakdown.get('awhc_val', 140)} mm/m)
-        🌧️ Water Balance: {rainfall_method} (~{rainfall_est} mm/yr → ~{monthly_rain:.0f} mm/mo)
-        ⛰️ Topography: {f'{elevation:.0f}m Elevation' if elevation is not None else 'Standard Lowland'}
+        🌡️ Climate: {normals['source']} — {season} average ~{temp:.1f}°C, ~{window['rain']} mm rain over the season
+        🪨 Soil: {soil_src} (pH {soil_breakdown.get('ph_value', 6.5)}, organic carbon {soil_breakdown.get('soc_value', 10)} g/kg, water-holding {soil_breakdown.get('awhc_val', 140)} mm/m)
+        ⛰️ Altitude: {f'{elevation:.0f} m' if elevation is not None else 'unknown'}
         """)

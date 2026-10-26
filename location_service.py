@@ -8,6 +8,8 @@ import streamlit.components.v1 as components
 import pandas as pd
 import pydeck as pdk
 
+from india_agro_data import find_profile, regional_soil_data
+
 # ── Default fallback location (New Delhi, India) ──
 DEFAULT_LOCATION = {
     "latitude": 28.6139,
@@ -102,37 +104,55 @@ def forward_geocode(query: str) -> list:
     Convert a city/place name to latitude/longitude using Nominatim.
     Returns a list of matching results (up to 5).
     """
+    import math
+
+    kind_names = {
+        "city": "City", "town": "Town", "village": "Village", "hamlet": "Village",
+        "suburb": "Locality", "neighbourhood": "Locality", "quarter": "Locality",
+        "county": "Taluka / Tehsil", "municipality": "Town", "state_district": "District",
+        "district": "District", "administrative": "Area", "state": "State",
+    }
     results = []
     try:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "json", "addressdetails": 1, "limit": 5},
+            params={"q": query, "format": "json", "addressdetails": 1, "limit": 10,
+                    "accept-language": "en"},
             headers={"User-Agent": "AGRI-X-AI/3.0 (Agricultural Research Platform)"},
             timeout=8,
         )
         data = resp.json()
-        for item in data:
-            addr = item.get("address", {})
-            city = (
-                addr.get("city")
-                or addr.get("town")
-                or addr.get("village")
-                or addr.get("county")
-                or addr.get("state_district")
-                or query.title()
-            )
-            state = addr.get("state", addr.get("region", ""))
-            country = addr.get("country", "")
-            results.append({
-                "latitude": float(item["lat"]),
-                "longitude": float(item["lon"]),
-                "display_name": item.get("display_name", ""),
-                "city": city,
-                "state": state,
-                "country": country,
-            })
     except Exception:
-        pass
+        return results
+
+    def _km(a, b):
+        dlat = math.radians(b["latitude"] - a["latitude"])
+        dlon = math.radians(b["longitude"] - a["longitude"]) * math.cos(math.radians(a["latitude"]))
+        return 6371 * math.hypot(dlat, dlon)
+
+    for item in data:
+        addr = item.get("address", {})
+        place = (addr.get("city") or addr.get("town") or addr.get("village") or addr.get("hamlet")
+                 or addr.get("suburb") or addr.get("county") or addr.get("state_district")
+                 or item.get("name") or query.title())
+        kind_key = item.get("addresstype") or item.get("type") or ""
+        entry = {
+            "latitude": float(item["lat"]),
+            "longitude": float(item["lon"]),
+            "display_name": item.get("display_name", ""),
+            "city": place,
+            "district": addr.get("state_district") or addr.get("county") or "",
+            "state": addr.get("state", addr.get("region", "")),
+            "country": addr.get("country", ""),
+            "kind": kind_names.get(kind_key, kind_key.replace("_", " ").title() or "Place"),
+        }
+        # Nominatim often returns the same town several times (city, its boundary,
+        # its taluka...). Merge results that are the same place within ~8 km.
+        if any(r["city"].lower() == entry["city"].lower() and _km(r, entry) < 8 for r in results):
+            continue
+        results.append(entry)
+        if len(results) >= 6:
+            break
     return results
 
 
@@ -163,80 +183,116 @@ def _calc_awhc(clay: float, sand: float, silt: float, soc: float) -> float:
     return round(awhc_pct * 10, 1)
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_soil_data(lat: float, lon: float) -> dict:
+def _query_soilgrids(lat: float, lon: float):
     """
-    Get dual-depth soil properties (0-5cm topsoil and 15-30cm subsoil)
-    from ISRIC SoilGrids REST API.
+    One SoilGrids request. Returns (data, status) where status is
+    "ok", "empty" (service answered but has no data here, e.g. a city centre)
+    or "error" (service down / timed out).
     """
     try:
         resp = requests.get(
             "https://rest.isric.org/soilgrids/v2.0/properties/query",
             params={
-                "lon": lon, "lat": lat,
-                "property": "clay,sand,silt,phh2o,soc,bdod",
-                "depth": "0-5cm,15-30cm",
+                "lon": round(lon, 4), "lat": round(lat, 4),
+                "property": ["clay", "sand", "silt", "phh2o", "soc", "bdod", "nitrogen", "cec"],
+                "depth": ["0-5cm", "15-30cm"],
                 "value": "mean",
             },
             headers={"Accept": "application/json"},
             timeout=10,
         )
-        data = resp.json()
-        layers = data.get("properties", {}).get("layers", [])
-        if not layers:
-            return None
-
-        result = {
-            "topsoil": {},   # 0-5 cm
-            "subsoil": {},   # 15-30 cm
-        }
-
-        for layer in layers:
-            name = layer.get("name", "")
-            depths = layer.get("depths", [])
-            for d in depths:
-                d_label = d.get("label", "")
-                val = d.get("values", {}).get("mean", None)
-                if val is None:
-                    continue
-
-                target_dict = result["topsoil"] if "0-5" in d_label else result["subsoil"]
-
-                if name in ("clay", "sand", "silt"):
-                    target_dict[name] = {"value": round(val / 10.0, 1), "unit": "%"}
-                elif name == "phh2o":
-                    target_dict["ph"] = {"value": round(val / 10.0, 2), "unit": ""}
-                elif name == "soc":
-                    target_dict["organic_carbon"] = {"value": round(val / 10.0, 2), "unit": "g/kg"}
-                elif name == "bdod":  # bulk density (cg/cm3 -> g/cm3)
-                    target_dict["bulk_density"] = {"value": round(val / 100.0, 2), "unit": "g/cm³"}
-
-        # Backwards compatibility flat values mapped from topsoil
-        top = result.get("topsoil", {})
-        if top:
-            for k, v in top.items():
-                result[k] = v
-
-        # Calculate AWHC (Available Water Capacity) for topsoil and subsoil
-        c_top = top.get("clay", {}).get("value", 25)
-        s_top = top.get("sand", {}).get("value", 40)
-        si_top = top.get("silt", {}).get("value", 35)
-        soc_top = top.get("organic_carbon", {}).get("value", 10)
-        result["awhc_topsoil"] = _calc_awhc(c_top, s_top, si_top, soc_top)
-
-        sub = result.get("subsoil", {})
-        if sub:
-            c_sub = sub.get("clay", {}).get("value", c_top)
-            s_sub = sub.get("sand", {}).get("value", s_top)
-            si_sub = sub.get("silt", {}).get("value", si_top)
-            soc_sub = sub.get("organic_carbon", {}).get("value", max(2, soc_top * 0.5))
-            result["awhc_subsoil"] = _calc_awhc(c_sub, s_sub, si_sub, soc_sub)
-        else:
-            result["awhc_subsoil"] = result["awhc_topsoil"]
-
-        return result if (result.get("clay") or top.get("clay")) else None
+        if resp.status_code != 200:
+            return None, "error"
+        layers = resp.json().get("properties", {}).get("layers", [])
     except Exception:
+        return None, "error"
+
+    result = {"topsoil": {}, "subsoil": {}}
+    for layer in layers:
+        name = layer.get("name", "")
+        for d in layer.get("depths", []):
+            val = d.get("values", {}).get("mean")
+            if val is None:
+                continue
+            target = result["topsoil"] if "0-5" in d.get("label", "") else result["subsoil"]
+            if name in ("clay", "sand", "silt"):
+                target[name] = {"value": round(val / 10.0, 1), "unit": "%"}                 # g/kg → %
+            elif name == "phh2o":
+                target["ph"] = {"value": round(val / 10.0, 2), "unit": ""}                 # pH×10 → pH
+            elif name == "soc":
+                target["organic_carbon"] = {"value": round(val / 10.0, 2), "unit": "g/kg"}  # dg/kg → g/kg
+            elif name == "bdod":
+                target["bulk_density"] = {"value": round(val / 100.0, 2), "unit": "g/cm³"}  # cg/cm³ → g/cm³
+            elif name == "nitrogen":
+                target["nitrogen"] = {"value": round(val / 100.0, 2), "unit": "g/kg"}       # cg/kg → g/kg
+            elif name == "cec":
+                target["cec"] = {"value": round(val / 10.0, 1), "unit": "cmol/kg"}          # mmol/kg → cmol/kg
+    if not result["topsoil"].get("clay"):
+        return None, "empty"
+    return result, "ok"
+
+
+def _finish_soil(result):
+    """Add flat top-soil keys and water-holding capacity to a soil dict."""
+    top = result.get("topsoil", {})
+    for k, v in top.items():
+        result.setdefault(k, v)
+    c_top = top.get("clay", {}).get("value", 25)
+    s_top = top.get("sand", {}).get("value", 40)
+    si_top = top.get("silt", {}).get("value", 35)
+    soc_top = top.get("organic_carbon", {}).get("value", 10)
+    result["awhc_topsoil"] = _calc_awhc(c_top, s_top, si_top, soc_top)
+    sub = result.get("subsoil", {})
+    if sub:
+        result["awhc_subsoil"] = _calc_awhc(
+            sub.get("clay", {}).get("value", c_top), sub.get("sand", {}).get("value", s_top),
+            sub.get("silt", {}).get("value", si_top), sub.get("organic_carbon", {}).get("value", max(2, soc_top * 0.5)))
+    else:
+        result["awhc_subsoil"] = result["awhc_topsoil"]
+    return result
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_soil_data(lat: float, lon: float) -> dict:
+    """
+    Live dual-depth soil properties (0–5 cm and 15–30 cm) from ISRIC SoilGrids.
+    SoilGrids has no data for built-up areas, so if the exact point is empty we
+    sample farmland a few km around it. Returns None if the service is unavailable.
+    """
+    data, status = _query_soilgrids(lat, lon)
+    if status == "empty":
+        for dlat, dlon in ((0.03, 0), (-0.03, 0), (0, 0.03), (0, -0.03), (0.06, 0.06), (-0.06, -0.06)):
+            data, status = _query_soilgrids(lat + dlat, lon + dlon)
+            if status != "empty":
+                break
+    if not data:
         return None
+    data = _finish_soil(data)
+    data["source"] = "soilgrids"
+    return data
+
+
+def _attach_soil(loc: dict) -> dict:
+    """
+    Add soil + agro-region information to a location dict:
+    live SoilGrids data when available, otherwise the region's typical soil
+    (from india_agro_data) — never a blind "Loamy" guess.
+    """
+    profile = find_profile(loc)
+    soil = get_soil_data(loc["latitude"], loc["longitude"])
+    if not soil:
+        soil = _finish_soil(regional_soil_data(profile))
+        soil["source"] = "regional"
+    loc["soil_data"] = soil
+    loc["soil_type"] = _classify_soil(soil)
+    loc["soil_group"] = profile["soil_group"]
+    loc["soil_group_label"] = profile["soil_label"]
+    loc["soil_note"] = profile["soil_note"]
+    loc["agro_region"] = profile["name"]
+    loc["agro_zone"] = profile["zone"]
+    loc["region_crops"] = profile["crops"]
+    loc["profile_match"] = profile["match"]
+    return loc
 
 
 def _classify_soil(soil: dict) -> str:
@@ -273,23 +329,20 @@ def _classify_soil(soil: dict) -> str:
         return "Loam"
 
 
-def set_manual_location(lat: float, lon: float, city: str, state: str, country: str, source: str = "manual"):
+def set_manual_location(lat: float, lon: float, city: str, state: str, country: str, source: str = "manual",
+                        district: str = ""):
     """Store a location in session state and update terrain & soil profiles."""
-    elev = get_elevation(lat, lon)
-    soil = get_soil_data(lat, lon)
-    soil_type = _classify_soil(soil) if soil else "Loamy"
-
-    st.session_state["location"] = {
+    loc = {
         "latitude": lat,
         "longitude": lon,
         "city": city,
+        "district": district,
         "state": state,
         "country": country,
         "source": source,
-        "elevation": elev,
-        "soil_data": soil,
-        "soil_type": soil_type,
+        "elevation": get_elevation(lat, lon),
     }
+    st.session_state["location"] = _attach_soil(loc)
 
     # Clear stale crop/yield cache
     for key in ["crop_results", "crop_params", "yield_result", "selected_yield_crop"]:
@@ -319,29 +372,19 @@ def detect_location():
 
     if "location" in st.session_state and st.session_state["location"]:
         loc = st.session_state["location"]
-        if "soil_type" not in loc or "soil_data" not in loc:
-            lat, lon = loc["latitude"], loc["longitude"]
-            loc["elevation"] = get_elevation(lat, lon)
-            loc["soil_data"] = get_soil_data(lat, lon)
-            loc["soil_type"] = _classify_soil(loc["soil_data"]) if loc["soil_data"] else "Loamy"
+        if "agro_region" not in loc or "soil_data" not in loc:
+            if loc.get("elevation") is None:
+                loc["elevation"] = get_elevation(loc["latitude"], loc["longitude"])
+            _attach_soil(loc)
         return loc
 
     loc = _ip_geolocation()
-    if loc:
-        lat, lon = loc["latitude"], loc["longitude"]
-        loc["elevation"] = get_elevation(lat, lon)
-        loc["soil_data"] = get_soil_data(lat, lon)
-        loc["soil_type"] = _classify_soil(loc["soil_data"]) if loc["soil_data"] else "Loamy"
-        st.session_state["location"] = loc
-        return loc
-
-    loc = DEFAULT_LOCATION.copy()
-    lat, lon = loc["latitude"], loc["longitude"]
-    loc["elevation"] = get_elevation(lat, lon)
-    loc["soil_data"] = get_soil_data(lat, lon)
-    loc["soil_type"] = _classify_soil(loc["soil_data"]) if loc["soil_data"] else "Loamy"
-    st.session_state["location"] = loc
-    return loc
+    if not loc:
+        loc = DEFAULT_LOCATION.copy()
+    loc = dict(loc)
+    loc["elevation"] = get_elevation(loc["latitude"], loc["longitude"])
+    st.session_state["location"] = _attach_soil(loc)
+    return st.session_state["location"]
 
 
 def render_location_card(loc: dict):
@@ -458,12 +501,21 @@ def render_location_details(loc: dict):
 
     with col_soil:
         soil = loc.get("soil_data")
-        if soil is None and "soil_data" not in loc:
-            with st.spinner("Fetching ISRIC SoilGrids dual-depth profile..."):
-                soil = get_soil_data(lat, lon)
-                loc["soil_data"] = soil
-                loc["soil_type"] = _classify_soil(soil) if soil else "Loamy"
+        if soil is None or "agro_region" not in loc:
+            with st.spinner("Fetching soil profile..."):
+                _attach_soil(loc)
+                soil = loc["soil_data"]
         if soil:
+            live = soil.get("source") == "soilgrids"
+            st.markdown(
+                f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0.6rem;">'
+                f'<span class="chip chip-{"green" if live else "amber"}">'
+                f'{"🛰️ Measured soil data (ISRIC SoilGrids)" if live else "📘 Typical soil for " + loc.get("agro_region", "your region")}</span>'
+                f'<span class="chip chip-gray">🪨 {loc.get("soil_group_label", "")} soil</span>'
+                f'<span class="chip chip-gray">🧭 {loc.get("agro_zone", "")}</span></div>'
+                f'<div style="color:var(--text-3);font-size:0.85rem;margin-bottom:0.6rem;">{loc.get("soil_note", "")}'
+                f'{"" if live else " Live soil data was unavailable, so these are typical values for the area — a soil test will be more accurate."}</div>',
+                unsafe_allow_html=True)
             soil_type = loc.get("soil_type", _classify_soil(soil))
             ph = soil.get("ph", {}).get("value", 6.5)
             ph_color = "#2E7D32" if 6.0 <= ph <= 7.5 else "#B45309" if 5.5 <= ph <= 8.0 else "#B91C1C"
@@ -485,7 +537,7 @@ def render_location_details(loc: dict):
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
                     <div>
                         <div style="font-size:0.75rem;color:#6B776E;text-transform:uppercase;">Dominant Texture</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:#D2B48C;">🌱 {soil_type}</div>
+                        <div style="font-size:1.4rem;font-weight:800;color:#8B5E34;">🌱 {soil_type}</div>
                     </div>
                     <div style="text-align:center;">
                         <div style="font-size:0.75rem;color:#6B776E;text-transform:uppercase;">Water Capacity (AWHC)</div>
@@ -520,7 +572,7 @@ def render_location_details(loc: dict):
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.info("ISRIC Soil data unavailable for this location.")
+            st.info("Soil data unavailable for this location.")
 
 
 def _apply_gps_coordinates(lat: float, lon: float):
@@ -533,6 +585,7 @@ def _apply_gps_coordinates(lat: float, lon: float):
         rev.get("state") or "",
         rev.get("country") or "India",
         source="gps",
+        district=rev.get("district") or "",
     )
     st.session_state["weather_raw"] = None
     st.session_state["weather_current"] = {}
@@ -639,7 +692,11 @@ def _render_gps_fallback_html():
 
 def render_location_override_form():
     """Render manual location override form with 1-click GPS, city-name search, and coordinate entry."""
-    with st.expander("✏️ Change Location & Set Farm Coordinates", expanded=False):
+    flash = st.session_state.pop("_location_flash", None)
+    if flash:
+        st.success(flash)
+    with st.expander("✏️ Change Location & Set Farm Coordinates",
+                     expanded=bool(st.session_state.get("_city_matches"))):
         render_browser_gps_button()
 
         tab_city, tab_coords = st.tabs(["🏙️ Search by City / Village", "🌐 Enter Exact Coordinates"])
@@ -666,34 +723,31 @@ def render_location_override_form():
 
             matches = st.session_state.get("_city_matches", [])
             if matches:
+                st.caption("Pick the right place — one click sets it as your farm location.")
                 for idx, m in enumerate(matches):
-                    selected = st.session_state.get("_selected_city_idx", 0) == idx
-                    border_col = "#2E7D32" if selected else "rgba(30,42,34,0.06)"
-                    bg = "rgba(46,125,50,0.06)" if selected else "rgba(30,42,34,0.02)"
-                    st.markdown(f"""
-                    <div style="padding:0.7rem 1rem;margin:0.3rem 0;background:{bg};border:1px solid {border_col};border-radius:12px;">
-                        <div style="font-weight:700;color:#1E2A22;font-size:0.95rem;">📍 {m['city']}, {m['state']}</div>
-                        <div style="color:#6B776E;font-size:0.78rem;margin-top:0.2rem;">{m['country']} · {m['latitude']:.4f}°, {m['longitude']:.4f}°</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                options = [f"{m['city']}, {m['state']}, {m['country']}" for m in matches]
-                selected_idx = st.radio(
-                    "Select your farm location:",
-                    range(len(options)),
-                    format_func=lambda i: options[i],
-                    key="city_select_radio",
-                    label_visibility="collapsed",
-                )
-
-                if st.button("📍 Set Selected Location", type="primary", key="btn_use_city", use_container_width=True):
-                    m = matches[selected_idx]
-                    set_manual_location(m["latitude"], m["longitude"], m["city"], m["state"], m["country"], source="manual")
-                    st.session_state["weather_raw"] = None
-                    st.session_state["weather_current"] = {}
-                    st.session_state["_city_matches"] = []
-                    st.success(f"✅ Location set to **{m['city']}**, {m['state']}")
-                    st.rerun()
+                    where = ", ".join(x for x in (m.get("district"), m.get("state"), m.get("country"))
+                                      if x and x != m["city"])
+                    card, action = st.columns([5, 1.4], vertical_alignment="center")
+                    with card:
+                        st.markdown(f"""
+                        <div style="padding:0.65rem 0.9rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span style="font-weight:700;color:var(--text);font-size:0.95rem;">📍 {m['city']}</span>
+                                <span class="chip chip-gray" style="font-size:0.7rem;padding:1px 8px;">{m.get('kind', 'Place')}</span>
+                            </div>
+                            <div style="color:var(--text-3);font-size:0.8rem;margin-top:0.2rem;">{where} · {m['latitude']:.4f}°, {m['longitude']:.4f}°</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with action:
+                        if st.button("Use this", key=f"use_city_{idx}", type="primary" if idx == 0 else "secondary",
+                                     use_container_width=True):
+                            set_manual_location(m["latitude"], m["longitude"], m["city"], m["state"],
+                                                m["country"], source="manual", district=m.get("district", ""))
+                            st.session_state["weather_raw"] = None
+                            st.session_state["weather_current"] = {}
+                            st.session_state["_city_matches"] = []
+                            st.session_state["_location_flash"] = f"✅ Location set to {m['city']}, {m['state']}"
+                            st.rerun()
 
         # ── Tab 2: Coordinates (advanced) ──
         with tab_coords:
@@ -727,7 +781,8 @@ def render_location_override_form():
                 state = st.text_input("State / Province", value=default_state, key="loc_state")
 
             if st.button("📍 Set Exact Coordinates", type="primary", key="btn_set_loc", use_container_width=True):
-                set_manual_location(lat, lon, city, state, country, source="manual")
+                set_manual_location(lat, lon, city, state, country, source="manual",
+                                    district=st.session_state.get("_geo_district", ""))
                 st.session_state["weather_raw"] = None
                 st.session_state["weather_current"] = {}
                 st.success(f"✅ Location set to **{city}** ({lat:.4f}°, {lon:.4f}°)")
