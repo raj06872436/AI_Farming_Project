@@ -171,63 +171,49 @@ def _find_output_and_penultimate(model):
 
 def _build_grad_model(model, target_layer, backbone, penultimate_layer):
     """
-    Build a gradient model that outputs conv activations + penultimate output.
+    Return a callable  x -> (conv_activations, penultimate_output)  that reproduces the
+    model's own forward pass exactly.
 
-    CRITICAL: Always builds from model.input so that ALL preprocessing layers
-    (Rescaling, preprocess_input, etc.) are preserved in the computation graph.
-    This prevents MobileNetV2's preprocessing mismatch that causes scattered
-    heatmaps when the model expects [-1,1] but receives [0,1] raw input.
+    Why this is careful: in Keras 3, `preprocess_input(...)` applied to a symbolic tensor
+    becomes graph *operations*, not layers, so they do not appear in `model.layers`.
+    The earlier version replayed only `model.layers` before the backbone and therefore
+    skipped ResNet50 / DenseNet121 input normalisation — the Grad-CAM gradients were
+    computed for a differently-scaled image than the one the model actually classified.
+    Here the part before the backbone is taken straight from the model graph
+    (including those operations), and we check the logits match the real model.
     """
-    # Resolve output tensors by walking the model graph
-    # This works for BOTH flat and nested architectures because
-    # model.input → ... → target_layer.output is always a valid path
-    # through the original model's graph.
-    try:
-        if backbone is not None:
-            # For nested backbones: target_layer.output lives inside the
-            # backbone submodel.  We need to find the corresponding tensor
-            # in the *outer* model's graph.
-            # Build a temporary model inside the backbone to get the conv output
-            backbone_dual = tf.keras.models.Model(
-                inputs=backbone.input,
-                outputs=[target_layer.output, backbone.output]
-            )
-            # Replay outer layers up to (but not including) the backbone
-            inp = model.input
-            x = inp
-            for l in model.layers:
-                if isinstance(l, tf.keras.layers.InputLayer):
-                    continue
-                if l is backbone:
-                    break
-                x = l(x)
-            conv_out_tensor, bb_out = backbone_dual(x)
-
-            # Continue from backbone output through remaining layers
-            y = bb_out
-            past_backbone = False
-            for l in model.layers:
-                if l is backbone:
-                    past_backbone = True
-                    continue
-                if past_backbone and not isinstance(l, tf.keras.layers.InputLayer):
-                    y = l(y)
-                    if l is penultimate_layer:
-                        break
-
-            return tf.keras.models.Model(inputs=inp, outputs=[conv_out_tensor, y])
-        else:
-            # Flat model — target_layer.output is directly in the model graph
-            return tf.keras.models.Model(
-                inputs=model.input,
-                outputs=[target_layer.output, penultimate_layer.output]
-            )
-    except Exception:
-        # Fallback: try direct tensor extraction from the model graph
-        return tf.keras.models.Model(
-            inputs=model.input,
-            outputs=[target_layer.output, penultimate_layer.output]
+    if backbone is None:
+        flat = tf.keras.models.Model(
+            inputs=model.input, outputs=[target_layer.output, penultimate_layer.output]
         )
+        return lambda x: flat(x, training=False)
+
+    # Graph from the model input up to the tensor that feeds the backbone
+    # (Rescaling + any preprocess_input operations).
+    backbone_in = backbone._inbound_nodes[0].input_tensors
+    backbone_in = backbone_in[0] if isinstance(backbone_in, (list, tuple)) else backbone_in
+    pre = tf.keras.models.Model(inputs=model.input, outputs=backbone_in)
+    dual = tf.keras.models.Model(inputs=backbone.input, outputs=[target_layer.output, backbone.output])
+
+    # Head layers after the backbone, up to and including the penultimate layer
+    head, past = [], False
+    for layer in model.layers:
+        if layer is backbone:
+            past = True
+            continue
+        if past:
+            head.append(layer)
+            if layer is penultimate_layer:
+                break
+
+    def forward(x):
+        z = pre(x, training=False)
+        conv, y = dual(z, training=False)
+        for layer in head:
+            y = layer(y, training=False)
+        return conv, y
+
+    return forward
 
 
 def generate_gradcam(model, img_array, layer_name):
