@@ -137,6 +137,7 @@ AI_Farming_Project_Final/
 │
 ├── app.py                            # Streamlit dashboard (7 pages)
 ├── app_utils.py                      # Dashboard CSS & helper functions
+├── theme.py                          # "Fresh Field" light theme: colours, fonts, Plotly template
 ├── location_service.py               # GPS / IP / manual location, elevation, SoilGrids soil data
 ├── weather_service.py                # Open-Meteo weather + forecast cards
 ├── risk_engine.py                    # Weather-driven disease risk scoring

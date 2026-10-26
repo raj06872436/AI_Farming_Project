@@ -4,6 +4,7 @@ Non-linear agronomic modeling + Limiting-factor Waterfall + Interactive Scenario
 """
 import streamlit as st
 import plotly.graph_objects as go
+import theme  # registers the light "agrix" Plotly template
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -216,38 +217,38 @@ def render_yield_prediction(result):
         return
 
     conf = result["confidence"]
-    conf_color = "#2ecc71" if conf >= 0.8 else "#f39c12" if conf >= 0.6 else "#e74c3c"
+    conf_color = "#2E7D32" if conf >= 0.8 else "#B45309" if conf >= 0.6 else "#B91C1C"
 
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {conf_color};margin-bottom:1rem;padding:1.4rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
             <div>
                 <span style="font-size:2.2rem;">{result['icon']}</span>
-                <span style="font-size:1.4rem;font-weight:800;color:#fff;margin-left:0.5rem;">{result['crop_name']} Yield Forecast</span>
+                <span style="font-size:1.4rem;font-weight:800;color:#1E2A22;margin-left:0.5rem;">{result['crop_name']} Yield Forecast</span>
             </div>
-            <span style="background:rgba(255,255,255,0.08);color:{conf_color};padding:6px 16px;border-radius:14px;font-size:0.9rem;font-weight:700;">
+            <span style="background:rgba(30,42,34,0.08);color:{conf_color};padding:6px 16px;border-radius:14px;font-size:0.9rem;font-weight:700;">
                 {conf:.0%} AI Confidence</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;">
-            <div style="text-align:center;padding:0.9rem;background:rgba(255,255,255,0.04);border-radius:12px;">
-                <div style="font-size:0.68rem;color:#8899aa;text-transform:uppercase;">Total Expected Yield</div>
-                <div style="font-size:1.5rem;font-weight:800;color:#2ecc71;margin-top:0.2rem;">📦 {result['expected_yield']:.1f} t</div>
-                <div style="font-size:0.75rem;color:#8899aa;">({result['area_acres']:.1f} acres)</div>
+            <div style="text-align:center;padding:0.9rem;background:rgba(30,42,34,0.04);border-radius:12px;">
+                <div style="font-size:0.68rem;color:#6B776E;text-transform:uppercase;">Total Expected Yield</div>
+                <div style="font-size:1.5rem;font-weight:800;color:#2E7D32;margin-top:0.2rem;">📦 {result['expected_yield']:.1f} t</div>
+                <div style="font-size:0.75rem;color:#6B776E;">({result['area_acres']:.1f} acres)</div>
             </div>
-            <div style="text-align:center;padding:0.9rem;background:rgba(255,255,255,0.04);border-radius:12px;">
-                <div style="font-size:0.68rem;color:#8899aa;text-transform:uppercase;">Yield / Acre</div>
-                <div style="font-size:1.5rem;font-weight:800;color:#3498db;margin-top:0.2rem;">📐 {result['yield_per_acre']:.2f} t</div>
-                <div style="font-size:0.75rem;color:#8899aa;">Max Potential: {result['base_potential']:.1f} t</div>
+            <div style="text-align:center;padding:0.9rem;background:rgba(30,42,34,0.04);border-radius:12px;">
+                <div style="font-size:0.68rem;color:#6B776E;text-transform:uppercase;">Yield / Acre</div>
+                <div style="font-size:1.5rem;font-weight:800;color:#2563A8;margin-top:0.2rem;">📐 {result['yield_per_acre']:.2f} t</div>
+                <div style="font-size:0.75rem;color:#6B776E;">Stress-free potential: {result['base_potential']:.1f} t</div>
             </div>
-            <div style="text-align:center;padding:0.9rem;background:rgba(255,255,255,0.04);border-radius:12px;">
-                <div style="font-size:0.68rem;color:#8899aa;text-transform:uppercase;">Expected Revenue</div>
-                <div style="font-size:1.5rem;font-weight:800;color:#f39c12;margin-top:0.2rem;">💰 ₹{result['expected_revenue']:,}</div>
-                <div style="font-size:0.75rem;color:#8899aa;">@ ₹{result['price_per_tonne']:,}/t</div>
+            <div style="text-align:center;padding:0.9rem;background:rgba(30,42,34,0.04);border-radius:12px;">
+                <div style="font-size:0.68rem;color:#6B776E;text-transform:uppercase;">Expected Revenue</div>
+                <div style="font-size:1.5rem;font-weight:800;color:#B45309;margin-top:0.2rem;">💰 ₹{result['expected_revenue']:,}</div>
+                <div style="font-size:0.75rem;color:#6B776E;">@ ₹{result['price_per_tonne']:,}/t</div>
             </div>
-            <div style="text-align:center;padding:0.9rem;background:rgba(255,255,255,0.04);border-radius:12px;">
-                <div style="font-size:0.68rem;color:#8899aa;text-transform:uppercase;">Estimated Harvest</div>
-                <div style="font-size:1.2rem;font-weight:700;color:#9b59b6;margin-top:0.3rem;">🗓️ {result['harvest_date']}</div>
-                <div style="font-size:0.75rem;color:#8899aa;">~{result['harvest_months']} months cycle</div>
+            <div style="text-align:center;padding:0.9rem;background:rgba(30,42,34,0.04);border-radius:12px;">
+                <div style="font-size:0.68rem;color:#6B776E;text-transform:uppercase;">Estimated Harvest</div>
+                <div style="font-size:1.2rem;font-weight:700;color:#6D28D9;margin-top:0.3rem;">🗓️ {result['harvest_date']}</div>
+                <div style="font-size:0.75rem;color:#6B776E;">~{result['harvest_months']} months cycle</div>
             </div>
         </div>
     </div>
@@ -284,15 +285,15 @@ def render_yield_waterfall_chart(result):
             b["gain_irr"],
             b["final"]
         ],
-        connector={"line": {"color": "rgba(255,255,255,0.2)"}},
-        decreasing={"marker": {"color": "#e74c3c"}},
-        increasing={"marker": {"color": "#2ecc71"}},
-        totals={"marker": {"color": "#3498db"}},
+        connector={"line": {"color": "rgba(30,42,34,0.2)"}},
+        decreasing={"marker": {"color": "#B91C1C"}},
+        increasing={"marker": {"color": "#2E7D32"}},
+        totals={"marker": {"color": "#2563A8"}},
     ))
 
     fig.update_layout(
         title="📉 Yield Limiting-Factor Decomposition (Tonnes / Acre)",
-        template="plotly_dark", height=380, margin=dict(t=50, b=30, l=40, r=20),
+        template="agrix", height=380, margin=dict(t=50, b=30, l=40, r=20),
         yaxis_title="Yield (t / acre)", showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)"
     )
@@ -310,12 +311,12 @@ def render_yield_factors_chart(result):
     fig.add_trace(go.Scatterpolar(
         r=values + [values[0]], theta=categories + [categories[0]],
         fill='toself', name='Agronomic Index',
-        line=dict(color='#2ecc71', width=2),
-        fillcolor='rgba(46,204,113,0.25)',
+        line=dict(color='#2E7D32', width=2),
+        fillcolor='rgba(46,125,50,0.25)',
     ))
     fig.update_layout(
         polar=dict(radialaxis=dict(visible=True, range=[0, 1], tickfont=dict(size=10))),
-        template="plotly_dark", height=380, margin=dict(t=40, b=30, l=60, r=60),
+        template="agrix", height=380, margin=dict(t=40, b=30, l=60, r=60),
         title="🌍 Multi-Factor Suitability Radar",
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)"
@@ -329,7 +330,7 @@ def render_scenario_simulator(crop, area, temp, humidity, monthly_rain, soil_qua
     the yield and revenue impact of farm interventions.
     """
     with st.expander("💡 Interactive Scenario Simulator ('What-If' Analysis)", expanded=False):
-        st.markdown('<p style="color:#8899aa;font-size:0.88rem;">Simulate agricultural interventions (e.g. drip irrigation, compost, shade nets) to see projected yield and profit improvements.</p>', unsafe_allow_html=True)
+        st.markdown('<p style="color:#6B776E;font-size:0.88rem;">Simulate agricultural interventions (e.g. drip irrigation, compost, shade nets) to see projected yield and profit improvements.</p>', unsafe_allow_html=True)
 
         sc_col1, sc_col2, sc_col3 = st.columns(3)
         with sc_col1:
@@ -373,23 +374,23 @@ def render_scenario_simulator(crop, area, temp, humidity, monthly_rain, soil_qua
             diff_yield = sim_res["expected_yield"] - base_res["expected_yield"]
             diff_rev = sim_res["expected_revenue"] - base_res["expected_revenue"]
             pct_gain = (diff_yield / max(0.1, base_res["expected_yield"])) * 100
-            gain_color = "#2ecc71" if diff_yield >= 0 else "#e74c3c"
+            gain_color = "#2E7D32" if diff_yield >= 0 else "#B91C1C"
             rev_sign = "+" if diff_rev >= 0 else "−"
 
             st.markdown(f"""
-            <div style="background:rgba(46,204,113,0.08);border:1px solid #2ecc71;border-radius:12px;padding:1rem;margin-top:0.8rem;">
+            <div style="background:rgba(46,125,50,0.08);border:1px solid #2E7D32;border-radius:12px;padding:1rem;margin-top:0.8rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <div style="font-size:0.8rem;color:#8899aa;text-transform:uppercase;">Simulated Total Yield</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:#2ecc71;">📦 {sim_res['expected_yield']:.1f} tonnes <span style="font-size:0.85rem;color:{gain_color};">({diff_yield:+.1f} t / {pct_gain:+.0f}%)</span></div>
+                        <div style="font-size:0.8rem;color:#6B776E;text-transform:uppercase;">Simulated Total Yield</div>
+                        <div style="font-size:1.4rem;font-weight:800;color:#2E7D32;">📦 {sim_res['expected_yield']:.1f} tonnes <span style="font-size:0.85rem;color:{gain_color};">({diff_yield:+.1f} t / {pct_gain:+.0f}%)</span></div>
                     </div>
                     <div>
-                        <div style="font-size:0.8rem;color:#8899aa;text-transform:uppercase;">Simulated Gross Revenue</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:#f39c12;">💰 ₹{sim_res['expected_revenue']:,} <span style="font-size:0.85rem;color:{gain_color};">({rev_sign}₹{abs(diff_rev):,})</span></div>
+                        <div style="font-size:0.8rem;color:#6B776E;text-transform:uppercase;">Simulated Gross Revenue</div>
+                        <div style="font-size:1.4rem;font-weight:800;color:#B45309;">💰 ₹{sim_res['expected_revenue']:,} <span style="font-size:0.85rem;color:{gain_color};">({rev_sign}₹{abs(diff_rev):,})</span></div>
                     </div>
                     <div>
-                        <div style="font-size:0.8rem;color:#8899aa;text-transform:uppercase;">Efficiency Rating</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:#3498db;">⚡ {sim_res['env_factor']:.0%}</div>
+                        <div style="font-size:0.8rem;color:#6B776E;text-transform:uppercase;">Efficiency Rating</div>
+                        <div style="font-size:1.4rem;font-weight:800;color:#2563A8;">⚡ {sim_res['env_factor']:.0%}</div>
                     </div>
                 </div>
             </div>
@@ -400,7 +401,9 @@ def render_yield_page(location, weather_current, weather_raw):
     """
     Full yield prediction page with non-linear models, waterfall analysis, and what-if simulation.
     """
-    st.markdown("### 📊 Crop Yield Prediction & Optimization Engine")
+    st.markdown('<div class="section-head"><div class="sh-title">📦 Yield forecast</div>'
+                '<span>How much you can expect to harvest — and what holds it back</span></div>',
+                unsafe_allow_html=True)
 
     temp = weather_current.get("temperature", 25) if weather_current else 25
     humidity = weather_current.get("humidity", 60) if weather_current else 60
@@ -420,12 +423,14 @@ def render_yield_page(location, weather_current, weather_raw):
         rainfall_method = "Crop Advisor setting"
     monthly_rain = rainfall_est / 12
 
-    # Metric strip
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("🌡️ Temperature", f"{temp:.1f}°C")
-    m2.metric("💧 Humidity", f"{humidity:.0f}%")
-    m3.metric("🌧️ Est. Monthly Rain", f"{monthly_rain:.0f} mm")
-    m4.metric("🧪 Soil Fertility", f"{soil_quality:.0%}")
+    # Inputs the model uses (compact)
+    st.markdown(
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0.8rem;">'
+        f'<span class="chip chip-gray">🌡️ {temp:.1f}°C</span>'
+        f'<span class="chip chip-gray">💧 {humidity:.0f}% humidity</span>'
+        f'<span class="chip chip-sky">🌧️ ~{monthly_rain:.0f} mm rain / month</span>'
+        f'<span class="chip chip-green">🧪 Soil fertility {soil_quality:.0%}</span>'
+        '</div>', unsafe_allow_html=True)
 
     # Crop selector — a crop picked via "Predict Yield" in the Crop Advisor is applied once.
     # (Setting the widget's session key is required: Streamlit ignores `index` once the
@@ -435,17 +440,20 @@ def render_yield_page(location, weather_current, weather_raw):
     if selected in crop_names:
         st.session_state["yield_crop"] = selected
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        crop = st.selectbox("🌱 Select Crop", crop_names, key="yield_crop")
-    with col2:
-        default_area = float(crop_params.get("acres", 5.0))
-        area = st.number_input(
-            "🏞️ Land Area (acres)", min_value=0.1, max_value=10000.0,
-            value=default_area, step=0.5, key="yield_area",
-        )
-    with col3:
-        irrigation = st.checkbox("🚰 Irrigation Available", value=True, key="yield_irr")
+    with st.container(border=True, key="panel_yield_inputs"):
+        col1, col2, col3 = st.columns([1.2, 1, 1.2])
+        with col1:
+            crop = st.selectbox("🌱 Crop", crop_names, key="yield_crop")
+        with col2:
+            default_area = float(crop_params.get("acres", 5.0))
+            area = st.number_input(
+                "🏞️ Land area (acres)", min_value=0.1, max_value=10000.0,
+                value=default_area, step=0.5, key="yield_area",
+            )
+        with col3:
+            st.write("")
+            st.write("")
+            irrigation = st.checkbox("🚰 Irrigation available", value=True, key="yield_irr")
 
     # Once requested (button here, or "Predict Yield" in the Crop Advisor), the forecast is
     # recomputed from the current inputs on every rerun, so it never goes stale when the

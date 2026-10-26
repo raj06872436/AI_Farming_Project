@@ -347,37 +347,37 @@ def detect_location():
 def render_location_card(loc: dict):
     """Render a premium location display card with interactive PyDeck map preview."""
     source_badge = {
-        "gps": ("📍 High-Accuracy Device GPS (5-10m)", "#2ecc71"),
-        "ip-api": ("🌐 Auto-detected via IP", "#3498db"),
-        "manual": ("✏️ Manually entered", "#f39c12"),
-        "default": ("📍 Default (override recommended)", "#e74c3c"),
+        "gps": ("📍 High-Accuracy Device GPS (5-10m)", "#2E7D32"),
+        "ip-api": ("🌐 Auto-detected via IP", "#2563A8"),
+        "manual": ("✏️ Manually entered", "#B45309"),
+        "default": ("📍 Default (override recommended)", "#B91C1C"),
     }
-    label, color = source_badge.get(loc.get("source", "default"), ("📍", "#888"))
+    label, color = source_badge.get(loc.get("source", "default"), ("📍", "#6B776E"))
 
     lat, lon = loc["latitude"], loc["longitude"]
 
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {color};position:relative;overflow:hidden;margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <span style="font-size:1.2rem;font-weight:700;color:#fff;">📍 Farm Geolocation & Field Center</span>
+            <span style="font-size:1.2rem;font-weight:700;color:#1E2A22;">📍 Farm Geolocation & Field Center</span>
             <span style="font-size:0.75rem;font-weight:600;color:{color};background:{color}18;padding:5px 14px;border-radius:12px;border:1px solid {color}40;">{label}</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:0.8rem;">
-            <div style="padding:0.7rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="color:#8899aa;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">City / Village</div>
-                <div style="color:#fff;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{loc['city']}</div>
+            <div style="padding:0.7rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="color:#6B776E;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">City / Village</div>
+                <div style="color:#1E2A22;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{loc['city']}</div>
             </div>
-            <div style="padding:0.7rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="color:#8899aa;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">State / Province</div>
-                <div style="color:#fff;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{loc['state']}</div>
+            <div style="padding:0.7rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="color:#6B776E;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">State / Province</div>
+                <div style="color:#1E2A22;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{loc['state']}</div>
             </div>
-            <div style="padding:0.7rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="color:#8899aa;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">Country</div>
-                <div style="color:#fff;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{loc['country']}</div>
+            <div style="padding:0.7rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="color:#6B776E;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">Country</div>
+                <div style="color:#1E2A22;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{loc['country']}</div>
             </div>
-            <div style="padding:0.7rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                <div style="color:#8899aa;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">GPS Coordinates</div>
-                <div style="color:#2ecc71;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{lat:.4f}°, {lon:.4f}°</div>
+            <div style="padding:0.7rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                <div style="color:#6B776E;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">GPS Coordinates</div>
+                <div style="color:#2E7D32;font-weight:700;font-size:1.05rem;margin-top:0.2rem;">{lat:.4f}°, {lon:.4f}°</div>
             </div>
         </div>
     </div>
@@ -398,7 +398,7 @@ def render_location_card(loc: dict):
         "ScatterplotLayer",
         data=map_df,
         get_position=["lon", "lat"],
-        get_color=[46, 204, 113, 220],
+        get_color=[46, 125, 50, 230],
         get_radius=800,
         pickable=True,
         stroked=True,
@@ -411,7 +411,7 @@ def render_location_card(loc: dict):
         "ScatterplotLayer",
         data=map_df,
         get_position=["lon", "lat"],
-        get_color=[46, 204, 113, 60],
+        get_color=[46, 125, 50, 60],
         get_radius=2500,
         stroked=False,
         filled=True,
@@ -420,7 +420,8 @@ def render_location_card(loc: dict):
     deck = pdk.Deck(
         layers=[pulse_layer, pin_layer],
         initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/dark-v11",
+        map_provider="carto",          # free basemap — Mapbox styles need an API token
+        map_style=pdk.map_styles.CARTO_LIGHT,
         tooltip={"text": "🌾 Field Center: {label}"}
     )
     st.pydeck_chart(deck)
@@ -439,15 +440,15 @@ def render_location_details(loc: dict):
                 elev = get_elevation(lat, lon)
                 loc["elevation"] = elev
         if elev is not None:
-            elev_color = "#e74c3c" if elev > 2000 else "#f39c12" if elev > 500 else "#2ecc71"
+            elev_color = "#B91C1C" if elev > 2000 else "#B45309" if elev > 500 else "#2E7D32"
             elev_label = "Highland / Montane" if elev > 2000 else "Mid-altitude Plateau" if elev > 500 else "Lowland / Plain"
             st.markdown(f"""
             <div class="glass-card" style="text-align:center;border-top:3px solid {elev_color};padding:1.2rem;">
                 <div style="font-size:2.4rem;margin-bottom:0.2rem;">⛰️</div>
-                <div style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Elevation & Topography</div>
+                <div style="color:#6B776E;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Elevation & Topography</div>
                 <div style="font-size:1.8rem;font-weight:800;color:{elev_color};margin:0.3rem 0;">{elev:.0f} m</div>
-                <div style="font-size:0.8rem;color:#aabbcc;">{elev_label} · {elev * 3.281:.0f} ft</div>
-                <div style="margin-top:0.8rem;padding:0.4rem;background:rgba(255,255,255,0.03);border-radius:8px;font-size:0.75rem;color:#8899aa;">
+                <div style="font-size:0.8rem;color:#47554B;">{elev_label} · {elev * 3.281:.0f} ft</div>
+                <div style="margin-top:0.8rem;padding:0.4rem;background:rgba(30,42,34,0.03);border-radius:8px;font-size:0.75rem;color:#6B776E;">
                     Thermal lapse adjustment active
                 </div>
             </div>
@@ -465,7 +466,7 @@ def render_location_details(loc: dict):
         if soil:
             soil_type = loc.get("soil_type", _classify_soil(soil))
             ph = soil.get("ph", {}).get("value", 6.5)
-            ph_color = "#2ecc71" if 6.0 <= ph <= 7.5 else "#f39c12" if 5.5 <= ph <= 8.0 else "#e74c3c"
+            ph_color = "#2E7D32" if 6.0 <= ph <= 7.5 else "#B45309" if 5.5 <= ph <= 8.0 else "#B91C1C"
             ph_label = "Optimal" if 6.0 <= ph <= 7.5 else "Moderate" if 5.5 <= ph <= 8.0 else "Extreme"
 
             clay = soil.get("clay", {}).get("value", 25)
@@ -483,37 +484,37 @@ def render_location_details(loc: dict):
             <div class="glass-card" style="border-top:3px solid #8B4513;padding:1.2rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
                     <div>
-                        <div style="font-size:0.75rem;color:#8899aa;text-transform:uppercase;">Dominant Texture</div>
+                        <div style="font-size:0.75rem;color:#6B776E;text-transform:uppercase;">Dominant Texture</div>
                         <div style="font-size:1.4rem;font-weight:800;color:#D2B48C;">🌱 {soil_type}</div>
                     </div>
                     <div style="text-align:center;">
-                        <div style="font-size:0.75rem;color:#8899aa;text-transform:uppercase;">Water Capacity (AWHC)</div>
-                        <div style="font-size:1.2rem;font-weight:700;color:#3498db;">💧 {awhc} mm/m</div>
+                        <div style="font-size:0.75rem;color:#6B776E;text-transform:uppercase;">Water Capacity (AWHC)</div>
+                        <div style="font-size:1.2rem;font-weight:700;color:#2563A8;">💧 {awhc} mm/m</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="font-size:0.75rem;color:#8899aa;text-transform:uppercase;">Soil pH</div>
-                        <div style="font-size:1.4rem;font-weight:800;color:{ph_color};">{ph:.1f} <span style="font-size:0.7rem;color:#aab;">{ph_label}</span></div>
+                        <div style="font-size:0.75rem;color:#6B776E;text-transform:uppercase;">Soil pH</div>
+                        <div style="font-size:1.4rem;font-weight:800;color:{ph_color};">{ph:.1f} <span style="font-size:0.7rem;color:#47554B;">{ph_label}</span></div>
                     </div>
                 </div>
                 <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:0.5rem;margin-bottom:0.8rem;">
-                    <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-                        <div style="font-size:0.65rem;color:#8899aa;">CLAY (0-5cm)</div>
-                        <div style="font-size:1rem;font-weight:700;color:#CD853F;">{clay:.0f}%</div>
+                    <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:8px;">
+                        <div style="font-size:0.65rem;color:#6B776E;">CLAY (0-5cm)</div>
+                        <div style="font-size:1rem;font-weight:700;color:#8B5E34;">{clay:.0f}%</div>
                     </div>
-                    <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-                        <div style="font-size:0.65rem;color:#8899aa;">SAND (0-5cm)</div>
+                    <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:8px;">
+                        <div style="font-size:0.65rem;color:#6B776E;">SAND (0-5cm)</div>
                         <div style="font-size:1rem;font-weight:700;color:#F4A460;">{sand:.0f}%</div>
                     </div>
-                    <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-                        <div style="font-size:0.65rem;color:#8899aa;">SILT (0-5cm)</div>
+                    <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:8px;">
+                        <div style="font-size:0.65rem;color:#6B776E;">SILT (0-5cm)</div>
                         <div style="font-size:1rem;font-weight:700;color:#DEB887;">{silt:.0f}%</div>
                     </div>
-                    <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:8px;">
-                        <div style="font-size:0.65rem;color:#8899aa;">ORG. CARBON</div>
-                        <div style="font-size:1rem;font-weight:700;color:#2ecc71;">{soc:.1f} g/kg</div>
+                    <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:8px;">
+                        <div style="font-size:0.65rem;color:#6B776E;">ORG. CARBON</div>
+                        <div style="font-size:1rem;font-weight:700;color:#2E7D32;">{soc:.1f} g/kg</div>
                     </div>
                 </div>
-                <div style="font-size:0.78rem;color:#8899aa;background:rgba(255,255,255,0.02);padding:0.5rem;border-radius:8px;border:1px solid rgba(255,255,255,0.05);">
+                <div style="font-size:0.78rem;color:#6B776E;background:rgba(30,42,34,0.02);padding:0.5rem;border-radius:8px;border:1px solid rgba(30,42,34,0.05);">
                     🧪 <b>Subsoil Profile (15–30 cm):</b> Clay: {c_sub:.0f}% · SOC: {soc_sub:.1f} g/kg · Root-Zone Water Retention: {"Good" if awhc >= 120 else "Moderate" if awhc >= 80 else "Low"}
                 </div>
             </div>
@@ -590,12 +591,12 @@ def _render_gps_fallback_html():
     gps_html = """
     <div style="margin: 0.5rem 0 1rem 0;">
         <button id="gps-btn" onclick="getLocation()" style="
-            background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none;
+            background: linear-gradient(135deg, #2E7D32, #1B5E20); color: white; border: none;
             padding: 10px 18px; font-size: 0.95rem; font-weight: 700; border-radius: 10px;
-            cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(46, 204, 113, 0.3);">
+            cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(46,125,50,0.3);">
             📍 Detect My Precise Device GPS (1-Click)
         </button>
-        <p id="gps-status" style="font-size: 0.78rem; color: #8899aa; margin-top: 6px; text-align: center;"></p>
+        <p id="gps-status" style="font-size: 0.78rem; color: #6B776E; margin-top: 6px; text-align: center;"></p>
     </div>
     <script>
     function getLocation() {
@@ -667,12 +668,12 @@ def render_location_override_form():
             if matches:
                 for idx, m in enumerate(matches):
                     selected = st.session_state.get("_selected_city_idx", 0) == idx
-                    border_col = "#2ecc71" if selected else "rgba(255,255,255,0.06)"
-                    bg = "rgba(46,204,113,0.06)" if selected else "rgba(255,255,255,0.02)"
+                    border_col = "#2E7D32" if selected else "rgba(30,42,34,0.06)"
+                    bg = "rgba(46,125,50,0.06)" if selected else "rgba(30,42,34,0.02)"
                     st.markdown(f"""
                     <div style="padding:0.7rem 1rem;margin:0.3rem 0;background:{bg};border:1px solid {border_col};border-radius:12px;">
-                        <div style="font-weight:700;color:#f0f2f5;font-size:0.95rem;">📍 {m['city']}, {m['state']}</div>
-                        <div style="color:#8899aa;font-size:0.78rem;margin-top:0.2rem;">{m['country']} · {m['latitude']:.4f}°, {m['longitude']:.4f}°</div>
+                        <div style="font-weight:700;color:#1E2A22;font-size:0.95rem;">📍 {m['city']}, {m['state']}</div>
+                        <div style="color:#6B776E;font-size:0.78rem;margin-top:0.2rem;">{m['country']} · {m['latitude']:.4f}°, {m['longitude']:.4f}°</div>
                     </div>
                     """, unsafe_allow_html=True)
 

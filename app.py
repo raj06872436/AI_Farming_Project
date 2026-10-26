@@ -11,6 +11,7 @@ from PIL import Image
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+import theme  # registers the light "agrix" Plotly template
 import glob
 
 from app_utils import (
@@ -22,6 +23,7 @@ from app_utils import (
     confidence_bar_html, severity_badge_html, metric_card_html,
     recommendation_card_html, feature_card_html, stat_card_html,
     weather_strip_html, how_it_works_html, badge_pill_html,
+    chip_html, page_header_html, section_head_html, kv_html, meter_html, context_bar_html,
 )
 
 # Phase-2 service modules
@@ -33,7 +35,7 @@ from weather_service import (
 )
 from risk_engine import calculate_risk, render_risk_card
 from treatment_engine import get_treatment, render_treatment_cards
-from crop_advisor import render_crop_advisor_page
+from crop_advisor import render_crop_advisor_page, _get_current_season, calculate_soil_quality
 from yield_predictor import render_yield_page
 from insights_engine import render_insights_dashboard
 from farmer_chatbot import render_chatbot
@@ -119,11 +121,11 @@ def predict_image(model, image, class_names):
 def estimate_severity(confidence, act_pct):
     score = 0.4 * confidence + 0.6 * min(act_pct / 100, 1.0)
     if score < 0.35:
-        return "Mild", score, "#FFA500", "Early-stage infection. Minimal spread."
+        return "Mild", score, "#B45309", "Early-stage infection. Minimal spread."
     elif score < 0.65:
-        return "Moderate", score, "#FF6347", "Moderate infection. Treatment recommended."
+        return "Moderate", score, "#C2410C", "Moderate infection. Treatment recommended."
     else:
-        return "Severe", score, "#DC143C", "Severe infection. Immediate action required."
+        return "Severe", score, "#B91C1C", "Severe infection. Immediate action required."
 
 # ─── Knowledge Base ───
 DISEASE_KB = {
@@ -147,327 +149,386 @@ DISEASE_KB = {
 # ══════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════
+PAGES = [
+    "🏠 Home",
+    "🔬 Disease Detection",
+    "🌾 Crop Advisor",
+    "🤖 Farmer Assistant",
+    "📊 Research Dashboard",
+    "📈 Model Comparison",
+    "📋 Reports & About",
+]
+
+
+def go_to(page_name):
+    """Button callback: switch the sidebar menu to another page."""
+    st.session_state["nav_page"] = page_name
+
+
+available = get_available_models(REGISTRY)
+all_models = list(REGISTRY.keys())
+
 with st.sidebar:
-    st.markdown('<p class="hero-title" style="font-size:1.4rem;margin-bottom:0;">🌿 AGRI-X AI</p>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub" style="margin-top:0;">Agricultural Intelligence Platform</p>', unsafe_allow_html=True)
-    st.divider()
+    st.markdown("""
+    <div class="sb-brand">
+        <div class="sb-logo">🌿</div>
+        <div><div class="sb-name">AGRI-X AI</div><div class="sb-tag">Smart farming assistant</div></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    page = st.radio(
-        "Navigation",
-        [
-            "🏠 Home",
-            "🔬 Disease Detection",
-            "🌾 Crop Advisor",
-            "🤖 Farmer Assistant",
-            "📊 Research Dashboard",
-            "📈 Model Comparison",
-            "📋 Reports & About",
-        ],
-        label_visibility="collapsed",
-    )
+    st.markdown('<div class="sb-label">Menu</div>', unsafe_allow_html=True)
+    page = st.radio("Navigation", PAGES, key="nav_page", label_visibility="collapsed")
 
-    st.divider()
-    available = get_available_models(REGISTRY)
-    all_models = list(REGISTRY.keys())
-    st.caption(f"**Models:** {len(available)}/{len(all_models)} ready")
+    if location or weather_current:
+        st.markdown('<div class="sb-label">Your farm</div>', unsafe_allow_html=True)
+        place = f"📍 {location.get('city', '')}, {location.get('state', '')}" if location else ""
+        wx = ""
+        if weather_current:
+            wx = (f"<div style='margin-top:4px;'>{weather_current.get('icon', '🌡️')} "
+                  f"<b style='color:var(--text);'>{weather_current.get('temperature', 0):.0f}°C</b> · "
+                  f"{weather_current.get('description', '')}</div>")
+        st.markdown(f'<div class="sb-card">{place}{wx}</div>', unsafe_allow_html=True)
+
+    st.markdown(f'<div class="sb-label">AI models · {len(available)}/{len(all_models)} ready</div>',
+                unsafe_allow_html=True)
+    rows = []
     for m in all_models:
-        status = "✅" if m in available else "⏳"
         acc = REGISTRY[m].get("accuracy", 0)
-        pct = int(acc * 100)
-        color = "#2ecc71" if acc >= 0.90 else "#3498db" if acc >= 0.80 else "#f39c12" if acc >= 0.60 else "#e74c3c"
-        st.markdown(f"""
-        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);">
-            <span style="font-size:0.85rem;">{status}</span>
-            <span style="flex:1;font-size:0.8rem;color:#ccd;">{m}</span>
-            <div style="width:50px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
-                <div style="width:{pct}%;height:100%;background:{color};border-radius:3px;"></div>
-            </div>
-            <span style="font-size:0.72rem;font-weight:700;color:{color};min-width:32px;text-align:right;">{acc:.0%}</span>
-        </div>
-        """, unsafe_allow_html=True)
-    st.markdown("", unsafe_allow_html=True)
-
-    if REGISTRY:
-        best = max(REGISTRY.items(), key=lambda x: x[1].get("accuracy", 0))
-        st.success(f"🏆 Best: {best[0]} ({best[1].get('accuracy',0):.0%})")
-
-    # Location mini-badge
-    if location:
-        st.markdown(f"""
-        <div style="padding:8px 12px;border-radius:10px;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.12);margin:4px 0;font-size:0.82rem;">
-            📍 {location.get('city','')}, {location.get('state','')}
-        </div>
-        """, unsafe_allow_html=True)
-    if weather_current:
-        t = weather_current.get("temperature", 0)
-        st.markdown(f"""
-        <div style="padding:8px 12px;border-radius:10px;background:rgba(52,152,219,0.06);border:1px solid rgba(52,152,219,0.12);margin:4px 0;font-size:0.82rem;">
-            {weather_current.get('icon','🌡️')} {t:.0f}°C · {weather_current.get('description','')}
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.caption("v2.0 · Phase 2 — AI Platform")
+        color = theme.MODEL_COLORS.get(m, theme.GREEN)
+        dot = "🟢" if m in available else "⚪"
+        rows.append(f"""
+        <div class="sb-model">
+            <span style="font-size:0.6rem;">{dot}</span>
+            <span style="flex:1;">{m}</span>
+            <div class="bar"><div style="width:{acc * 100:.0f}%;background:{color};"></div></div>
+            <span style="font-weight:700;color:{color};min-width:38px;text-align:right;">{acc:.1%}</span>
+        </div>""")
+    st.markdown("".join(rows), unsafe_allow_html=True)
+    st.caption("v2.1 · Fresh Field UI")
 
 # ══════════════════════════════════════════════════════════════════
 # PAGE: HOME
 # ══════════════════════════════════════════════════════════════════
 if page == "🏠 Home":
-    # Hero
-    best_acc = max((r.get('accuracy',0) for r in REGISTRY.values()), default=0)
-    st.markdown(f"""
-    <div class="hero-banner fade-in">
-        <h1 class="hero-title" style="font-size:2.8rem;margin-bottom:0.3rem;">🌿 AGRI-X AI</h1>
-        <p style="color:#8899aa;font-size:1.1rem;margin:0 0 0.8rem 0;">
-            Explainable Multi-Model Deep Learning Framework for<br>
-            <span class="shimmer-text" style="font-size:1.3rem;font-weight:700;">Plant Disease Detection & Agricultural Intelligence</span>
-        </p>
-        <div style="margin-top:0.8rem;display:flex;flex-wrap:wrap;gap:8px;">
-            {badge_pill_html(f'🧠 {len(REGISTRY)} AI Models', '#2ecc71')}
-            {badge_pill_html('🎯 15 Disease Classes', '#3498db')}
-            {badge_pill_html(f'🏆 {best_acc:.1%} Accuracy', '#f39c12')}
-            {badge_pill_html('🔥 Grad-CAM Explainability', '#9b59b6')}
+    best_acc = max((r.get('accuracy', 0) for r in REGISTRY.values()), default=0)
+    best_model = max(REGISTRY.items(), key=lambda x: x[1].get("accuracy", 0))[0] if REGISTRY else "—"
+    season = _get_current_season()
+
+    hero_col, snap_col = st.columns([1.65, 1], gap="medium")
+    with hero_col:
+        st.markdown(f"""
+        <div class="home-hero fade-in">
+            {chip_html('🌿 AI for Indian farms', 'green')}
+            <h1>Spot crop disease early.<br><span class="accent">Grow with confidence.</span></h1>
+            <p class="lead">Photograph a leaf and AGRI-X AI tells you what is wrong, how serious it is,
+            and what to do — along with weather alerts, the best crops for your soil and a yield forecast.</p>
+            <div class="hero-chips">
+                {chip_html(f'🧠 {len(REGISTRY)} AI models', 'gray')}
+                {chip_html(f'🎯 {len(CLASS_NAMES)} leaf conditions', 'gray')}
+                {chip_html(f'🏆 {best_acc:.1%} best accuracy', 'amber')}
+                {chip_html('🔥 Shows where the disease is', 'gray')}
+            </div>
         </div>
-        <p style="color:#556;font-size:0.82rem;margin-top:1rem;">
-            Powered by MobileNetV2 · ResNet50 · EfficientNetB0 · DenseNet121
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # Stats row — custom stat cards
-    total_imgs = DATASET_SUMMARY.get("total_images", 20638) if DATASET_SUMMARY else 20638
-    sc1, sc2, sc3, sc4, sc5 = st.columns(5)
-    with sc1:
-        st.markdown(stat_card_html(str(len(REGISTRY)), "AI Models", "🧠", "#2ecc71"), unsafe_allow_html=True)
-    with sc2:
-        st.markdown(stat_card_html(str(len(CLASS_NAMES)), "Classes", "📊", "#3498db"), unsafe_allow_html=True)
-    with sc3:
-        st.markdown(stat_card_html(f"{total_imgs:,}", "Images", "🖼️", "#9b59b6"), unsafe_allow_html=True)
-    with sc4:
-        st.markdown(stat_card_html(f"{best_acc:.0%}", "Best Accuracy", "🏆", "#f39c12"), unsafe_allow_html=True)
-    with sc5:
-        city = location.get("city", "—") if location else "—"
-        st.markdown(stat_card_html(city, "Location", "📍", "#1abc9c"), unsafe_allow_html=True)
+    with snap_col:
+        if weather_current:
+            temp = weather_current.get("temperature", 0)
+            snap_body = f"""
+                <div class="snapshot-place">📍 {location.get('city', 'Your farm') if location else 'Your farm'}</div>
+                <div style="color:var(--text-3);font-size:0.85rem;margin-bottom:0.8rem;">
+                    {location.get('state', '') if location else ''}</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:2.4rem;">{weather_current.get('icon', '🌡️')}</span>
+                    <div><div class="snapshot-temp">{temp:.0f}°C</div>
+                    <div style="color:var(--text-2);font-size:0.9rem;">{weather_current.get('description', '')}</div></div>
+                </div>
+                <div class="snapshot-grid">
+                    {kv_html('Humidity', f"{weather_current.get('humidity', 0):.0f}%")}
+                    {kv_html('Rain', f"{weather_current.get('precipitation', 0):.1f} mm")}
+                    {kv_html('Wind', f"{weather_current.get('wind_speed', 0):.0f} km/h")}
+                </div>"""
+        else:
+            snap_body = """<div style="color:var(--text-3);padding:1.5rem 0;">Weather is unavailable right now.
+                Set your location in <b>Crop Advisor → Location</b>.</div>"""
+        st.markdown(f"""
+        <div class="snapshot fade-in">
+            <div class="snapshot-head">
+                <span class="snapshot-title">Today on your farm</span>
+                {chip_html(f'🗓️ {season} season', 'sky')}
+            </div>
+            {snap_body.strip()}
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Feature cards with staggered animation
-    st.markdown("### ✨ Platform Features")
-    features = [
-        ("🔬", "Disease Detection", "AI-powered plant disease identification with Grad-CAM explainability and severity analysis"),
-        ("🌦️", "Weather Intelligence", "Real-time weather data, forecasts, and agricultural weather alerts"),
-        ("🌾", "Crop Advisor", "Smart crop recommendations with yield prediction and revenue forecasting"),
-        ("⚠️", "Risk Analysis", "Weather-aware disease risk scoring and spread probability estimation"),
-        ("💊", "Treatment Guide", "Comprehensive organic & chemical treatment recommendations per disease"),
-        ("🤖", "Farmer Assistant", "AI chatbot for instant farming advice, disease help, and crop guidance"),
-        ("📊", "Research Analytics", "Training curves, ROC/PR curves, confusion matrices, and model comparison"),
-        ("📄", "Field Reports", "Downloadable CSV & HTML reports with complete analysis results"),
+    # Quick actions
+    st.markdown(section_head_html("What would you like to do?"), unsafe_allow_html=True)
+    actions = [
+        ("🔬 Diagnose a leaf", "Upload a photo and get a diagnosis", "🔬 Disease Detection"),
+        ("🌾 Choose crops", "Best crops, profit and yield for your farm", "🌾 Crop Advisor"),
+        ("🤖 Ask the assistant", "Farming questions in plain words", "🤖 Farmer Assistant"),
+        ("📄 Download a report", "Save today's results as CSV or HTML", "📋 Reports & About"),
     ]
-    cols = st.columns(4)
+    with st.container(key="quick_actions"):
+        qcols = st.columns(4)
+        for col, (label, hint, target) in zip(qcols, actions):
+            with col:
+                st.button(label, key=f"qa_{target}", on_click=go_to, args=(target,), use_container_width=True)
+                st.caption(hint)
+
+    # Key numbers
+    total_imgs = DATASET_SUMMARY.get("total_images", 20638) if DATASET_SUMMARY else 20638
+    st.markdown(section_head_html("At a glance", f"Best model: {best_model}"), unsafe_allow_html=True)
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    with sc1:
+        st.markdown(stat_card_html(str(len(REGISTRY)), "AI models trained", "🧠", theme.GREEN), unsafe_allow_html=True)
+    with sc2:
+        st.markdown(stat_card_html(str(len(CLASS_NAMES)), "Leaf conditions", "🎯", theme.SKY), unsafe_allow_html=True)
+    with sc3:
+        st.markdown(stat_card_html(f"{total_imgs:,}", "Training images", "🖼️", theme.PURPLE), unsafe_allow_html=True)
+    with sc4:
+        st.markdown(stat_card_html(f"{best_acc:.1%}", "Best accuracy", "🏆", theme.AMBER), unsafe_allow_html=True)
+
+    # Features
+    st.markdown(section_head_html("Everything in one place"), unsafe_allow_html=True)
+    features = [
+        ("🔬", "Disease Detection", "Identifies 15 leaf conditions and highlights the affected area."),
+        ("🌦️", "Weather Intelligence", "Live weather, 7-day forecast and farm weather alerts."),
+        ("🌾", "Crop Advisor", "Crops ranked for your season, soil and climate, with profit estimates."),
+        ("📦", "Yield Forecast", "Expected harvest, what limits it, and what-if improvements."),
+        ("⚠️", "Risk Analysis", "How likely the disease is to spread in today's weather."),
+        ("💊", "Treatment Guide", "Organic and chemical treatment steps for each disease."),
+        ("🤖", "Farmer Assistant", "Quick answers on diseases, crops and weather."),
+        ("📊", "Research Analytics", "Accuracy, training curves and model comparison."),
+    ]
+    fcols = st.columns(4)
     for i, (icon, title, desc) in enumerate(features):
-        with cols[i % 4]:
+        with fcols[i % 4]:
             st.markdown(feature_card_html(icon, title, desc, index=i), unsafe_allow_html=True)
 
-    # How It Works section
-    st.markdown("### 🚀 How It Works")
+    st.markdown(section_head_html("How it works"), unsafe_allow_html=True)
     st.markdown(how_it_works_html(), unsafe_allow_html=True)
 
-    # Quick weather — glass strip
-    if weather_current:
-        st.markdown("### 🌦️ Current Conditions")
-        st.markdown(weather_strip_html(
-            temp=weather_current.get('temperature', 0),
-            humidity=weather_current.get('humidity', 0),
-            rain=weather_current.get('precipitation', 0),
-            wind=weather_current.get('wind_speed', 0),
-            icon=weather_current.get('icon', '🌡️'),
-            desc=weather_current.get('description', 'Temp'),
-        ), unsafe_allow_html=True)
-
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE: DISEASE DETECTION (PRESERVED — extended with risk/treatment)
+# PAGE: DISEASE DETECTION
 # ══════════════════════════════════════════════════════════════════
 elif page == "🔬 Disease Detection":
-    st.markdown('<h1 class="hero-title fade-in">🔬 Disease Detection & Diagnosis</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Upload a leaf image for AI-powered disease identification with explainable results</p>', unsafe_allow_html=True)
+    st.markdown(page_header_html(
+        "🔬 Disease Detection", "Diagnose a leaf in seconds",
+        "Upload a clear photo of a single leaf. The AI names the problem, shows where it is on the leaf "
+        "and tells you what to do next.",
+    ), unsafe_allow_html=True)
 
     if not available:
         st.error("No trained models found in `saved_models/`. Please train models first.")
         st.stop()
 
-    col_upload, col_result = st.columns([1, 1], gap="large")
+    col_upload, col_result = st.columns([1, 1.25], gap="large")
 
     with col_upload:
-        st.markdown("""
-        <div style="margin-bottom:0.5rem;">
-            <span style="font-size:1.1rem;font-weight:700;color:#f0f2f5;">📤 Upload & Configure</span>
-            <span class="badge-pill" style="color:#2ecc71;border-color:#2ecc71;background:#2ecc7118;margin-left:8px;">AI-Powered</span>
-        </div>
-        """, unsafe_allow_html=True)
-        model_choice = st.selectbox("Select Model Architecture", available, help="Choose a trained model for inference")
-        meta = REGISTRY.get(model_choice, {})
-        mcols = st.columns(3)
-        mcols[0].metric("Accuracy", f"{meta.get('accuracy',0):.0%}")
-        mcols[1].metric("Size", f"{meta.get('size_mb','?')} MB")
-        mcols[2].metric("Speed", f"{meta.get('inference_ms','?')} ms")
-        uploaded = st.file_uploader("Upload a leaf image", type=["jpg","jpeg","png","webp","bmp","tiff"], help="Drag and drop or browse — JPG, JPEG, PNG, WEBP")
-        if uploaded:
-            image = Image.open(uploaded).convert("RGB")
-            st.image(image, caption="Uploaded Image", width="stretch")
+        with st.container(border=True, key="panel_upload"):
+            st.markdown("#### 1 · Upload a leaf photo")
+            uploaded = st.file_uploader(
+                "Upload a leaf image", type=["jpg", "jpeg", "png", "webp", "bmp", "tiff"],
+                help="JPG, PNG or WEBP. One leaf, in focus, on a plain background works best.",
+                label_visibility="collapsed",
+            )
+            if uploaded:
+                st.image(Image.open(uploaded).convert("RGB"), width="stretch")
+
+            st.markdown("#### 2 · Choose a model")
+            default_model = max(available, key=lambda m: REGISTRY.get(m, {}).get("accuracy", 0))
+            model_choice = st.selectbox(
+                "Model", available, index=available.index(default_model),
+                format_func=lambda m: f"{m} · {REGISTRY.get(m, {}).get('accuracy', 0):.1%} accurate",
+                help="ResNet50 is the most accurate; MobileNetV2 is the fastest.",
+                label_visibility="collapsed",
+            )
+            meta = REGISTRY.get(model_choice, {})
+            st.markdown(
+                chip_html(f"🎯 {meta.get('accuracy', 0):.1%} accuracy", "green") + " "
+                + chip_html(f"⚡ {meta.get('inference_ms', '?')} ms", "sky") + " "
+                + chip_html(f"💾 {meta.get('size_mb', '?')} MB", "gray"),
+                unsafe_allow_html=True,
+            )
+            st.write("")
+            analyze = st.button("🔍 Analyze leaf", type="primary", use_container_width=True,
+                                disabled=not uploaded)
+
+    # Run the analysis once and keep the result, so opening tabs/expanders doesn't lose it
+    upload_id = f"{uploaded.name}:{uploaded.size}" if uploaded else None
+    if analyze and uploaded:
+        image = Image.open(uploaded).convert("RGB")
+        with st.spinner(f"Loading {model_choice}..."):
+            model = cached_load_model(find_model_path(model_choice))
+        with st.spinner("Analyzing the leaf..."):
+            t0 = time.time()
+            idx, conf, top5, img_arr, preds = predict_image(model, image, CLASS_NAMES)
+            inf_time = (time.time() - t0) * 1000
+        pred_class = CLASS_NAMES[idx] if idx < len(CLASS_NAMES) else "Unknown"
+        is_healthy = "healthy" in pred_class.lower()
+        kb = DISEASE_KB.get(pred_class, {})
+        diag = {
+            "upload_id": upload_id, "model": model_choice, "class": pred_class,
+            "plant": kb.get("plant", pred_class.split("_")[0]),
+            "disease": kb.get("disease", pred_class.replace("_", " ")),
+            "display_name": pred_class.replace("_", " ").replace("  ", " — "),
+            "confidence": conf, "inference_ms": inf_time, "is_healthy": is_healthy,
+            "top5": top5, "image": image, "heatmap": None, "overlay": None,
+            "act_pct": 0.0, "severity": None, "risk": None,
+        }
+        if not is_healthy:
+            with st.spinner("Finding the affected area..."):
+                hm = run_disease_heatmap_pipeline(model, img_arr, model_choice)
+            if hm is not None:
+                diag["heatmap"] = hm
+                diag["act_pct"] = hm["act_pct"]
+                diag["overlay"], _ = run_fullres_overlay(hm["masked_heatmap"], image)
+            sev_name, sev_score, sev_color, sev_desc = estimate_severity(conf, diag["act_pct"])
+            diag["severity"] = {"level": sev_name, "score": sev_score, "color": sev_color, "desc": sev_desc}
+            if weather_current:
+                diag["risk"] = calculate_risk(
+                    pred_class,
+                    weather_current.get("temperature", 25),
+                    weather_current.get("humidity", 60),
+                    weather_current.get("precipitation", 0),
+                )
+        diag["treatment"] = get_treatment(pred_class)
+        st.session_state["diagnosis"] = diag
+
+        # Shared with the Farmer Assistant and Field Reports pages
+        st.session_state["last_prediction"] = {
+            "class": pred_class, "display_name": diag["display_name"], "confidence": conf,
+            "model": model_choice, "inference_ms": inf_time, "is_healthy": is_healthy,
+        }
+        st.session_state["last_severity"] = (
+            {"level": diag["severity"]["level"], "score": diag["severity"]["score"]} if diag["severity"] else None)
+        st.session_state["last_risk"] = diag["risk"]
+        if diag["treatment"]:
+            st.session_state["last_treatment"] = diag["treatment"]
+        if is_healthy:
+            st.balloons()
+
+    diag = st.session_state.get("diagnosis")
+    if diag and diag.get("upload_id") != upload_id:
+        diag = None  # a different (or no) photo is selected — don't show an old result
 
     with col_result:
-        st.markdown("""
-        <div style="margin-bottom:0.5rem;">
-            <span style="font-size:1.1rem;font-weight:700;color:#f0f2f5;">🧠 Analysis Results</span>
-        </div>
-        """, unsafe_allow_html=True)
-        if uploaded and model_choice:
-            if st.button("🔍 Analyze Disease", use_container_width=True, type="primary"):
-                image = Image.open(uploaded).convert("RGB")
-                model_path = find_model_path(model_choice)
-                with st.spinner(f"Loading {model_choice}..."):
-                    model = cached_load_model(model_path)
-                with st.spinner("Running inference..."):
-                    t0 = time.time()
-                    idx, conf, top5, img_arr, preds = predict_image(model, image, CLASS_NAMES)
-                    inf_time = (time.time() - t0) * 1000
-                pred_class = CLASS_NAMES[idx] if idx < len(CLASS_NAMES) else "Unknown"
-                display_name = pred_class.replace("_", " ").replace("  ", " — ")
-                is_healthy = "healthy" in pred_class.lower()
-
-                # Store prediction in session for reports/chatbot
-                st.session_state["last_prediction"] = {
-                    "class": pred_class, "display_name": display_name,
-                    "confidence": conf, "model": model_choice,
-                    "inference_ms": inf_time, "is_healthy": is_healthy,
-                }
-
-                # Result header with accent card
-                accent = "#2ecc71" if is_healthy else "#e74c3c"
-                status_icon = "✅" if is_healthy else "⚠️"
-                st.markdown(f"""
-                <div class="glass-card" style="border-left:4px solid {accent};">
-                    <div style="font-size:1.3rem;font-weight:800;color:{accent};margin-bottom:0.3rem;">
-                        {status_icon} {display_name}
-                    </div>
-                    <div style="display:flex;gap:1.5rem;margin-top:0.6rem;">
-                        <div><span style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;">Confidence</span><br><span style="font-size:1.3rem;font-weight:700;color:{accent};">{conf:.1%}</span></div>
-                        <div><span style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;">Inference</span><br><span style="font-size:1.3rem;font-weight:700;color:#3498db;">{inf_time:.0f}ms</span></div>
-                        <div><span style="color:#8899aa;font-size:0.75rem;text-transform:uppercase;">Model</span><br><span style="font-size:1.3rem;font-weight:700;color:#f0f2f5;">{model_choice}</span></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                st.progress(conf, text=f"Prediction Confidence: {conf:.1%}")
-
-                # Severity + Grad-CAM for diseased plants
-                if not is_healthy:
-                    with st.spinner("Generating disease heatmap..."):
-                        result = run_disease_heatmap_pipeline(model, img_arr, model_choice)
-
-                    if result is not None:
-                        act_pct = result["act_pct"]
-                        num_regions = result["num_regions"]
-                    else:
-                        act_pct = 0.0
-                        num_regions = 0
-
-                    sev_name, sev_score, sev_color, sev_desc = estimate_severity(conf, act_pct)
-
-                    # Store severity
-                    st.session_state["last_severity"] = {"level": sev_name, "score": sev_score}
-
-                    if sev_name == "Severe":
-                        st.error(f"🔴 **Severity: {sev_name}** — {sev_desc}")
-                    elif sev_name == "Moderate":
-                        st.warning(f"🟠 **Severity: {sev_name}** — {sev_desc}")
-                    else:
-                        st.info(f"🟡 **Severity: {sev_name}** — {sev_desc}")
-
-                    if result is not None:
-                        st.markdown("**🔥 Grad-CAM++ Disease Heatmap**")
-
-                        # Show region count
-                        if num_regions > 0:
-                            st.caption(f"🎯 Detected **{num_regions}** infected region{'s' if num_regions > 1 else ''} on the leaf")
-
-                        # Full-resolution overlay with leaf masking
-                        gc1, gc2 = st.columns(2)
-                        gc1.image(image, caption="Original", width="stretch")
-
-                        overlay_fullres, _ = run_fullres_overlay(
-                            result["masked_heatmap"], image
-                        )
-                        gc2.image(overlay_fullres, caption=f"Disease Activation ({act_pct:.1f}%)", width="stretch")
-
-                        # Detailed views in expander
-                        with st.expander("🔍 Detailed Heatmap Views", expanded=False):
-                            d1, d2, d3 = st.columns(3)
-                            # Leaf mask
-                            d1.image(result["leaf_mask"], caption="Leaf Mask", width="stretch", clamp=True)
-                            # Raw heatmap (jet colormap)
-                            import matplotlib.cm as cm_detail
-                            raw_colored = cm_detail.jet(result["raw_heatmap"])[:, :, :3]
-                            d2.image(raw_colored, caption="Raw Grad-CAM++", width="stretch", clamp=True)
-                            # Masked heatmap
-                            masked_colored = cm_detail.jet(result["masked_heatmap"])[:, :, :3]
-                            d3.image(masked_colored, caption="Leaf-Masked Heatmap", width="stretch", clamp=True)
-
-                        # Per-region statistics
-                        if result["region_stats"]:
-                            with st.expander(f"📊 Infection Region Details ({num_regions} regions)", expanded=False):
-                                for rs in result["region_stats"]:
-                                    sev_emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
-                                    st.markdown(f"""
-                                    {sev_emoji} **Region {rs['id']}** — {rs['severity'].title()}
-                                    &nbsp;&nbsp;Area: {rs['area_pct']:.1f}% of image &nbsp;|&nbsp;
-                                    Intensity: {rs['max_intensity']:.0%} peak, {rs['mean_intensity']:.0%} avg
-                                    """)
-
-                    # Disease Risk (weather-aware)
-                    if weather_current:
-                        risk = calculate_risk(
-                            pred_class,
-                            weather_current.get("temperature", 25),
-                            weather_current.get("humidity", 60),
-                            weather_current.get("precipitation", 0),
-                        )
-                        st.session_state["last_risk"] = risk
-                        render_risk_card(risk)
-                else:
-                    st.balloons()
-                    st.session_state["last_severity"] = None
-                    st.session_state["last_risk"] = None
-
-                # Top-5
-                with st.expander("📊 Top-5 Predictions", expanded=False):
-                    for item in top5:
-                        dn = item["class"].replace("_", " ")
-                        st.progress(item["confidence"], text=f"{dn}: {item['confidence']:.1%}")
-
-                # Treatment recommendations
-                treatment = get_treatment(pred_class)
-                if treatment:
-                    st.session_state["last_treatment"] = treatment
-                    st.markdown("---")
-                    st.markdown("### 💊 Treatment Recommendations")
-                    render_treatment_cards(treatment)
-
-                # Fallback KB recommendations
-                kb = DISEASE_KB.get(pred_class)
-                if kb and not treatment:
-                    st.markdown("---")
-                    st.markdown("### 💊 Agricultural Recommendations")
-                    with st.expander("🧪 Pesticide", expanded=True):
-                        st.write(kb["pesticide"])
-                    with st.expander("🧫 Fungicide"):
-                        st.write(kb["fungicide"])
-                    with st.expander("💧 Irrigation"):
-                        st.write(kb["irrigation"])
-                    with st.expander("🌱 Fertilizer"):
-                        st.write(kb["fertilizer"])
-                    with st.expander("📝 Additional Notes"):
-                        st.info(kb["notes"])
+        if not diag:
+            st.markdown("""
+            <div class="empty-state">
+                <div class="big">🍃</div>
+                <b>No leaf analysed yet</b><br>
+                Upload a photo on the left and press <b>Analyze leaf</b>.<br>
+                <span style="font-size:0.85rem;">Supported crops: tomato, potato and bell pepper.</span>
+            </div>""", unsafe_allow_html=True)
         else:
-            st.info("👈 Upload a leaf image and click **Analyze Disease** to begin.")
+            healthy = diag["is_healthy"]
+            conf = diag["confidence"]
+            conf_color = theme.GREEN if conf >= 0.8 else theme.AMBER if conf >= 0.5 else theme.RED
+            chips = [chip_html("✅ Healthy leaf", "green") if healthy else chip_html("⚠️ Disease detected", "red")]
+            sev = diag.get("severity")
+            if sev:
+                tone = {"Severe": "red", "Moderate": "amber"}.get(sev["level"], "sky")
+                chips.append(chip_html(f"Severity: {sev['level']}", tone))
+            risk = diag.get("risk")
+            if risk and risk.get("risk_level") not in (None, "Unknown"):
+                tone = {"Critical": "red", "High": "red", "Moderate": "amber"}.get(risk["risk_level"], "green")
+                chips.append(chip_html(f"Spread risk today: {risk['risk_level']}", tone))
+            chips.append(chip_html(f"🧠 {diag['model']}", "gray"))
+            low_conf = conf < 0.6
+            if low_conf:
+                chips.append(chip_html("🤔 Low confidence", "amber"))
+
+            if healthy:
+                advice = ("No disease found. Keep watering at the roots, keep checking leaves every week, "
+                          "and rotate crops each season.")
+                advice_style = "background:var(--green-soft);color:var(--green-strong);"
+            else:
+                tr = diag.get("treatment") or {}
+                first = (tr.get("chemical_treatment") or tr.get("organic_treatment") or [None])[0]
+                advice = sev["desc"] if sev else ""
+                if first:
+                    advice += f" <b>First step:</b> {first}."
+                advice_style = "background:var(--red-soft);color:var(--red);"
+            if low_conf:
+                advice += (" <br><b>The AI is not very sure.</b> Try a sharper photo of a single leaf in daylight, "
+                           "or pick a more accurate model (ResNet50).")
+
+            third_kv = (kv_html("Affected area", f"{diag['act_pct']:.1f}%") if not healthy
+                        else kv_html("Analysis time", f"{diag['inference_ms']:.0f} ms"))
+            st.markdown(f"""
+            <div class="diag-card {'is-disease' if not healthy else ''} fade-in">
+                <div class="diag-plant">{diag['plant']}</div>
+                <div class="diag-name">{diag['disease'] if not healthy else 'Healthy'}</div>
+                <div class="diag-chips">{''.join(chips)}</div>
+                <div class="kv-label">How sure the AI is · <b style="color:{conf_color};">{conf:.1%}</b></div>
+                {meter_html(conf, conf_color)}
+                <div class="diag-grid">
+                    {kv_html('Confidence', f'{conf:.1%}', conf_color)}
+                    {kv_html('Severity', sev['level'] if sev else 'None', sev['color'] if sev else theme.GREEN)}
+                    {third_kv}
+                </div>
+                <div class="diag-advice" style="{advice_style}">{advice}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if diag["overlay"] is not None:
+                gc1, gc2 = st.columns(2)
+                gc1.image(diag["image"], caption="Your photo", width="stretch")
+                gc2.image(diag["overlay"], caption=f"Affected area ({diag['act_pct']:.1f}%)", width="stretch")
+
+    # Details below the summary
+    if diag:
+        st.markdown(section_head_html("Details & next steps"), unsafe_allow_html=True)
+        tab_treat, tab_risk, tab_heat, tab_top = st.tabs(
+            ["💊 Treatment", "⚠️ Weather risk", "🔥 Heatmap details", "📊 Other possibilities"])
+
+        with tab_treat:
+            if diag.get("treatment"):
+                render_treatment_cards(diag["treatment"])
+            else:
+                kb = DISEASE_KB.get(diag["class"])
+                if kb:
+                    for icon, label, key in [("🧪", "Pesticide", "pesticide"), ("🧫", "Fungicide", "fungicide"),
+                                             ("💧", "Irrigation", "irrigation"), ("🌱", "Fertilizer", "fertilizer"),
+                                             ("📝", "Notes", "notes")]:
+                        st.markdown(recommendation_card_html(label, icon, kb[key]), unsafe_allow_html=True)
+                else:
+                    st.info("No treatment guidance available for this result.")
+
+        with tab_risk:
+            if diag.get("risk"):
+                render_risk_card(diag["risk"])
+            elif diag["is_healthy"]:
+                st.success("The leaf is healthy, so there is no disease to spread.")
+            else:
+                st.info("Weather data is unavailable, so spread risk can't be estimated. "
+                        "Set your location in Crop Advisor → Location.")
+
+        with tab_heat:
+            hm = diag.get("heatmap")
+            if hm is None:
+                st.info("Heatmaps are only made for diseased leaves.")
+            else:
+                if hm["num_regions"] > 0:
+                    st.caption(f"🎯 Found **{hm['num_regions']}** affected region"
+                               f"{'s' if hm['num_regions'] > 1 else ''} on the leaf")
+                import matplotlib.cm as cm_detail
+                d1, d2, d3 = st.columns(3)
+                d1.image(hm["leaf_mask"], caption="Leaf outline", width="stretch", clamp=True)
+                d2.image(cm_detail.jet(hm["raw_heatmap"])[:, :, :3], caption="Raw Grad-CAM++", width="stretch", clamp=True)
+                d3.image(cm_detail.jet(hm["masked_heatmap"])[:, :, :3], caption="Heatmap on leaf only", width="stretch", clamp=True)
+                for rs in hm.get("region_stats", []):
+                    emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
+                    st.markdown(f"{emoji} **Region {rs['id']}** — {rs['severity'].title()} · "
+                                f"area {rs['area_pct']:.1f}% · peak {rs['max_intensity']:.0%}, "
+                                f"average {rs['mean_intensity']:.0%}")
+
+        with tab_top:
+            for item in diag["top5"]:
+                st.progress(item["confidence"], text=f"{item['class'].replace('_', ' ')} — {item['confidence']:.1%}")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -475,11 +536,25 @@ elif page == "🔬 Disease Detection":
 # PAGE: CROP ADVISOR (unified: location + weather + terrain + crops + insights)
 # ══════════════════════════════════════════════════════════════════
 elif page == "🌾 Crop Advisor":
-    st.markdown('<h1 class="hero-title fade-in">🌾 Crop Advisor & Agricultural Intelligence</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Location, weather, soil analysis, crop recommendations, yield prediction — all in one place</p>', unsafe_allow_html=True)
+    st.markdown(page_header_html(
+        "🌾 Crop Advisor", "Plan your next crop",
+        "Your location, weather and soil in one place — with the best crops to grow, expected profit and a yield forecast.",
+    ), unsafe_allow_html=True)
 
-    tab_loc, tab_weather, tab_forecast, tab_terrain, tab_crop, tab_insights = st.tabs([
-        "📍 Location", "☀️ Weather", "📅 Forecast", "⛰️ Terrain & Soil", "🌾 Crops & Yield", "🧠 Insights"
+    # Farm context at a glance (same data every tab uses)
+    _soil_q, _ = calculate_soil_quality(location.get("soil_data") if location else None)
+    _elev = location.get("elevation") if location else None
+    st.markdown(context_bar_html([
+        ("📍", "Location", f"{location.get('city', '—')}, {location.get('state', '')}" if location else "—"),
+        (weather_current.get("icon", "🌡️") if weather_current else "🌡️", "Weather",
+         f"{weather_current.get('temperature', 0):.0f}°C · {weather_current.get('humidity', 0):.0f}% humidity" if weather_current else "Unavailable"),
+        ("🪨", "Soil", f"{location.get('soil_type', 'Loamy') if location else 'Loamy'} · {_soil_q:.0%} fertile"),
+        ("🗓️", "Season", _get_current_season()),
+        ("⛰️", "Elevation", f"{_elev:.0f} m" if _elev is not None else "—"),
+    ]), unsafe_allow_html=True)
+
+    tab_crop, tab_weather, tab_forecast, tab_terrain, tab_insights, tab_loc = st.tabs([
+        "🌾 Crops & Yield", "☀️ Weather", "📅 7-Day Forecast", "⛰️ Soil & Terrain", "🧠 Insights", "📍 Change Location"
     ])
 
     # ── TAB: Location ──
@@ -508,19 +583,19 @@ elif page == "🌾 Crop Advisor":
 
             alerts = []
             if temp >= 40:
-                alerts.append(("🔴", "Extreme Heat", f"Temperature at {temp:.1f}°C — crop heat stress likely. Increase irrigation.", "#e74c3c"))
+                alerts.append(("🔴", "Extreme Heat", f"Temperature at {temp:.1f}°C — crop heat stress likely. Increase irrigation.", "#B91C1C"))
             elif temp >= 35:
-                alerts.append(("🟠", "High Temperature", f"Temperature at {temp:.1f}°C — monitor for wilting and water stress.", "#f39c12"))
+                alerts.append(("🟠", "High Temperature", f"Temperature at {temp:.1f}°C — monitor for wilting and water stress.", "#B45309"))
             elif temp <= 5:
-                alerts.append(("🔵", "Frost Risk", f"Temperature at {temp:.1f}°C — protect frost-sensitive crops.", "#3498db"))
+                alerts.append(("🔵", "Frost Risk", f"Temperature at {temp:.1f}°C — protect frost-sensitive crops.", "#2563A8"))
             if humidity >= 85:
-                alerts.append(("🟡", "High Humidity", f"Humidity at {humidity}% — increased risk of fungal diseases.", "#f1c40f"))
+                alerts.append(("🟡", "High Humidity", f"Humidity at {humidity}% — increased risk of fungal diseases.", "#A16207"))
             if wind >= 40:
-                alerts.append(("🟠", "Strong Winds", f"Wind at {wind:.0f} km/h — risk of crop lodging and physical damage.", "#e67e22"))
+                alerts.append(("🟠", "Strong Winds", f"Wind at {wind:.0f} km/h — risk of crop lodging and physical damage.", "#C2410C"))
             if uv >= 8:
-                alerts.append(("🔴", "High UV Index", f"UV index at {uv:.1f} — sunscald risk on fruits and vegetables.", "#9b59b6"))
+                alerts.append(("🔴", "High UV Index", f"UV index at {uv:.1f} — sunscald risk on fruits and vegetables.", "#6D28D9"))
             if precip >= 20:
-                alerts.append(("🟡", "Heavy Rainfall", f"Rainfall at {precip:.1f}mm — check drainage, risk of waterlogging.", "#3498db"))
+                alerts.append(("🟡", "Heavy Rainfall", f"Rainfall at {precip:.1f}mm — check drainage, risk of waterlogging.", "#2563A8"))
 
             if alerts:
                 st.markdown("### ⚠️ Agricultural Weather Alerts")
@@ -528,14 +603,14 @@ elif page == "🌾 Crop Advisor":
                     st.markdown(f"""
                     <div class="glass-card" style="border-left:4px solid {color};padding:0.8rem 1.2rem;margin-bottom:0.5rem;">
                         <div style="font-weight:700;color:{color};font-size:0.95rem;">{dot} {title}</div>
-                        <div style="color:#aabbcc;font-size:0.85rem;margin-top:0.2rem;">{desc}</div>
+                        <div style="color:#47554B;font-size:0.85rem;margin-top:0.2rem;">{desc}</div>
                     </div>
                     """, unsafe_allow_html=True)
             else:
                 st.markdown("""
-                <div class="glass-card" style="border-left:4px solid #2ecc71;padding:0.8rem 1.2rem;">
-                    <div style="font-weight:700;color:#2ecc71;font-size:0.95rem;">✅ No Weather Alerts</div>
-                    <div style="color:#aabbcc;font-size:0.85rem;margin-top:0.2rem;">Current conditions are favorable for agricultural activities.</div>
+                <div class="glass-card" style="border-left:4px solid #2E7D32;padding:0.8rem 1.2rem;">
+                    <div style="font-weight:700;color:#2E7D32;font-size:0.95rem;">✅ No Weather Alerts</div>
+                    <div style="color:#47554B;font-size:0.85rem;margin-top:0.2rem;">Current conditions are favorable for agricultural activities.</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -558,28 +633,28 @@ elif page == "🌾 Crop Advisor":
             if daily:
                 fig = go.Figure()
                 dates = [d["day_name"] for d in daily]
-                fig.add_trace(go.Scatter(x=dates, y=[d["temp_max"] for d in daily], mode="lines+markers", name="Max Temp", line=dict(color="#e74c3c", width=3), marker=dict(size=8, symbol="circle")))
-                fig.add_trace(go.Scatter(x=dates, y=[d["temp_min"] for d in daily], mode="lines+markers", name="Min Temp", line=dict(color="#3498db", width=3), marker=dict(size=8, symbol="circle"), fill="tonexty", fillcolor="rgba(52,152,219,0.08)"))
-                fig.update_layout(template="plotly_dark", height=350, margin=dict(t=30, b=30, l=40, r=20), yaxis_title="°C", showlegend=True, legend=dict(orientation="h", y=1.12), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                fig.add_trace(go.Scatter(x=dates, y=[d["temp_max"] for d in daily], mode="lines+markers", name="Max Temp", line=dict(color="#B91C1C", width=3), marker=dict(size=8, symbol="circle")))
+                fig.add_trace(go.Scatter(x=dates, y=[d["temp_min"] for d in daily], mode="lines+markers", name="Min Temp", line=dict(color="#2563A8", width=3), marker=dict(size=8, symbol="circle"), fill="tonexty", fillcolor="rgba(37,99,168,0.08)"))
+                fig.update_layout(template="agrix", height=350, margin=dict(t=30, b=30, l=40, r=20), yaxis_title="°C", showlegend=True, legend=dict(orientation="h", y=1.12), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig, use_container_width=True)
 
             st.markdown("### 🌧️ Precipitation Forecast")
             if daily:
                 fig2 = go.Figure()
-                fig2.add_trace(go.Bar(x=dates, y=[d["precipitation"] for d in daily], name="Rainfall (mm)", marker_color="#3498db", marker_line_color="#2980b9", marker_line_width=1))
-                fig2.update_layout(template="plotly_dark", height=280, margin=dict(t=20, b=30, l=40, r=20), yaxis_title="mm", showlegend=False, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                fig2.add_trace(go.Bar(x=dates, y=[d["precipitation"] for d in daily], name="Rainfall (mm)", marker_color="#2563A8", marker_line_color="#1E4E8C", marker_line_width=1))
+                fig2.update_layout(template="agrix", height=280, margin=dict(t=20, b=30, l=40, r=20), yaxis_title="mm", showlegend=False, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig2, use_container_width=True)
 
             if daily:
                 st.markdown("### 💨 Wind & UV Summary")
                 wind_cols = st.columns(len(daily))
                 for i, d in enumerate(daily):
-                    wc = "#e74c3c" if d["wind_speed"] >= 40 else "#f39c12" if d["wind_speed"] >= 20 else "#2ecc71"
-                    uc = "#e74c3c" if d["uv_index"] >= 8 else "#f39c12" if d["uv_index"] >= 5 else "#2ecc71"
+                    wc = "#B91C1C" if d["wind_speed"] >= 40 else "#B45309" if d["wind_speed"] >= 20 else "#2E7D32"
+                    uc = "#B91C1C" if d["uv_index"] >= 8 else "#B45309" if d["uv_index"] >= 5 else "#2E7D32"
                     with wind_cols[i]:
                         st.markdown(f"""
-                        <div style="text-align:center;padding:0.5rem;background:rgba(255,255,255,0.03);border-radius:10px;">
-                            <div style="font-size:0.7rem;color:#8899aa;">{d['day_name'][:3]}</div>
+                        <div style="text-align:center;padding:0.5rem;background:rgba(30,42,34,0.03);border-radius:10px;">
+                            <div style="font-size:0.7rem;color:#6B776E;">{d['day_name'][:3]}</div>
                             <div style="font-size:0.9rem;font-weight:700;color:{wc};margin:0.2rem 0;">💨{d['wind_speed']:.0f}</div>
                             <div style="font-size:0.9rem;font-weight:700;color:{uc};">☀️{d['uv_index']:.0f}</div>
                         </div>
@@ -590,7 +665,7 @@ elif page == "🌾 Crop Advisor":
     # ── TAB: Terrain & Soil ──
     with tab_terrain:
         st.markdown("### ⛰️ Elevation & Soil Analysis")
-        st.markdown('<p style="color:#8899aa;font-size:0.9rem;margin-bottom:1rem;">Terrain and soil data for your location, powered by Open-Meteo Elevation API and ISRIC SoilGrids.</p>', unsafe_allow_html=True)
+        st.markdown('<p style="color:#6B776E;font-size:0.9rem;margin-bottom:1rem;">Terrain and soil data for your location, powered by Open-Meteo Elevation API and ISRIC SoilGrids.</p>', unsafe_allow_html=True)
         render_location_details(location)
 
     # ── TAB: Crops & Yield ──
@@ -617,8 +692,10 @@ elif page == "🤖 Farmer Assistant":
 # PAGE: RESEARCH DASHBOARD (PRESERVED)
 # ══════════════════════════════════════════════════════════════════
 elif page == "📊 Research Dashboard":
-    st.markdown('<h1 class="hero-title fade-in">📊 Research Analytics Dashboard</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Training history, evaluation metrics, and Grad-CAM visualizations</p>', unsafe_allow_html=True)
+    st.markdown(page_header_html(
+        "📊 Research", "Research dashboard",
+        "Training history, evaluation metrics and Grad-CAM visualisations for every model.",
+    ), unsafe_allow_html=True)
 
     rc1, rc2, rc3, rc4 = st.columns(4)
     rc1.metric("Models", len(REGISTRY))
@@ -713,8 +790,14 @@ elif page == "📊 Research Dashboard":
             report_path = os.path.join(METRICS_DIR, f"{mname}_classification_report.txt")
             if os.path.exists(report_path):
                 with st.expander(f"📄 {mname} — Classification Report"):
-                    with open(report_path, "r") as f:
-                        st.code(f.read(), language="text")
+                    with open(report_path, "rb") as f:
+                        raw_report = f.read()
+                    # Reports written on Windows are cp1252; decode either way
+                    try:
+                        report_text = raw_report.decode("utf-8")
+                    except UnicodeDecodeError:
+                        report_text = raw_report.decode("cp1252", errors="replace")
+                    st.code(report_text, language="text")
 
         st.divider()
         st.markdown("**📈 All Generated Charts**")
@@ -731,8 +814,10 @@ elif page == "📊 Research Dashboard":
 # PAGE: MODEL COMPARISON (PRESERVED)
 # ══════════════════════════════════════════════════════════════════
 elif page == "📈 Model Comparison":
-    st.markdown('<h1 class="hero-title fade-in">📈 Multi-Model Comparison</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub fade-in">Architecture analysis, performance metrics, and deployment suitability</p>', unsafe_allow_html=True)
+    st.markdown(page_header_html(
+        "📈 Models", "Compare the AI models",
+        "Accuracy, speed and size of each model — and where each one fits best.",
+    ), unsafe_allow_html=True)
 
     if METRICS_DF is not None:
         st.markdown("### 📊 Performance Metrics")
@@ -754,25 +839,25 @@ elif page == "📈 Model Comparison":
     st.markdown("### Performance Comparison")
     c1, c2 = st.columns(2)
     names = list(REGISTRY.keys())
-    color_list = ["#2ecc71","#3498db","#e74c3c","#f39c12"]
+    color_list = [theme.MODEL_COLORS.get(m, theme.GREEN) for m in REGISTRY]
 
     with c1:
         accs = [REGISTRY[m].get("accuracy", 0) for m in names]
         fig = go.Figure(go.Bar(x=names, y=accs, marker_color=color_list[:len(names)], text=[f"{a:.0%}" for a in accs], textposition="outside"))
-        fig.update_layout(title="Accuracy Comparison", yaxis_range=[0,1.1], template="plotly_dark", height=400, margin=dict(t=50,b=30))
+        fig.update_layout(title="Accuracy Comparison", yaxis_range=[0,1.1], template="agrix", height=400, margin=dict(t=50,b=30))
         st.plotly_chart(fig, use_container_width=True)
 
     with c2:
         sizes = [REGISTRY[m].get("size_mb", 0) for m in names]
         fig2 = go.Figure(go.Bar(x=names, y=sizes, marker_color=color_list[:len(names)], text=[f"{s}MB" for s in sizes], textposition="outside"))
-        fig2.update_layout(title="Model Size Comparison", template="plotly_dark", height=400, margin=dict(t=50,b=30))
+        fig2.update_layout(title="Model Size Comparison", template="agrix", height=400, margin=dict(t=50,b=30))
         st.plotly_chart(fig2, use_container_width=True)
 
     c3, c4 = st.columns(2)
     with c3:
         inf_times = [REGISTRY[m].get("inference_ms", 0) for m in names]
         fig_inf = go.Figure(go.Bar(x=names, y=inf_times, marker_color=color_list[:len(names)], text=[f"{t:.0f}ms" for t in inf_times], textposition="outside"))
-        fig_inf.update_layout(title="Inference Speed (ms)", template="plotly_dark", height=400, margin=dict(t=50,b=30))
+        fig_inf.update_layout(title="Inference Speed (ms)", template="agrix", height=400, margin=dict(t=50,b=30))
         st.plotly_chart(fig_inf, use_container_width=True)
 
     with c4:
@@ -780,7 +865,7 @@ elif page == "📈 Model Comparison":
             f1s = METRICS_DF["F1 Score"].tolist()
             m_names = METRICS_DF["Model"].tolist()
             fig_f1 = go.Figure(go.Bar(x=m_names, y=f1s, marker_color=color_list[:len(m_names)], text=[f"{f:.2%}" for f in f1s], textposition="outside"))
-            fig_f1.update_layout(title="F1 Score Comparison", yaxis_range=[0,1.1], template="plotly_dark", height=400, margin=dict(t=50,b=30))
+            fig_f1.update_layout(title="F1 Score Comparison", yaxis_range=[0,1.1], template="agrix", height=400, margin=dict(t=50,b=30))
             st.plotly_chart(fig_f1, use_container_width=True)
 
     st.markdown("### Architecture Analysis")
@@ -802,14 +887,14 @@ elif page == "📈 Model Comparison":
     st.markdown("### Multi-Metric Radar")
     categories = ["Accuracy", "Speed", "Size Efficiency", "Deployability"]
     fig3 = go.Figure()
-    color_map = {"MobileNetV2": "#2ecc71", "ResNet50": "#3498db", "EfficientNetB0": "#e74c3c", "DenseNet121": "#f39c12"}
+    color_map = theme.MODEL_COLORS
     for m, d in REGISTRY.items():
         acc = d.get("accuracy", 0)
         speed = max(0, 1 - d.get("inference_ms", 50) / 200)
         size_eff = max(0, 1 - d.get("size_mb", 50) / 120)
         deploy = 0.9 if d.get("status") == "verified" else 0.3
-        fig3.add_trace(go.Scatterpolar(r=[acc, speed, size_eff, deploy], theta=categories, fill='toself', name=m, line=dict(color=color_map.get(m, "#888"))))
-    fig3.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])), template="plotly_dark", height=450, margin=dict(t=30,b=30))
+        fig3.add_trace(go.Scatterpolar(r=[acc, speed, size_eff, deploy], theta=categories, fill='toself', name=m, line=dict(color=color_map.get(m, "#6B776E"))))
+    fig3.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])), template="agrix", height=450, margin=dict(t=30,b=30))
     st.plotly_chart(fig3, use_container_width=True)
 
 
@@ -817,11 +902,14 @@ elif page == "📈 Model Comparison":
 # PAGE: REPORTS & ABOUT
 # ══════════════════════════════════════════════════════════════════
 elif page == "📋 Reports & About":
+    st.markdown(page_header_html(
+        "📋 Reports & About", "Reports, data and project info",
+        "Download today's field report, explore the training dataset and read how AGRI-X AI works.",
+    ), unsafe_allow_html=True)
     tab_reports, tab_dataset, tab_about = st.tabs(["📄 Field Reports", "📋 Dataset Explorer", "ℹ️ About"])
 
     with tab_reports:
-        st.markdown('<h1 class="hero-title fade-in">📄 Field Report Generator</h1>', unsafe_allow_html=True)
-        st.markdown('<p class="hero-sub fade-in">Download comprehensive analysis reports in CSV or HTML format</p>', unsafe_allow_html=True)
+        st.markdown(section_head_html("📄 Field report", "CSV or HTML"), unsafe_allow_html=True)
 
         render_report_section(
             prediction=st.session_state.get("last_prediction"),
@@ -835,8 +923,7 @@ elif page == "📋 Reports & About":
         )
 
     with tab_dataset:
-        st.markdown('<h1 class="hero-title fade-in">📋 Dataset Explorer</h1>', unsafe_allow_html=True)
-        st.markdown('<p class="hero-sub fade-in">PlantVillage dataset analysis — class distribution and statistics</p>', unsafe_allow_html=True)
+        st.markdown(section_head_html("📋 Dataset explorer", "PlantVillage"), unsafe_allow_html=True)
 
         if DATASET_SUMMARY:
             ds = DATASET_SUMMARY
@@ -852,8 +939,8 @@ elif page == "📋 Reports & About":
                 df = pd.DataFrame({"Class": list(dist.keys()), "Count": list(dist.values())})
                 df["Display"] = df["Class"].str.replace("_", " ")
                 fig = px.bar(df, x="Count", y="Display", orientation="h", color="Count",
-                             color_continuous_scale=["#1a1f2e", "#2ecc71"], height=500)
-                fig.update_layout(template="plotly_dark", yaxis=dict(autorange="reversed"),
+                             color_continuous_scale=["#E5F1E3", "#2E7D32"], height=500)
+                fig.update_layout(template="agrix", yaxis=dict(autorange="reversed"),
                                   margin=dict(l=10, r=10, t=10, b=10), showlegend=False)
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -873,8 +960,7 @@ elif page == "📋 Reports & About":
             st.warning("Dataset summary not found. Run the training pipeline to generate dataset statistics.")
 
     with tab_about:
-        st.markdown('<h1 class="hero-title fade-in">ℹ️ About AGRI-X AI</h1>', unsafe_allow_html=True)
-        st.markdown('<p class="hero-sub fade-in">Project methodology, architecture, and references</p>', unsafe_allow_html=True)
+        st.markdown(section_head_html("ℹ️ About AGRI-X AI", "Methodology, architecture and references"), unsafe_allow_html=True)
 
         st.markdown("""
         ### 🎯 Project Overview
@@ -933,7 +1019,7 @@ elif page == "📋 Reports & About":
             """, unsafe_allow_html=True)
 
         st.markdown("### 🛠️ Technology Stack")
-        techs = ["Python 3.13", "TensorFlow 2.21", "Keras 3.13", "Streamlit 1.55",
+        techs = ["Python 3.11", "TensorFlow 2.18", "Keras 3", "Streamlit 1.57",
                   "Plotly", "Scikit-learn", "NumPy", "Pandas", "OpenCV", "Matplotlib",
                   "Open-Meteo API", "Seaborn"]
         st.markdown("".join(f'<span class="tech-badge">{t}</span>' for t in techs), unsafe_allow_html=True)
@@ -956,7 +1042,7 @@ elif page == "📋 Reports & About":
 
         st.markdown("---")
         st.markdown("""
-        <div style="text-align:center;padding:1rem;color:#667;">
+        <div style="text-align:center;padding:1rem;color:var(--text-3);">
             <strong>🌿 AGRI-X AI — Empowering Agriculture with Explainable AI</strong><br>
             <em>Built with TensorFlow, Keras, and Streamlit</em>
         </div>

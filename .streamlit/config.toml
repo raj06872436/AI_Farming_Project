@@ -1,8 +1,10 @@
 [theme]
-primaryColor = "#2ecc71"
-backgroundColor = "#0a0f1a"
-secondaryBackgroundColor = "#111827"
-textColor = "#f0f2f5"
+# "Fresh Field" light theme — keep in sync with theme.py
+base = "light"
+primaryColor = "#2E7D32"
+backgroundColor = "#F6F7F2"
+secondaryBackgroundColor = "#EEF2E8"
+textColor = "#1E2A22"
 font = "sans serif"
 
 [server]
