@@ -64,7 +64,8 @@ GRADCAM_LAYERS = {
 }
 
 # Import the new modular disease heatmap pipeline
-from disease_heatmap import run_disease_heatmap_pipeline, run_fullres_overlay
+from disease_heatmap import run_disease_heatmap_pipeline
+from lesion_segmentation import analyze_leaf
 
 # ─── Location & Weather (session-cached) ───
 if "location" not in st.session_state:
@@ -119,13 +120,17 @@ def predict_image(model, image, class_names):
     return idx, conf, top5_list, arr, preds
 
 def estimate_severity(confidence, act_pct):
-    score = 0.4 * confidence + 0.6 * min(act_pct / 100, 1.0)
-    if score < 0.35:
-        return "Mild", score, "#B45309", "Early-stage infection. Minimal spread."
-    elif score < 0.65:
-        return "Moderate", score, "#C2410C", "Moderate infection. Treatment recommended."
+    """
+    Severity from the share of the leaf that is diseased (a common field scale):
+    under 10 % mild, 10–25 % moderate, over 25 % severe.
+    """
+    score = min(act_pct / 100.0, 1.0)
+    if act_pct < 10:
+        return "Mild", score, "#B45309", "Early-stage infection on a small part of the leaf."
+    elif act_pct < 25:
+        return "Moderate", score, "#C2410C", "A good part of the leaf is affected. Treat soon."
     else:
-        return "Severe", score, "#B91C1C", "Severe infection. Immediate action required."
+        return "Severe", score, "#B91C1C", "A large part of the leaf is damaged. Act immediately."
 
 # ─── Knowledge Base ───
 DISEASE_KB = {
@@ -379,12 +384,16 @@ elif page == "🔬 Disease Detection":
             "act_pct": 0.0, "severity": None, "risk": None,
         }
         if not is_healthy:
-            with st.spinner("Finding the affected area..."):
+            with st.spinner("Measuring the diseased area..."):
+                # Grad-CAM = where the model looked; lesion segmentation = the actual sick tissue
                 hm = run_disease_heatmap_pipeline(model, img_arr, model_choice)
-            if hm is not None:
-                diag["heatmap"] = hm
-                diag["act_pct"] = hm["act_pct"]
-                diag["overlay"], _ = run_fullres_overlay(hm["masked_heatmap"], image)
+                attention = hm["masked_heatmap"] if hm is not None else None
+                lesion, overlay, analysed = analyze_leaf(image, attention=attention, disease_class=pred_class)
+            diag["heatmap"] = hm
+            diag["lesion"] = lesion
+            diag["analysed"] = analysed
+            diag["overlay"] = overlay
+            diag["act_pct"] = lesion["affected_pct"]
             sev_name, sev_score, sev_color, sev_desc = estimate_severity(conf, diag["act_pct"])
             diag["severity"] = {"level": sev_name, "score": sev_score, "color": sev_color, "desc": sev_desc}
             if weather_current:
@@ -456,8 +465,14 @@ elif page == "🔬 Disease Detection":
                 advice += (" <br><b>The AI is not very sure.</b> Try a sharper photo of a single leaf in daylight, "
                            "or pick a more accurate model (ResNet50).")
 
-            third_kv = (kv_html("Affected area", f"{diag['act_pct']:.1f}%") if not healthy
+            reliable = (diag.get("lesion") or {}).get("reliable", True)
+            area_txt = f"{'≈ ' if not reliable else ''}{diag['act_pct']:.1f}% of leaf"
+            third_kv = (kv_html("Diseased area", area_txt) if not healthy
                         else kv_html("Analysis time", f"{diag['inference_ms']:.0f} ms"))
+            if not healthy and not reliable:
+                notes = "; ".join(diag["lesion"].get("quality_notes", []))
+                advice += (f" <br><b>Area is approximate</b> — {notes}. "
+                           "A photo of one whole leaf on a plain background gives the best measurement.")
             st.markdown(f"""
             <div class="diag-card {'is-disease' if not healthy else ''} fade-in">
                 <div class="diag-plant">{diag['plant']}</div>
@@ -477,13 +492,18 @@ elif page == "🔬 Disease Detection":
             if diag["overlay"] is not None:
                 gc1, gc2 = st.columns(2)
                 gc1.image(diag["image"], caption="Your photo", width="stretch")
-                gc2.image(diag["overlay"], caption=f"Affected area ({diag['act_pct']:.1f}%)", width="stretch")
+                gc2.image(diag["overlay"], width="stretch",
+                          caption=f"Diseased tissue: {diag['act_pct']:.1f}% of the leaf")
+                st.markdown(
+                    chip_html("🟥 dead / spotted", "red") + " " + chip_html("🟨 yellowing", "amber")
+                    + (" " + chip_html("🟦 mould", "sky") if (diag.get('lesion') or {}).get('breakdown', {}).get('pale / mould', 0) > 0 else ""),
+                    unsafe_allow_html=True)
 
     # Details below the summary
     if diag:
         st.markdown(section_head_html("Details & next steps"), unsafe_allow_html=True)
         tab_treat, tab_risk, tab_heat, tab_top = st.tabs(
-            ["💊 Treatment", "⚠️ Weather risk", "🔥 Heatmap details", "📊 Other possibilities"])
+            ["💊 Treatment", "⚠️ Weather risk", "🔥 Disease map", "📊 Other possibilities"])
 
         with tab_treat:
             if diag.get("treatment"):
@@ -508,23 +528,36 @@ elif page == "🔬 Disease Detection":
                         "Set your location in Crop Advisor → Location.")
 
         with tab_heat:
+            lesion = diag.get("lesion")
             hm = diag.get("heatmap")
-            if hm is None:
-                st.info("Heatmaps are only made for diseased leaves.")
+            if lesion is None:
+                st.info("Disease maps are only made for diseased leaves.")
             else:
-                if hm["num_regions"] > 0:
-                    st.caption(f"🎯 Found **{hm['num_regions']}** affected region"
-                               f"{'s' if hm['num_regions'] > 1 else ''} on the leaf")
+                bd = lesion.get("breakdown", {})
+                st.markdown(
+                    chip_html(f"🍃 Diseased: {lesion['affected_pct']:.1f}% of leaf", "red") + " "
+                    + chip_html(f"Dead / spotted {bd.get('dead / spotted', 0):.1f}%", "gray") + " "
+                    + chip_html(f"Yellowing {bd.get('yellowing', 0):.1f}%", "gray") + " "
+                    + (chip_html(f"Mould {bd.get('pale / mould', 0):.1f}%", "gray") + " " if bd.get('pale / mould', 0) else "")
+                    + chip_html(f"🎯 {len(lesion['regions'])} spot{'s' if len(lesion['regions']) != 1 else ''}", "gray"),
+                    unsafe_allow_html=True)
+                st.caption("The diseased area is measured pixel by pixel from colour: tissue that is browner, "
+                           "darker or yellower than this leaf's own healthy green. The Grad-CAM map shows where "
+                           "the AI model looked when it named the disease.")
                 import matplotlib.cm as cm_detail
                 d1, d2, d3 = st.columns(3)
-                d1.image(hm["leaf_mask"], caption="Leaf outline", width="stretch", clamp=True)
-                d2.image(cm_detail.jet(hm["raw_heatmap"])[:, :, :3], caption="Raw Grad-CAM++", width="stretch", clamp=True)
-                d3.image(cm_detail.jet(hm["masked_heatmap"])[:, :, :3], caption="Heatmap on leaf only", width="stretch", clamp=True)
-                for rs in hm.get("region_stats", []):
-                    emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
-                    st.markdown(f"{emoji} **Region {rs['id']}** — {rs['severity'].title()} · "
-                                f"area {rs['area_pct']:.1f}% · peak {rs['max_intensity']:.0%}, "
-                                f"average {rs['mean_intensity']:.0%}")
+                d1.image(lesion["leaf_mask"], caption="Leaf found in the photo", width="stretch", clamp=True)
+                if hm is not None:
+                    d2.image(cm_detail.jet(hm["masked_heatmap"])[:, :, :3], caption="Where the AI looked (Grad-CAM++)",
+                             width="stretch", clamp=True)
+                d3.image(diag["overlay"], caption="Diseased tissue", width="stretch")
+                regions = lesion.get("regions", [])
+                if regions:
+                    st.markdown("**Largest spots**")
+                    for rs in regions[:8]:
+                        emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
+                        kind = {"severe": "mostly dead tissue", "moderate": "mixed", "mild": "mostly yellowing"}[rs["severity"]]
+                        st.markdown(f"{emoji} **Spot {rs['id']}** — {rs['area_pct']:.1f}% of the leaf · {kind}")
 
         with tab_top:
             for item in diag["top5"]:
@@ -543,14 +576,14 @@ elif page == "🌾 Crop Advisor":
 
     # Farm context at a glance (same data every tab uses)
     _soil_q, _ = calculate_soil_quality(location.get("soil_data") if location else None)
-    _elev = location.get("elevation") if location else None
     st.markdown(context_bar_html([
         ("📍", "Location", f"{location.get('city', '—')}, {location.get('state', '')}" if location else "—"),
         (weather_current.get("icon", "🌡️") if weather_current else "🌡️", "Weather",
          f"{weather_current.get('temperature', 0):.0f}°C · {weather_current.get('humidity', 0):.0f}% humidity" if weather_current else "Unavailable"),
-        ("🪨", "Soil", f"{location.get('soil_type', 'Loamy') if location else 'Loamy'} · {_soil_q:.0%} fertile"),
+        ("🪨", "Soil", (f"{location.get('soil_group_label', '')} · {location.get('soil_type', '')} · "
+                       f"{_soil_q:.0%} fertile") if location else "—"),
+        ("🧭", "Farming region", location.get("agro_region", "—") if location else "—"),
         ("🗓️", "Season", _get_current_season()),
-        ("⛰️", "Elevation", f"{_elev:.0f} m" if _elev is not None else "—"),
     ]), unsafe_allow_html=True)
 
     tab_crop, tab_weather, tab_forecast, tab_terrain, tab_insights, tab_loc = st.tabs([
