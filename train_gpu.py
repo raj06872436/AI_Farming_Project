@@ -1,4 +1,4 @@
-"""
+r"""
 GPU Training Script — Run inside WSL2 with tf_gpu environment.
 Retrains DenseNet121 and EfficientNetB0 on GPU (RTX 4050).
 
