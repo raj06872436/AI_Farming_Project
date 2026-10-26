@@ -54,7 +54,7 @@ def segment_leaf(image_rgb_uint8):
     # ── LAB-based detection (catches what HSV misses) ──
     # In LAB, A channel > 128 means reddish, B channel > 128 means yellowish
     # Leaf tissue (including diseased) typically has moderate-high A and B
-    l_ch, a_ch, b_ch = lab[:, :, 0], lab[:, :, 1], lab[:, :, 2]
+    l_ch = lab[:, :, 0]
     # Non-white and non-very-bright pixels (exclude white/gray backgrounds)
     mask_lab = ((l_ch < 220) & (l_ch > 10)).astype(np.uint8) * 255
 
@@ -338,7 +338,7 @@ def _detect_lesions_by_color(image_rgb_uint8, leaf_mask_binary=None):
     mask_red_brown = cv2.inRange(hsv, np.array([0, 50, 30]), np.array([10, 255, 180]))
 
     # ── LAB: high A-channel (reddish) with low-mid L (dark) = lesion ──
-    l_ch, a_ch, b_ch = lab[:, :, 0], lab[:, :, 1], lab[:, :, 2]
+    l_ch, a_ch = lab[:, :, 0], lab[:, :, 1]
     # Reddish-brownish pixels: A > 135 (reddish), L < 180 (not bright white)
     mask_lab_lesion = ((a_ch > 135) & (l_ch < 180) & (l_ch > 15)).astype(np.uint8) * 255
 

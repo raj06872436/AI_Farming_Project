@@ -283,13 +283,15 @@ def estimate_annual_rainfall(location, weather_raw):
     Estimate annual rainfall using best available data.
     Priority: State average adjusted by forecast anomaly → seasonal forecast extrapolation.
     """
-    state = location.get("state", "") if location else ""
+    state = (location.get("state") or "").strip() if location else ""
     state_avg = None
 
-    for key, val in STATE_RAINFALL_AVG.items():
-        if key.lower() in state.lower() or state.lower() in key.lower():
-            state_avg = val
-            break
+    # An empty state would match every key ("" is a substring of anything), so skip it
+    if state:
+        for key, val in STATE_RAINFALL_AVG.items():
+            if key.lower() in state.lower() or state.lower() in key.lower():
+                state_avg = val
+                break
 
     weekly_precip = 0
     if weather_raw and "daily" in weather_raw:
@@ -421,8 +423,8 @@ def _score_crop(crop_name, crop, temp, humidity, annual_rainfall, soil, season, 
     score = 0
     reasons = []
 
-    # 1. Season match (25 pts)
-    if season in crop["season"] or season == "Zaid":
+    # 1. Season match (25 pts) — only crops actually grown in this season get full marks
+    if season in crop["season"]:
         score += 25
         reasons.append(f"✅ Season match: Ideal for **{season}** planting.")
     else:
@@ -779,9 +781,10 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
                     for r in crop["reasons"]:
                         st.markdown(r)
             with c_right:
-                if st.button(f"📊 Predict Yield", key=f"yield_btn_{crop['name']}", use_container_width=True):
+                if st.button("📊 Predict Yield", key=f"yield_btn_{crop['name']}", use_container_width=True):
                     st.session_state["selected_yield_crop"] = crop["name"]
                     st.session_state["yield_auto_trigger"] = True
+                    st.toast(f"{crop['icon']} {crop['name']} yield forecast is ready below ⬇️")
 
         st.markdown("### 📊 Farm Revenue & Profit Analysis")
         render_revenue_comparison_chart(crops[:6])

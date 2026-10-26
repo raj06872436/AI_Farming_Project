@@ -225,25 +225,28 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
         temp = weather_current.get("temperature", 25)
         humidity = weather_current.get("humidity", 60)
         from crop_advisor import UNIFIED_CROP_DB, calculate_soil_quality, estimate_annual_rainfall
-        from yield_predictor import _calc_weather_factor
+        from yield_predictor import predict_yield
 
         # Get soil quality from location
         soil_data = location.get("soil_data") if location else None
         soil_quality, _ = calculate_soil_quality(soil_data)
         soil_type = location.get("soil_type", "Loamy") if location else "Loamy"
         elevation = location.get("elevation") if location else None
+        annual_rain, _, _ = estimate_annual_rainfall(location, None)
+        monthly_rain = annual_rain / 12
 
         potentials = []
         for name, crop in UNIFIED_CROP_DB.items():
             if name in season_info["suitable_crops"]:
-                tf = _calc_weather_factor(temp, crop["optimal_temp"])
-                hf = _calc_weather_factor(humidity, crop["optimal_humidity"])
-                # Include soil match in suitability
+                # Same agronomic model as the Yield Prediction engine, so both views agree
+                res = predict_yield(name, 1.0, temp, humidity, monthly_rain,
+                                    soil_quality, True, elevation)
+                env = min(1.0, res["env_factor"]) if res else 0.5
                 soil_match = 1.0 if any(
                     s.lower() in soil_type.lower() or soil_type.lower() in s.lower()
                     for s in crop.get("soil", [])
                 ) else 0.5
-                overall = (tf * 0.35 + hf * 0.25 + soil_quality * 0.20 + soil_match * 0.20)
+                overall = env * 0.8 + soil_match * 0.2
                 potentials.append((name, crop["icon"], overall))
         potentials.sort(key=lambda x: x[2], reverse=True)
 

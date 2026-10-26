@@ -89,7 +89,7 @@ def generate_gradcam(model, img_array, layer_name):
                     break
 
     if target is None:
-        print(f"  WARNING: No target layer found")
+        print("  WARNING: No target layer found")
         return None
 
     # Build gradient model

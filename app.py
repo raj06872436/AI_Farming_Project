@@ -86,10 +86,16 @@ if "weather_raw" not in st.session_state:
     st.session_state["weather_raw"] = None
     st.session_state["weather_current"] = {}
 
-if location and st.session_state["weather_raw"] is None:
+# Re-fetch weather whenever the farm location changes (GPS, city search, coordinates),
+# not only on first load — otherwise a new location keeps showing the old weather.
+if location and (
+    st.session_state["weather_raw"] is None
+    or st.session_state.get("weather_location_key") != _new_location_key
+):
     raw = fetch_weather(location["latitude"], location["longitude"])
     st.session_state["weather_raw"] = raw
     st.session_state["weather_current"] = get_current_weather(raw) if raw else {}
+    st.session_state["weather_location_key"] = _new_location_key
 
 weather_raw = st.session_state["weather_raw"]
 weather_current = st.session_state["weather_current"]
