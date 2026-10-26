@@ -481,6 +481,8 @@ Held-out PlantVillage test split (3,109 photos) plus PlantDoc field photos (1,01
 | DenseNet121 | 96.1 % | 56.3 % | 57.6 % | 7 % | 20.1 % |
 | **LesionNet** | 99.5 % | **98.7 %** | **81.8 %** | **44 %** | 20.8 % |
 
+**Ablation:** the same EfficientNet backbone trained the ordinary way (A0) is just as accurate (99.6 %) but scores only 67.5 % on a grey background and 63.7 % on a swapped one, so the robustness comes from LesionNet's design. A phone-sized LesionNet (MobileNetV2 backbone) keeps 94.2 % on a grey background.
+
 All models — LesionNet included — drop to about 20 % on field photos: lab-photo training does not transfer to the field. Details, caveats and ablations: [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md). How to reproduce: [`research/lesion_net/README.md`](research/lesion_net/README.md).
 
 ### Output Locations
