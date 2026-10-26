@@ -62,6 +62,8 @@ classes PlantDoc shares with our 15. Chance: 8.3 %.
 | EfficientNetB0 | 20.2 % | 0.148 | 68.9 % | — |
 | DenseNet121 | 20.1 % | 0.158 | 67.4 % | — |
 | LesionNet | 20.8 % | 0.172 | **70.7 %** | 16.5 % / 24.7 % |
+| A0 plain EfficientNet (ablation) | 23.1 % | 0.191 | 70.4 % | — |
+| A5 LesionNet-Mobile (ablation) | 21.6 % | 0.154 | 62.5 % | 24.8 % / 32.5 % |
 
 **Takeaway (negative result, worth reporting):** every model trained only on PlantVillage
 lab photos collapses on field photos (20–24 %, chance 8 %), LesionNet included. Removing the
@@ -73,15 +75,34 @@ Next step for the paper: fine-tune on the PlantDoc *train* split and test on its
 (LesionNet's pseudo-mask pipeline can label PlantDoc images too), and compare how fast each
 model adapts.
 
-## 5. Ablations (run by `run_overnight.sh`)
+## 5. Ablations — what makes LesionNet robust?
 
-| Tag | What changes | Purpose |
-|---|---|---|
-| A0_plain | ordinary global pooling, no segmentation loss, no background swap | fair baseline: same backbone, same split, same training |
-| A3_full | — | LesionNet |
-| A5_mobilenet | MobileNetV2 backbone | phone-sized LesionNet |
+Same PlantVillage test split; A0 and A3 share backbone (EfficientNetB0, ImageNet), data split,
+epochs and optimiser — only the LesionNet ideas differ.
 
-After `run_overnight.sh` finishes, `results/eval_summary.md` contains all of them.
+| Model | What changes | Accuracy | Grey bg | Swapped bg | Background only (chance 6.7 %) | Evidence on lesions | Severity ρ | PlantDoc (12 cl.) |
+|---|---|---|---|---|---|---|---|---|
+| A0 plain EfficientNet | global pooling, no lesion outlines, no background swap | **99.6 %** | 67.5 % | 63.7 % | 32.7 % | — | — | **23.1 %** |
+| **A3 LesionNet** | full model | 99.5 % | **98.7 %** | **81.8 %** | **19.5 %** | **44.1 %** | **0.90** | 20.8 % |
+| A5 LesionNet-Mobile | MobileNetV2 backbone (stopped at epoch 10/18 by a GPU driver crash; best checkpoint used) | 96.0 % | 94.2 % | 73.2 % | 20.3 % | 34.0 % | 0.78 | 21.6 % |
+
+**Takeaways**
+
+1. **The robustness comes from LesionNet's design, not from the backbone or the training
+   schedule.** With the same backbone and training, the plain model is equally accurate on normal
+   photos (99.6 % vs 99.5 %) but loses 32 points on a grey background (67.5 % vs 98.7 %), 18 points
+   on a swapped background, and guesses the class from the background alone 1.7× as often
+   (32.7 % vs 19.5 %).
+2. **It also works on a small backbone.** LesionNet-Mobile (MobileNetV2) keeps 94.2 % on a grey
+   background, against 76.0 % for the classic MobileNetV2, and its strongest evidence lands on a lesion about twice as often
+   (95 % vs 49 %).
+3. **Field photos are not solved by either.** On PlantDoc the plain model scores 23.1 % and
+   LesionNet 20.8 %; the difference is within noise for 1,012 images (±2.6 points, 95 % CI).
+   Background robustness on lab photos does not by itself transfer to field photos.
+
+Still to run for the paper: A1 (background swap only), A2 (segmentation head but ordinary
+pooling) and A4 (gate not detached), to separate the contribution of each idea; and 3 seeds per
+model (`train_lesionnet.py --tag ...`, see README).
 
 ## Honest limitations
 
@@ -89,5 +110,5 @@ After `run_overnight.sh` finishes, `results/eval_summary.md` contains all of the
    mites). Pixel-level claims need hand-drawn masks (e.g. PlantSeg).
 2. The four classic models were trained on a different split and may have seen some of
    these test photos; A0_plain is the clean like-for-like baseline.
-3. Single run, single seed. Report mean ± std over 3 seeds before submission.
+3. Single run, single seed; A5 stopped early (epoch 10/18). Report mean ± std over 3 seeds before submission.
 4. Field generalisation (table 4) is unsolved for all models.
