@@ -803,10 +803,13 @@ elif page == "📊 Research Dashboard":
     rc3.metric("Classes", len(CLASS_NAMES))
     rc4.metric("Images", f"{DATASET_SUMMARY['total_images']:,}" if DATASET_SUMMARY else "—")
 
-    tab_study, tab_train, tab_cm, tab_roc, tab_gradcam, tab_metrics = st.tabs([
-        "🛡️ LesionNet Study", "📈 Training History", "🔢 Confusion Matrices", "📉 ROC & PR Curves",
-        "🔥 Explanation Maps", "📋 Metrics & Reports"
+    tab_facts, tab_study, tab_train, tab_cm, tab_roc, tab_gradcam, tab_metrics = st.tabs([
+        "📘 Project Facts", "🛡️ LesionNet Study", "📈 Training History", "🔢 Confusion Matrices",
+        "📉 ROC & PR Curves", "🔥 Explanation Maps", "📋 Metrics & Reports"
     ])
+
+    with tab_facts:
+        rv.render_project_facts()
 
     with tab_study:
         rv.render_study_tab()
