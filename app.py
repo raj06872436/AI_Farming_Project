@@ -421,7 +421,7 @@ elif page == "🔬 Disease Detection":
                 if use_ln:
                     # LesionNet's own lesion map: the evidence its decision was computed from
                     hm = None
-                    lesion = lni.lesion_result(image, ln_out["seg"])
+                    lesion = lni.lesion_result(image, ln_out["seg"], confidence=conf)
                     overlay = lni.make_overlay(lesion)
                     analysed = lesion["view"]
                     diag["lesion_heat"] = lni.heat_image(lesion)
@@ -512,7 +512,9 @@ elif page == "🔬 Disease Detection":
                         else kv_html("Analysis time", f"{diag['inference_ms']:.0f} ms"))
             if not healthy and not reliable:
                 notes = "; ".join(diag["lesion"].get("quality_notes", []))
-                advice += (f" <br><b>Area is approximate</b> — {notes}. "
+                _hdr = ("Check this result" if (diag.get("lesion") or {}).get("source") == lni.NAME
+                        else "Area is approximate")
+                advice += (f" <br><b>{_hdr}</b>: {notes}. "
                            "A photo of one whole leaf on a plain background gives the best measurement.")
             st.markdown(f"""
             <div class="diag-card {'is-disease' if not healthy else ''} fade-in">
