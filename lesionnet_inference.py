@@ -74,10 +74,22 @@ def predict(model, image, class_names):
     return {"idx": idx, "confidence": float(probs[idx]), "top5": top5, "probs": probs, "seg": seg, "arr": arr}
 
 
-def lesion_result(image, seg, threshold=0.5):
+def _main_leaf(leaf_mask):
+    """Keep the main leaf (plus pieces at least a quarter of its size); drop stray blobs such as a
+    shadow or a fold of cloth that the outline head mistook for leaf."""
+    leaf = leaf_mask.astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(leaf, 8)
+    if n > 2:
+        areas = st[1:, cv2.CC_STAT_AREA]
+        keep = np.flatnonzero(areas >= 0.25 * areas.max()) + 1
+        leaf = np.isin(lab, keep).astype(np.uint8)
+    return leaf
+
+
+def lesion_result(image, seg, threshold=0.5, confidence=None):
     """
     Turn the 56×56 segmentation into full-resolution masks and the same fields the
-    colour-based analysis returns (affected_pct, regions, leaf_mask, ...).
+    colour-based analysis returns (affected_pct, regions, leaf_mask, reliable, quality_notes).
     """
     rgb = np.asarray(image.convert("RGB"))
     h, w = rgb.shape[:2]
@@ -88,12 +100,12 @@ def lesion_result(image, seg, threshold=0.5):
     up = cv2.resize(seg, (dw, dh), interpolation=cv2.INTER_LINEAR)
     lesion_p = up[..., 2]
     leaf_p = up[..., 1] + up[..., 2]
-    leaf_mask = (leaf_p > 0.5).astype(np.uint8)
+    leaf_mask = _main_leaf(leaf_p > 0.5)
     lesion_mask = ((lesion_p > threshold) & (leaf_mask > 0)).astype(np.uint8)
 
-    # Area from the probabilities at network resolution (soft, matches the evaluation)
-    affected_pct = float(seg[..., 2].sum() / max(seg[..., 1].sum() + seg[..., 2].sum(), 1e-6) * 100)
+    # Diseased share of the (cleaned) leaf, from the soft probabilities
     leaf_px = max(int(leaf_mask.sum()), 1)
+    affected_pct = float(np.clip(lesion_p[leaf_mask > 0].sum() / leaf_px * 100, 0, 100))
 
     n, labels, stats, _ = cv2.connectedComponentsWithStats(lesion_mask, 8)
     regions = []
@@ -108,15 +120,20 @@ def lesion_result(image, seg, threshold=0.5):
     for k, r in enumerate(regions, 1):
         r["id"] = k
 
+    # When to warn: LesionNet learned from single tomato, potato and pepper leaves on plain
+    # backgrounds. Other plants, dried leaves, shadows or patterned cloth are outside that.
     notes = []
-    leaf_share = leaf_mask.mean()
-    if leaf_share < 0.08:
-        notes.append("very little leaf found in the photo")
-    reliable = not notes
+    if leaf_mask.mean() < 0.08:
+        notes.append("very little leaf was found in the photo")
+    if affected_pct > 60:
+        notes.append("almost the whole leaf is marked, which usually means the photo is unlike the training "
+                     "photos (another plant, a dried leaf, strong shadows or a patterned background)")
+    if confidence is not None and confidence < 0.85:
+        notes.append(f"the AI is only {confidence:.0%} sure of the disease")
     return {
         "affected_pct": affected_pct, "regions": regions, "leaf_mask": leaf_mask * 255,
         "lesion_mask": lesion_mask, "lesion_prob": lesion_p, "view": view,
-        "reliable": reliable, "quality_notes": notes, "breakdown": {}, "source": NAME,
+        "reliable": not notes, "quality_notes": notes, "breakdown": {}, "source": NAME,
     }
 
 
