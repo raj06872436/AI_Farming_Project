@@ -67,6 +67,7 @@ GRADCAM_LAYERS = {
 from disease_heatmap import run_disease_heatmap_pipeline
 from lesion_segmentation import analyze_leaf
 import lesionnet_inference as lni
+import research_views as rv
 
 # ─── Location & Weather (session-cached) ───
 if "location" not in st.session_state:
@@ -180,12 +181,13 @@ all_models = list(REGISTRY.keys())
 
 # LesionNet (our model, research/lesion_net) — listed first when its weights are present
 LESIONNET_PATH = lni.find_lesionnet_path()
-DETECT_MODELS = ([lni.NAME] if LESIONNET_PATH else []) + available
+LN_MODELS = lni.available_models()            # LesionNet, LesionNet-Mobile (whichever weights exist)
+DETECT_MODELS = LN_MODELS + available
 
 
 def model_meta(m):
-    if m == lni.NAME:
-        return {"accuracy": lni.META["accuracy"], "size_mb": lni.META["size_mb"], "inference_ms": "≈600"}
+    if m in lni.METAS:
+        return lni.METAS[m]
     return REGISTRY.get(m, {})
 
 with st.sidebar:
@@ -209,10 +211,10 @@ with st.sidebar:
                   f"{weather_current.get('description', '')}</div>")
         st.markdown(f'<div class="sb-card">{place}{wx}</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div class="sb-label">AI models · {len(DETECT_MODELS)}/{len(all_models) + 1} ready</div>',
+    st.markdown(f'<div class="sb-label">AI models · {len(DETECT_MODELS)}/{len(all_models) + 2} ready</div>',
                 unsafe_allow_html=True)
     rows = []
-    for m in [lni.NAME] + all_models:
+    for m in [lni.NAME, lni.MOBILE] + all_models:
         acc = model_meta(m).get("accuracy", 0)
         color = theme.MODEL_COLORS.get(m, theme.GREEN)
         dot = "🟢" if m in DETECT_MODELS else "⚪"
@@ -358,14 +360,17 @@ elif page == "🔬 Disease Detection":
                 st.image(Image.open(uploaded).convert("RGB"), width="stretch")
 
             st.markdown("#### 2 · Choose a model")
-            default_model = DETECT_MODELS[0] if LESIONNET_PATH else max(
+            default_model = lni.NAME if lni.NAME in DETECT_MODELS else max(
                 available, key=lambda m: REGISTRY.get(m, {}).get("accuracy", 0))
             model_choice = st.selectbox(
                 "Model", DETECT_MODELS, index=DETECT_MODELS.index(default_model),
                 format_func=lambda m: (f"{m} ⭐ recommended · {model_meta(m).get('accuracy', 0):.1%} accurate"
-                                       if m == lni.NAME else f"{m} · {model_meta(m).get('accuracy', 0):.1%} accurate"),
+                                       if m == lni.NAME else
+                                       f"{m} · lighter · {model_meta(m).get('accuracy', 0):.1%} accurate" if m == lni.MOBILE
+                                       else f"{m} · {model_meta(m).get('accuracy', 0):.1%} accurate"),
                 help="LesionNet finds the diseased spots first and names the disease from them, so a messy "
-                     "background fools it far less. ResNet50 is the most accurate classic model; MobileNetV2 is the fastest.",
+                     "background fools it far less. LesionNet-Mobile is a lighter version for slower computers. "
+                     "ResNet50 is the most accurate classic model; MobileNetV2 is the fastest.",
                 label_visibility="collapsed",
             )
             meta = model_meta(model_choice)
@@ -373,12 +378,12 @@ elif page == "🔬 Disease Detection":
                 chip_html(f"🎯 {meta.get('accuracy', 0):.1%} accuracy", "green") + " "
                 + chip_html(f"⚡ {meta.get('inference_ms', '?')} ms", "sky") + " "
                 + chip_html(f"💾 {meta.get('size_mb', '?')} MB", "gray")
-                + (" " + chip_html(f"🛡️ {lni.META['grey_bg_accuracy']:.0%} on a new background", "green")
-                   if model_choice == lni.NAME else ""),
+                + (" " + chip_html(f"🛡️ {meta['grey_bg_accuracy']:.0%} on a new background", "green")
+                   if model_choice in lni.METAS else ""),
                 unsafe_allow_html=True,
             )
-            if model_choice == lni.NAME:
-                st.caption("🔎 " + lni.META["description"] + " The red map you'll see is exactly what it used.")
+            if model_choice in lni.METAS:
+                st.caption("🔎 " + meta["description"] + " The red map you'll see is exactly what it used.")
             st.write("")
             analyze = st.button("🔍 Analyze leaf", type="primary", use_container_width=True,
                                 disabled=not uploaded)
@@ -387,9 +392,10 @@ elif page == "🔬 Disease Detection":
     upload_id = f"{uploaded.name}:{uploaded.size}" if uploaded else None
     if analyze and uploaded:
         image = Image.open(uploaded).convert("RGB")
-        use_ln = model_choice == lni.NAME
+        use_ln = model_choice in lni.METAS
         with st.spinner(f"Loading {model_choice}..."):
-            model = cached_load_lesionnet(LESIONNET_PATH) if use_ln else cached_load_model(find_model_path(model_choice))
+            model = (cached_load_lesionnet(lni.model_path(model_choice)) if use_ln
+                     else cached_load_model(find_model_path(model_choice)))
         with st.spinner("Analyzing the leaf..."):
             t0 = time.time()
             if use_ln:
@@ -787,19 +793,23 @@ elif page == "🤖 Farmer Assistant":
 elif page == "📊 Research Dashboard":
     st.markdown(page_header_html(
         "📊 Research", "Research dashboard",
-        "Training history, evaluation metrics and Grad-CAM visualisations for every model.",
+        "Our LesionNet study, training history, evaluation metrics and explanation maps for every model.",
     ), unsafe_allow_html=True)
 
+    RESEARCH_MODELS = rv.research_models(REGISTRY)
     rc1, rc2, rc3, rc4 = st.columns(4)
-    rc1.metric("Models", len(REGISTRY))
-    rc2.metric("Trained", len(available))
+    rc1.metric("Models", len(RESEARCH_MODELS))
+    rc2.metric("Trained", len(available) + len(LN_MODELS))
     rc3.metric("Classes", len(CLASS_NAMES))
     rc4.metric("Images", f"{DATASET_SUMMARY['total_images']:,}" if DATASET_SUMMARY else "—")
 
-    tab_train, tab_cm, tab_roc, tab_gradcam, tab_metrics = st.tabs([
-        "📈 Training History", "🔢 Confusion Matrices", "📉 ROC & PR Curves",
-        "🔥 Grad-CAM Gallery", "📋 Metrics & Reports"
+    tab_study, tab_train, tab_cm, tab_roc, tab_gradcam, tab_metrics = st.tabs([
+        "🛡️ LesionNet Study", "📈 Training History", "🔢 Confusion Matrices", "📉 ROC & PR Curves",
+        "🔥 Explanation Maps", "📋 Metrics & Reports"
     ])
+
+    with tab_study:
+        rv.render_study_tab()
 
     with tab_train:
         comp_path = os.path.join(GRAPHS_DIR, "all_models_training_comparison.png")
@@ -807,7 +817,7 @@ elif page == "📊 Research Dashboard":
             st.markdown("**All Models — Training Comparison**")
             st.image(comp_path, width="stretch")
             st.divider()
-        for mname in REGISTRY:
+        for mname in RESEARCH_MODELS:
             gpath = find_training_graph(mname)
             if gpath:
                 st.markdown(f"**{mname} — Training History**")
@@ -825,7 +835,7 @@ elif page == "📊 Research Dashboard":
         st.markdown("**Individual Confusion Matrices**")
         cm_cols = st.columns(2)
         col_idx = 0
-        for mname in REGISTRY:
+        for mname in RESEARCH_MODELS:
             cm_path = os.path.join(CONFUSION_DIR, f"{mname}_confusion_matrix.png")
             if os.path.exists(cm_path):
                 with cm_cols[col_idx % 2]:
@@ -842,7 +852,7 @@ elif page == "📊 Research Dashboard":
             st.image(combined_roc_path, width="stretch")
             st.divider()
         st.markdown("**Individual ROC & Precision-Recall Curves**")
-        for mname in REGISTRY:
+        for mname in RESEARCH_MODELS:
             roc_path = os.path.join(ROC_DIR, f"{mname}_roc_curves.png")
             pr_path = os.path.join(ROC_DIR, f"{mname}_pr_curves.png")
             if os.path.exists(roc_path) or os.path.exists(pr_path):
@@ -855,6 +865,12 @@ elif page == "📊 Research Dashboard":
                 st.divider()
 
     with tab_gradcam:
+        _q = os.path.join(rv.LN_FIGS, "fig_qualitative.png")
+        if os.path.exists(_q):
+            st.markdown("**LesionNet vs. Grad-CAM++ — test photos**")
+            st.image(_q, width=820, caption="Grad-CAM++ (classic models) shows roughly where a model looked; "
+                     "LesionNet's map is the evidence its decision is computed from.")
+            st.divider()
         for mname in REGISTRY:
             gcimgs = find_gradcam_images(mname)
             if gcimgs:
@@ -867,19 +883,19 @@ elif page == "📊 Research Dashboard":
     with tab_metrics:
         if METRICS_DF is not None:
             st.markdown("**📊 Model Performance Summary**")
-            display_df = METRICS_DF.copy()
+            display_df = rv.metrics_table(METRICS_DF).copy()
             for col in ["Accuracy", "Precision", "Recall", "F1 Score", "AUC"]:
                 if col in display_df.columns:
                     display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
             if "Inference Time (ms)" in display_df.columns:
-                display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms")
+                display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms" if pd.notna(x) else "—")
             if "Model Size (MB)" in display_df.columns:
                 display_df["Model Size (MB)"] = display_df["Model Size (MB)"].apply(lambda x: f"{x:.1f} MB")
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            st.dataframe(display_df.astype(object).where(display_df.notna(), "—"), use_container_width=True, hide_index=True)
             st.divider()
 
         st.markdown("**📝 Classification Reports**")
-        for mname in REGISTRY:
+        for mname in RESEARCH_MODELS:
             report_path = os.path.join(METRICS_DIR, f"{mname}_classification_report.txt")
             if os.path.exists(report_path):
                 with st.expander(f"📄 {mname} — Classification Report"):
@@ -915,57 +931,61 @@ elif page == "📈 Model Comparison":
     import robustness_view
     robustness_view.render()
 
-    if METRICS_DF is not None:
+    CMP = rv.compare_registry(REGISTRY)
+    METRICS_ALL = rv.metrics_table(METRICS_DF)
+    if METRICS_ALL is not None:
         st.markdown("### 📊 Performance Metrics")
-        display_df = METRICS_DF.copy()
+        display_df = METRICS_ALL.copy()
         for col in ["Accuracy", "Precision", "Recall", "F1 Score", "AUC"]:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
         if "Inference Time (ms)" in display_df.columns:
-            display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms")
+            display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms" if pd.notna(x) else "—")
         if "Model Size (MB)" in display_df.columns:
             display_df["Model Size (MB)"] = display_df["Model Size (MB)"].apply(lambda x: f"{x:.1f} MB")
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df.astype(object).where(display_df.notna(), "—"), use_container_width=True, hide_index=True)
+        st.caption("Classic models: their original test split. LesionNet models: the 3,109-photo held-out split. "
+                   "LesionNet speeds are estimated on the same scale from a same-machine relative measurement.")
     else:
         rows = []
-        for m, d in REGISTRY.items():
+        for m, d in CMP.items():
             rows.append({"Model": m, "Accuracy": f"{d.get('accuracy',0):.0%}", "Params": d.get("params","—"), "Size": f"{d.get('size_mb','—')} MB", "Inference": f"{d.get('inference_ms','—')} ms", "Status": d.get("status","—").upper()})
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     st.markdown("### Performance Comparison")
     c1, c2 = st.columns(2)
-    names = list(REGISTRY.keys())
-    color_list = [theme.MODEL_COLORS.get(m, theme.GREEN) for m in REGISTRY]
+    names = list(CMP.keys())
+    color_list = [theme.MODEL_COLORS.get(m, theme.GREEN) for m in CMP]
 
     with c1:
-        accs = [REGISTRY[m].get("accuracy", 0) for m in names]
-        fig = go.Figure(go.Bar(x=names, y=accs, marker_color=color_list[:len(names)], text=[f"{a:.0%}" for a in accs], textposition="outside"))
+        accs = [CMP[m].get("accuracy", 0) for m in names]
+        fig = go.Figure(go.Bar(x=names, y=accs, marker_color=color_list[:len(names)], text=[f"{a:.1%}" for a in accs], textposition="outside"))
         fig.update_layout(title="Accuracy Comparison", yaxis_range=[0,1.1], template="agrix", height=400, margin=dict(t=50,b=30))
         st.plotly_chart(fig, use_container_width=True)
 
     with c2:
-        sizes = [REGISTRY[m].get("size_mb", 0) for m in names]
+        sizes = [CMP[m].get("size_mb", 0) for m in names]
         fig2 = go.Figure(go.Bar(x=names, y=sizes, marker_color=color_list[:len(names)], text=[f"{s}MB" for s in sizes], textposition="outside"))
         fig2.update_layout(title="Model Size Comparison", template="agrix", height=400, margin=dict(t=50,b=30))
         st.plotly_chart(fig2, use_container_width=True)
 
     c3, c4 = st.columns(2)
     with c3:
-        inf_times = [REGISTRY[m].get("inference_ms", 0) for m in names]
+        inf_times = [CMP[m].get("inference_ms", 0) for m in names]
         fig_inf = go.Figure(go.Bar(x=names, y=inf_times, marker_color=color_list[:len(names)], text=[f"{t:.0f}ms" for t in inf_times], textposition="outside"))
         fig_inf.update_layout(title="Inference Speed (ms)", template="agrix", height=400, margin=dict(t=50,b=30))
         st.plotly_chart(fig_inf, use_container_width=True)
 
     with c4:
-        if METRICS_DF is not None and "F1 Score" in METRICS_DF.columns:
-            f1s = METRICS_DF["F1 Score"].tolist()
-            m_names = METRICS_DF["Model"].tolist()
-            fig_f1 = go.Figure(go.Bar(x=m_names, y=f1s, marker_color=color_list[:len(m_names)], text=[f"{f:.2%}" for f in f1s], textposition="outside"))
+        if METRICS_ALL is not None and "F1 Score" in METRICS_ALL.columns:
+            f1s = METRICS_ALL["F1 Score"].tolist()
+            m_names = METRICS_ALL["Model"].tolist()
+            fig_f1 = go.Figure(go.Bar(x=m_names, y=f1s, marker_color=[theme.MODEL_COLORS.get(m, theme.GREEN) for m in m_names], text=[f"{f:.2%}" for f in f1s], textposition="outside"))
             fig_f1.update_layout(title="F1 Score Comparison", yaxis_range=[0,1.1], template="agrix", height=400, margin=dict(t=50,b=30))
             st.plotly_chart(fig_f1, use_container_width=True)
 
     st.markdown("### Architecture Analysis")
-    for mname, mdata in REGISTRY.items():
+    for mname, mdata in CMP.items():
         with st.expander(f"🏗️ {mname}", expanded=False):
             dc1, dc2 = st.columns(2)
             dc1.markdown(f"""
@@ -984,7 +1004,7 @@ elif page == "📈 Model Comparison":
     categories = ["Accuracy", "Speed", "Size Efficiency", "Deployability"]
     fig3 = go.Figure()
     color_map = theme.MODEL_COLORS
-    for m, d in REGISTRY.items():
+    for m, d in CMP.items():
         acc = d.get("accuracy", 0)
         speed = max(0, 1 - d.get("inference_ms", 50) / 200)
         size_eff = max(0, 1 - d.get("size_mb", 50) / 120)
@@ -1002,7 +1022,11 @@ elif page == "📋 Reports & About":
         "📋 Reports & About", "Reports, data and project info",
         "Download today's field report, explore the training dataset and read how AGRI-X AI works.",
     ), unsafe_allow_html=True)
-    tab_reports, tab_dataset, tab_about = st.tabs(["📄 Field Reports", "📋 Dataset Explorer", "ℹ️ About"])
+    tab_reports, tab_paper, tab_dataset, tab_about = st.tabs(
+        ["📄 Field Reports", "🔬 Research Paper", "📋 Dataset Explorer", "ℹ️ About"])
+
+    with tab_paper:
+        rv.render_paper_tab()
 
     with tab_reports:
         st.markdown(section_head_html("📄 Field report", "CSV or HTML"), unsafe_allow_html=True)
@@ -1054,6 +1078,8 @@ elif page == "📋 Reports & About":
                     st.dataframe(class_df, use_container_width=True, hide_index=True)
         else:
             st.warning("Dataset summary not found. Run the training pipeline to generate dataset statistics.")
+        st.divider()
+        rv.render_plantdoc_dataset()
 
     with tab_about:
         st.markdown(section_head_html("ℹ️ About AGRI-X AI", "Methodology, architecture and references"), unsafe_allow_html=True)
@@ -1062,8 +1088,13 @@ elif page == "📋 Reports & About":
         ### 🎯 Project Overview
 
         **AGRI-X AI** is an end-to-end, research-grade framework that combines transfer learning,
-        explainable AI (Grad-CAM), and smart agricultural decision support for automated
+        explainable AI, and smart agricultural decision support for automated
         plant disease identification and farming intelligence.
+
+        Its default diagnostic model is **LesionNet**, our own network: it outlines the diseased spots
+        first and names the disease from those spots only, so a changed background barely affects it
+        (98.7% on a grey background vs. 45–81% for classic CNNs) and its lesion map doubles as a
+        severity measure. See the **Research Paper** tab.
 
         ### 🏗️ Architecture
         """)
@@ -1088,6 +1119,7 @@ elif page == "📋 Reports & About":
 │  • ResNet50          │  • CrossValidator                       │
 │  • EfficientNetB0    │  • StatisticalAnalyzer                  │
 │  • DenseNet121       │  • AblationStudy                        │
+│  • LesionNet (ours)  │  • Background-robustness tests           │
 ├──────────────────────┴──────────────────────────────────────────┤
 │                     Data Layer (src/data/)                       │
 │              DatasetManager — Loading, Splitting, Augmentation   │
@@ -1104,6 +1136,8 @@ elif page == "📋 Reports & About":
             ("4", "Grad-CAM Explainability", "Gradient-weighted Class Activation Mapping for visual disease region identification"),
             ("5", "K-Fold Cross-Validation", "5-fold stratified CV for statistically robust performance estimates"),
             ("6", "Disease Risk Scoring", "Weather-aware risk calculation combining temperature, humidity, and rainfall"),
+            ("7", "LesionNet (our model)", "Segmentation head + lesion-gated pooling: the classifier sees only leaf and lesion pixels; trained from automatic colour-based lesion masks with background-swap augmentation"),
+            ("8", "Robustness & Faithfulness Tests", "Grey / swapped / background-only test photos, evidence-on-lesion, pointing game, severity correlation, and a PlantDoc field-photo test"),
         ]
         for num, title, desc in methods:
             st.markdown(f"""
@@ -1128,6 +1162,11 @@ elif page == "📋 Reports & About":
             ("4", "Huang, G., et al. (2017). \"Densely Connected Convolutional Networks.\" CVPR 2017."),
             ("5", "Selvaraju, R. R., et al. (2017). \"Grad-CAM: Visual Explanations from Deep Networks.\" ICCV 2017."),
             ("6", "Hughes, D. P. & Salathe, M. (2015). \"PlantVillage: An open access repository of plant health images.\""),
+            ("7", "Chattopadhay, A., et al. (2018). \"Grad-CAM++: Generalized Gradient-based Visual Explanations.\" WACV 2018."),
+            ("8", "Singh, D., et al. (2020). \"PlantDoc: A Dataset for Visual Plant Disease Detection.\" CoDS-COMAD 2020."),
+            ("9", "Geirhos, R., et al. (2020). \"Shortcut Learning in Deep Neural Networks.\" Nature Machine Intelligence."),
+            ("10", "Noyan, M. A. (2022). \"Uncovering Bias in the PlantVillage Dataset.\" arXiv:2206.04374."),
+            ("11", "Naik, R., Patel, D., Mehta, S., Mathukia, P. & Tawde, P. (2026). \"LesionNet: Lesion-Gated Classification for Background-Robust, Faithfully Explainable and Severity-Aware Plant Disease Diagnosis.\" Manuscript in preparation."),
         ]
         for num, text in refs:
             st.markdown(f"""
