@@ -277,3 +277,103 @@ def render_plantdoc_dataset():
     st.markdown("**Accuracy per class on field photos**")
     st.dataframe(show.style.format({c: "{:.0%}" for c in show.columns if c not in ("Class", "Photos")}),
                  use_container_width=True, hide_index=True)
+
+
+# ───────────────────────────────────────────────────────── Project facts (Research Dashboard)
+PV_CLASSES = [  # crop, condition, photos (PlantVillage, the 15 classes we use)
+    ("Tomato", "Yellow leaf curl virus", 3208), ("Tomato", "Bacterial spot", 2127), ("Tomato", "Late blight", 1909),
+    ("Tomato", "Septoria leaf spot", 1771), ("Tomato", "Spider mites", 1676), ("Tomato", "Healthy", 1591),
+    ("Pepper", "Healthy", 1478), ("Tomato", "Target spot", 1404), ("Potato", "Early blight", 1000),
+    ("Potato", "Late blight", 1000), ("Tomato", "Early blight", 1000), ("Pepper", "Bacterial spot", 997),
+    ("Tomato", "Leaf mould", 952), ("Tomato", "Mosaic virus", 373), ("Potato", "Healthy", 152),
+]
+MODEL_FACTS = [
+    {"Model": "MobileNetV2", "Type": "Light, fast standard CNN", "Params (M)": 2.63, "File (MB)": 27.6,
+     "Accuracy": "91.6%", "Role": "classic baseline"},
+    {"Model": "ResNet50", "Type": "Deep CNN with skip connections", "Params (M)": 24.78, "File (MB)": 259.2,
+     "Accuracy": "99.5%", "Role": "classic baseline"},
+    {"Model": "EfficientNetB0", "Type": "Balanced, efficient CNN", "Params (M)": 4.39, "File (MB)": 31.5,
+     "Accuracy": "95.8%", "Role": "classic baseline"},
+    {"Model": "DenseNet121", "Type": "CNN reusing all earlier features", "Params (M)": 7.34, "File (MB)": 38.1,
+     "Accuracy": "96.0%", "Role": "classic baseline"},
+    {"Model": "LesionNet", "Type": "EfficientNetB0 + lesion outline head + lesion-gated pooling",
+     "Params (M)": 4.95, "File (MB)": 94.2, "Accuracy": "99.55%", "Role": "our model (default in app)"},
+    {"Model": "LesionNet-Mobile", "Type": "Same idea on MobileNetV2", "Params (M)": 3.35, "File (MB)": 63.7,
+     "Accuracy": "95.98%", "Role": "our light model"},
+    {"Model": "Plain EfficientNet (A0)", "Type": "LesionNet's backbone trained the ordinary way",
+     "Params (M)": 4.88, "File (MB)": None, "Accuracy": "99.6%", "Role": "ablation only"},
+]
+
+
+def render_project_facts():
+    st.markdown("#### 📘 Project at a glance")
+    st.caption("The basic facts: data, splits, models, parameters and training settings.")
+    c = st.columns(5)
+    c[0].metric("Training photos", "20,638")
+    c[1].metric("Classes", "15")
+    c[2].metric("Crops", "3")
+    c[3].metric("Field test photos", "1,012")
+    c[4].metric("Models trained", "7")
+
+    st.markdown("##### Dataset split (PlantVillage, stratified per class, seed 42)")
+    s1, s2 = st.columns([1, 1.3])
+    split = pd.DataFrame({"Split": ["Train", "Validation", "Test"], "Share": ["70%", "15%", "15%"],
+                          "Photos": [14440, 3089, 3109]})
+    s1.dataframe(split.assign(Photos=split["Photos"].map("{:,}".format)), use_container_width=True, hide_index=True)
+    s1.caption("7 models = 4 classic + LesionNet + LesionNet-Mobile + 1 ablation (A0).")
+    fig = go.Figure(go.Pie(labels=split["Split"], values=split["Photos"], hole=0.55, sort=False,
+                           marker=dict(colors=[theme.GREEN, "#9AA59C", theme.MODEL_COLORS["LesionNet"]]),
+                           textinfo="label+value"))
+    fig.update_layout(template="agrix", height=240, margin=dict(t=10, b=10, l=10, r=10), showlegend=False)
+    s2.plotly_chart(fig, use_container_width=True)
+    st.caption("Images resized to 224 × 224. Classes are imbalanced (3,208 vs 152 photos, about 21×), "
+               "handled with class weights (0.5–3×) in the loss.")
+
+    st.markdown("##### Classes and photo counts")
+    cls = pd.DataFrame(PV_CLASSES, columns=["Crop", "Condition", "Photos"])
+    fig = go.Figure(go.Bar(x=cls["Photos"], y=cls["Crop"] + " · " + cls["Condition"], orientation="h",
+                           marker_color=[{"Tomato": "#C2410C", "Potato": theme.PURPLE, "Pepper": theme.GREEN}[c]
+                                         for c in cls["Crop"]],
+                           text=[f"{v:,}" for v in cls["Photos"]], textposition="outside"))
+    fig.update_layout(template="agrix", height=470, yaxis=dict(autorange="reversed"),
+                      margin=dict(t=10, b=10, l=10, r=40), xaxis_title="Photos")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("##### Second dataset: PlantDoc (testing only)")
+    st.markdown("Real field and internet photos (Singh et al., 2020): **1,012 photos, 12 of our classes** "
+                "(no healthy potato, target spot or spider mites). Never used for training, only to test "
+                "how models cope with messy real-world photos.")
+
+    st.markdown("##### Automatic training outlines (for LesionNet)")
+    st.markdown("- **17,895 of 20,638** photos (86.7%) got a usable outline from our colour-based detector "
+                "(background / healthy leaf / lesion).\n"
+                "- Lesions cover on average **12.8%** of the leaf (median 8.8%); the leaf covers **42.5%** of the photo.\n"
+                "- No outline was drawn by hand.")
+
+    st.markdown("##### Models and parameters")
+    mf = pd.DataFrame(MODEL_FACTS)
+    st.dataframe(mf.astype(object).where(mf.notna(), "—"), use_container_width=True, hide_index=True)
+    st.caption("Classic models: accuracy on their original test split. LesionNet models: on the 3,109-photo "
+               "held-out split (where the classic models score 93.0%, 99.8%, 96.4% and 96.2%).")
+
+    st.markdown("##### Training settings")
+    t1, t2 = st.columns(2)
+    t1.markdown("**Classic models (transfer learning)**\n\n"
+                "| Setting | Value |\n|---|---|\n"
+                "| Pretrained on | ImageNet |\n| Input size | 224 × 224 |\n| Batch size | 32 |\n"
+                "| Phase 1 | 5 epochs, backbone frozen, lr 0.0001 |\n"
+                "| Phase 2 | 15 epochs, last 50 layers fine-tuned, lr 0.00001 |\n"
+                "| Head | GAP → BatchNorm → Dense → Dropout 0.3 → Softmax (15) |")
+    t2.markdown("**LesionNet**\n\n"
+                "| Setting | Value |\n|---|---|\n"
+                "| Optimizer | Adam |\n| Phase 1 | 3 epochs, backbone frozen, lr 0.001 |\n"
+                "| Phase 2 | 15 epochs, whole network, cosine decay 0.0001 → 0.000001 |\n"
+                "| Batch size | 32, mixed precision (16-bit) |\n"
+                "| Loss | classification + 1 × outline loss (lesion pixels ×3) |\n"
+                "| Augmentation | flips, rotations, colour jitter, background swap (50%) |\n"
+                "| Outline map / features | 56 × 56 / 14 × 14 × 256 |\n"
+                "| Early stopping | patience 5, best validation epoch kept |")
+    st.markdown("##### Hardware and time")
+    st.markdown("NVIDIA RTX 4050 Laptop GPU (6 GB), Ubuntu on WSL2, TensorFlow / Keras 3. "
+                "LesionNet trained in **76 minutes**, the plain baseline (A0) in 42 minutes. "
+                "LesionNet-Mobile stopped at epoch 10 of 18 after a GPU driver crash (best epoch used).")
