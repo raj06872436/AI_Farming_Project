@@ -16,26 +16,40 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAVED_MODELS_DIR = os.path.join(BASE_DIR, "saved_models")
 sys.path.insert(0, os.path.join(BASE_DIR, "research", "lesion_net"))
 
-NAME = "LesionNet"
+NAME = "LesionNet"           # family name; also used to tag lesion results
+MOBILE = "LesionNet-Mobile"
 SIZE = 224
-# Shown in the model picker (measured on the 3,109-photo held-out test split, see
-# research/lesion_net/results/eval_summary.md)
-META = {
-    "accuracy": 0.995,
-    "grey_bg_accuracy": 0.987,
-    "swap_bg_accuracy": 0.818,
-    "size_mb": 94,
-    "description": "Finds the diseased spots first, then names the disease from those spots only.",
+FILES = {NAME: "LesionNet_A3_full.keras", MOBILE: "LesionNet_A5_mobilenet.keras"}
+# Measured on the 3,109-photo held-out test split (research/lesion_net/results/eval_summary.md).
+# inference_ms: CPU estimate on the same scale as the classic models' registry numbers
+# (LesionNet ≈ EfficientNetB0 cost, LesionNet-Mobile ≈ 1.26× MobileNetV2, see the paper).
+METAS = {
+    NAME: {"accuracy": 0.995, "grey_bg_accuracy": 0.987, "swap_bg_accuracy": 0.818, "size_mb": 94.2,
+           "params": "4.9M", "inference_ms": 104,
+           "description": "Finds the diseased spots first, then names the disease from those spots only."},
+    MOBILE: {"accuracy": 0.960, "grey_bg_accuracy": 0.942, "swap_bg_accuracy": 0.732, "size_mb": 63.7,
+             "params": "3.4M", "inference_ms": 79,
+             "description": "A lighter LesionNet for slower computers and phones: same idea, a little less accurate."},
 }
+META = METAS[NAME]
+
+
+def model_path(name=NAME):
+    p = os.path.join(SAVED_MODELS_DIR, FILES.get(name, ""))
+    return p if os.path.exists(p) else None
+
+
+def available_models():
+    return [n for n in (NAME, MOBILE) if model_path(n)]
 
 
 def find_lesionnet_path():
     """Prefer the main model (A3_full); fall back to any other trained LesionNet."""
-    preferred = os.path.join(SAVED_MODELS_DIR, "LesionNet_A3_full.keras")
-    if os.path.exists(preferred):
+    preferred = model_path(NAME)
+    if preferred:
         return preferred
     others = sorted(p for p in glob.glob(os.path.join(SAVED_MODELS_DIR, "LesionNet_*.keras"))
-                    if "smoke" not in os.path.basename(p))
+                    if "smoke" not in os.path.basename(p) and "A0" not in os.path.basename(p))
     return others[0] if others else None
 
 

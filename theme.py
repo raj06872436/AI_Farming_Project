@@ -47,6 +47,7 @@ MODEL_COLORS = {
     "EfficientNetB0": AMBER,
     "DenseNet121": PURPLE,
     "LesionNet": "#0F766E",
+    "LesionNet-Mobile": "#5EAAA8",
 }
 
 FONT_FAMILY = "Inter, 'Segoe UI', system-ui, -apple-system, sans-serif"
