@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Agricultural Insights Engine (Module 8)
+AGRI-X AI - Agricultural Insights Engine (Module 8)
 Generates intelligent farming insights from weather, location, and season data.
 """
 import streamlit as st
@@ -23,7 +23,7 @@ def _get_season_info():
         return {
             "season": "Rabi", "period": "November – March",
             "icon": "❄️", "color": "#2E7D32",
-            "description": "Winter season. Cool and dry — ideal for wheat, chickpea, mustard, potato and onion.",
+            "description": "Winter season. Cool and dry - ideal for wheat, chickpea, mustard, potato and onion.",
             "suitable_crops": ["Wheat", "Chickpea", "Mustard", "Potato", "Onion", "Lentil (Masur)", "Garlic",
                                "Coriander", "Tomato", "Cauliflower"],
         }
@@ -65,7 +65,7 @@ def generate_weather_alerts(weather_current, daily_forecast=None):
     # Humidity alerts
     if humidity >= 90:
         alerts.append({"level": "Warning", "icon": "🟡", "color": "#B45309",
-                        "title": "High Humidity — Disease Risk",
+                        "title": "High Humidity - Disease Risk",
                         "message": f"Humidity at {humidity}%. Fungal diseases (blight, mold) risk is elevated. Apply preventive fungicides."})
     elif humidity <= 25:
         alerts.append({"level": "Warning", "icon": "🟡", "color": "#C2410C",
@@ -167,7 +167,7 @@ def generate_farming_suggestions(weather_current, season_info):
         suggestions.append({
             "category": "🐛 Pest Management",
             "title": "Fungal Disease Prevention",
-            "detail": "Warm and humid — ideal for fungal diseases. Apply preventive mancozeb or copper-based sprays. Improve air circulation.",
+            "detail": "Warm and humid - ideal for fungal diseases. Apply preventive mancozeb or copper-based sprays. Improve air circulation.",
         })
 
     # General
@@ -210,23 +210,23 @@ def render_insights_dashboard(weather_current, daily_forecast, location):
     alerts = generate_weather_alerts(weather_current, daily_forecast)
     for alert in alerts:
         if alert["level"] == "Critical":
-            st.error(f"{alert['icon']} **{alert['title']}** — {alert['message']}")
+            st.error(f"{alert['icon']} **{alert['title']}** - {alert['message']}")
         elif alert["level"] == "Warning":
-            st.warning(f"{alert['icon']} **{alert['title']}** — {alert['message']}")
+            st.warning(f"{alert['icon']} **{alert['title']}** - {alert['message']}")
         else:
-            st.info(f"{alert['icon']} **{alert['title']}** — {alert['message']}")
+            st.info(f"{alert['icon']} **{alert['title']}** - {alert['message']}")
 
     # Farming suggestions
     st.markdown("### 🌾 Farming Suggestions")
     suggestions = generate_farming_suggestions(weather_current, season_info)
     for sug in suggestions:
-        with st.expander(f"{sug['category']} — {sug['title']}", expanded=False):
+        with st.expander(f"{sug['category']} - {sug['title']}", expanded=False):
             st.write(sug["detail"])
 
-    # Yield potential — uses unified crop database and full location data
+    # Yield potential - uses unified crop database and full location data
     st.markdown("### 📊 Crop Yield Potential")
     if weather_current:
-        # Same scoring as the Crop Advisor (season climate, soil, pH, region) — rainfed,
+        # Same scoring as the Crop Advisor (season climate, soil, pH, region) - rainfed,
         # so it shows how well each crop suits the land without extra water.
         from crop_advisor import UNIFIED_CROP_DB, build_context, score_crop
 

@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Design system ("Fresh Field" light theme).
+AGRI-X AI - Design system ("Fresh Field" light theme).
 
 One place for every colour, font and chart style used by the dashboard:
   * PALETTE / Python constants  → use in Plotly figures and inline HTML
@@ -22,7 +22,7 @@ TEXT = "#1E2A22"          # headings / primary text
 TEXT_2 = "#47554B"        # body text
 TEXT_3 = "#6B776E"        # captions, labels
 
-# Accents — all ≥ 4.5:1 contrast on white so they work as text colours too
+# Accents - all ≥ 4.5:1 contrast on white so they work as text colours too
 GREEN = "#2E7D32"         # primary (leaf)
 GREEN_STRONG = "#1B5E20"
 GREEN_SOFT = "#E5F1E3"

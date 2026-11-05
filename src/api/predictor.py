@@ -151,7 +151,7 @@ class PlantDiseasePredictor:
             {
                 "class": self.class_names[idx],
                 "confidence": float(predictions[0][idx]),
-                "display_name": self.class_names[idx].replace("_", " ").replace("__", " — "),
+                "display_name": self.class_names[idx].replace("_", " ").replace("__", " - "),
             }
             for idx in top_indices
         ]
@@ -173,7 +173,7 @@ class PlantDiseasePredictor:
 
         return {
             "predicted_class": predicted_class,
-            "display_name": predicted_class.replace("_", " ").replace("__", " — "),
+            "display_name": predicted_class.replace("_", " ").replace("__", " - "),
             "confidence": confidence,
             "top_k_predictions": top_predictions,
             "gradcam_heatmap": heatmap,

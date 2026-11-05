@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Treatment Recommendation Engine (Module 4)
+AGRI-X AI - Treatment Recommendation Engine (Module 4)
 Expanded knowledge base with structured treatment data.
 """
 import streamlit as st
@@ -20,8 +20,8 @@ TREATMENT_DB = {
     "Pepper__bell___healthy": {
         "disease": "Healthy", "plant": "Bell Pepper",
         "description": "No disease detected. The plant appears healthy with normal growth patterns.",
-        "cause": "N/A — Plant is healthy.",
-        "symptoms": ["No symptoms — healthy foliage"],
+        "cause": "N/A - Plant is healthy.",
+        "symptoms": ["No symptoms - healthy foliage"],
         "severity": "None",
         "organic_treatment": ["No treatment needed", "Continue preventive neem oil biweekly"],
         "chemical_treatment": ["No chemical treatment required"],
@@ -49,7 +49,7 @@ TREATMENT_DB = {
         "severity": "Critical",
         "organic_treatment": ["Copper-based fungicides immediately", "Remove and destroy ALL infected plants", "Improve drainage urgently", "Do NOT compost infected material"],
         "chemical_treatment": ["URGENT: Metalaxyl + mancozeb immediately", "Cymoxanil + mancozeb (curative)", "Dimethomorph for resistant strains", "Spray every 5-7 days"],
-        "prevention": ["Use certified disease-free seed potatoes", "Plant resistant varieties", "Destroy volunteer plants", "Monitor weather — act at first sign"],
+        "prevention": ["Use certified disease-free seed potatoes", "Plant resistant varieties", "Destroy volunteer plants", "Monitor weather - act at first sign"],
         "irrigation": "STOP overhead irrigation immediately. Drip only. Improve field drainage.",
         "fertilizer": "Reduce nitrogen. Increase phosphorus and potassium. Apply calcium.",
     },
@@ -94,7 +94,7 @@ TREATMENT_DB = {
         "cause": "Phytophthora infestans. Cool (10-24°C), humid (>90%) with rain = explosive spread.",
         "symptoms": ["Large, irregular water-soaked lesions", "White mold on leaf undersides", "Rapid plant collapse", "Fruit with firm, dark rot"],
         "severity": "Critical",
-        "organic_treatment": ["Copper sprays immediately", "Remove ALL infected material", "Burn or bag — do NOT compost"],
+        "organic_treatment": ["Copper sprays immediately", "Remove ALL infected material", "Burn or bag - do NOT compost"],
         "chemical_treatment": ["EMERGENCY: Metalaxyl-mancozeb every 5 days", "Cymoxanil + mancozeb curative", "Mandipropamid for resistance management"],
         "prevention": ["Resistant varieties", "Destroy volunteers", "Fungicide before rainy season", "Monitor adjacent fields"],
         "irrigation": "STOP overhead watering. Drip only. Improve drainage immediately.",
@@ -150,7 +150,7 @@ TREATMENT_DB = {
     },
     "Tomato__Tomato_YellowLeaf__Curl_Virus": {
         "disease": "Tomato Yellow Leaf Curl Virus (TYLCV)", "plant": "Tomato",
-        "description": "VIRAL disease transmitted by whiteflies (Bemisia tabaci). NO CURE — prevention is key.",
+        "description": "VIRAL disease transmitted by whiteflies (Bemisia tabaci). NO CURE - prevention is key.",
         "cause": "Begomovirus transmitted by silverleaf whitefly. Warm conditions increase vector activity.",
         "symptoms": ["Upward leaf curling and cupping", "Yellow leaf margins", "Stunted growth", "Reduced fruit set", "Plant remains alive but unproductive"],
         "severity": "High (incurable)",
@@ -175,7 +175,7 @@ TREATMENT_DB = {
     "Tomato_healthy": {
         "disease": "Healthy", "plant": "Tomato",
         "description": "No disease detected. Tomato plant is healthy and showing normal growth.",
-        "cause": "N/A", "symptoms": ["No disease symptoms — healthy plant"],
+        "cause": "N/A", "symptoms": ["No disease symptoms - healthy plant"],
         "severity": "None",
         "organic_treatment": ["No treatment needed", "Preventive neem oil biweekly optional"],
         "chemical_treatment": ["Optional preventive copper spray before rainy season"],
@@ -205,7 +205,7 @@ def render_treatment_cards(treatment: dict):
 
     st.markdown(f"""
     <div class="glass-card" style="border-left:4px solid {sev_color};">
-        <h3 style="margin:0 0 0.5rem 0;color:#1E2A22;">🔬 {treatment['disease']} — {treatment['plant']}</h3>
+        <h3 style="margin:0 0 0.5rem 0;color:#1E2A22;">🔬 {treatment['disease']} - {treatment['plant']}</h3>
         <p style="color:#47554B;font-size:0.9rem;line-height:1.6;margin:0 0 0.5rem 0;">{treatment['description']}</p>
         <span style="background:rgba(30,42,34,0.08);color:{sev_color};padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;">
             Severity: {severity}</span>

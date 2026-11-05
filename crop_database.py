@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Crop database (38 crops grown across India).
+AGRI-X AI - Crop database (38 crops grown across India).
 
 Each crop lists what it needs (growing-season temperature, water, soil pH, soil
 groups and textures), what it typically yields and what it typically earns.
@@ -9,7 +9,7 @@ Prices
     season 2027-28 as announced by the Government of India; sugarcane uses the
     2026-27 FRP (₹365/qtl).
   • Market ranges (₹/quintal) for crops without MSP are typical wholesale mandi
-    ranges and swing a lot season to season — treat them as rough guides.
+    ranges and swing a lot season to season - treat them as rough guides.
 Yields are typical Indian farm yields (t/acre): "avg" for ordinary management,
 "good" for well-managed irrigated fields.
 """

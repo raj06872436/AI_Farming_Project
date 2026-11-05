@@ -1,4 +1,4 @@
-Classification Report — LesionNet-Mobile
+Classification Report - LesionNet-Mobile
 ============================================================
 
                                              precision    recall  f1-score   support

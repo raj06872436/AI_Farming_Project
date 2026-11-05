@@ -101,7 +101,7 @@ class GradCAMVisualizer:
         grads = tape.gradient(class_output, conv_outputs)
 
         if grads is None:
-            logger.warning("Gradients are None — model may not be differentiable through this path")
+            logger.warning("Gradients are None - model may not be differentiable through this path")
             return np.zeros((self.config.data.image_size, self.config.data.image_size))
 
         # Global average pooling of gradients

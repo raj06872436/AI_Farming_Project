@@ -167,7 +167,7 @@ def main():
                  f"{always_sick:.3f} on 'Healthy vs diseased'.\n\n")
         fh.write("| " + " | ".join(nice) + " |\n|" + "---|" * len(nice) + "\n")
         for r in results:
-            cells = [r["Model"]] + [f"{r[k]:.3f}" if k in r else "—" for k in keys[1:]]
+            cells = [r["Model"]] + [f"{r[k]:.3f}" if k in r else "-" for k in keys[1:]]
             fh.write("| " + " | ".join(cells) + " |\n")
     print(open(os.path.join(args.out, "plantdoc_summary.md")).read())
 

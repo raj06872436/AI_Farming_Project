@@ -1,4 +1,4 @@
-# 🌿 AGRI-X AI — Explainable Multi-Model Deep Learning Framework for Plant Disease Detection
+# 🌿 AGRI-X AI - Explainable Multi-Model Deep Learning Framework for Plant Disease Detection
 
 > **An end-to-end, research-grade framework combining transfer learning, explainable AI (Grad-CAM), and smart agricultural decision support for automated plant disease identification.**
 
@@ -32,7 +32,7 @@
 
 AGRI-X AI is a comprehensive deep learning framework that addresses the critical challenge of early and accurate plant disease detection in agriculture. The framework provides:
 
-- **LesionNet (new, our model)** — a classifier that must outline the diseased spots before naming the disease. Same accuracy as the best CNN (99.5 % vs 99.8 %) but it keeps **98.7 %** when the photo background is replaced (classic CNNs: 45–81 %), and its lesion map gives a severity estimate that matches the measured diseased area (ρ = 0.90). See [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md)
+- **LesionNet (new, our model)** - a classifier that must outline the diseased spots before naming the disease. Same accuracy as the best CNN (99.5 % vs 99.8 %) but it keeps **98.7 %** when the photo background is replaced (classic CNNs: 45–81 %), and its lesion map gives a severity estimate that matches the measured diseased area (ρ = 0.90). See [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md)
 - **Multi-architecture comparison** of 4 state-of-the-art CNN models (MobileNetV2, ResNet50, EfficientNetB0, DenseNet121) with optional Vision Transformer support
 - **Explainable AI** through Gradient-weighted Class Activation Mapping (Grad-CAM) for transparent disease region identification
 - **Disease severity estimation** using activation area analysis from Grad-CAM heatmaps
@@ -56,7 +56,7 @@ AGRI-X AI is a comprehensive deep learning framework that addresses the critical
 | 🏗️ **Modular Architecture** | Clean separation of concerns: config → data → models → evaluation → visualization |
 | 📍 **Location Intelligence** | Device GPS, city/village search or exact coordinates; elevation + ISRIC SoilGrids soil profile |
 | 🌦️ **Weather & Risk** | Open-Meteo current/7-day forecast, farm weather alerts, disease risk scoring |
-| 🌾 **Crop Advisor** | 40 crops ranked against your growing-season climate, soil type & pH, water and region — with MSP-aware profit estimates |
+| 🌾 **Crop Advisor** | 40 crops ranked against your growing-season climate, soil type & pH, water and region - with MSP-aware profit estimates |
 | 📦 **Yield Prediction** | Non-linear yield model, limiting-factor waterfall chart and a "what-if" intervention simulator |
 | 🤖 **Farmer Assistant** | Rule-based chatbot that uses the latest diagnosis, weather and location |
 
@@ -87,7 +87,7 @@ The framework follows a layered architecture with clear separation of concerns:
 │  • ViT (optional)    │                                          │
 ├──────────────────────┴──────────────────────────────────────────┤
 │                     Data Layer (src/data/)                       │
-│              DatasetManager — Loading, Splitting, Augmentation   │
+│              DatasetManager - Loading, Splitting, Augmentation   │
 ├─────────────────────────────────────────────────────────────────┤
 │  Config (src/config/)  │  Entity (src/entity/)  │  Utils         │
 │  Settings dataclasses  │  Result dataclasses    │  Logger, Seed  │
@@ -182,7 +182,7 @@ AI_Farming_Project_Final/
 ### Prerequisites
 
 - **Python 3.11+** (tested with Python 3.11 on Windows)
-- **Git LFS** — the ResNet50 weights in `saved_models/` are stored with Git LFS (`git lfs install` before cloning)
+- **Git LFS** - the ResNet50 weights in `saved_models/` are stored with Git LFS (`git lfs install` before cloning)
 - **pip** package manager
 - **8GB+ RAM** recommended for training
 - **GPU (optional)**: CUDA-compatible GPU for faster training
@@ -301,7 +301,7 @@ print(f"Recommendation: {result['recommendation']}")
 | **ResNet50** | 99.50% | 24.8M | 259.2 MB | 135.7 ms | Skip connections for deep residual learning |
 | **EfficientNetB0** | 95.80% | 4.4M | 31.5 MB | 102.9 ms | Compound scaling (depth × width × resolution) |
 | **DenseNet121** | 95.99% | 7.3M | 38.1 MB | 146.7 ms | Dense connectivity for feature reuse |
-| **ViT** (optional) | — | ~6M | ~24 MB | ~50 ms | Self-attention mechanism for global context |
+| **ViT** (optional) | - | ~6M | ~24 MB | ~50 ms | Self-attention mechanism for global context |
 
 ### Transfer Learning Pipeline
 
@@ -412,7 +412,7 @@ The dashboard has 7 pages: 🏠 Home, 🔬 Disease Detection, 🌾 Crop Advisor,
 
 ## 🌱 Dataset
 
-**PlantVillage Dataset** — A curated collection of plant leaf images for disease classification.
+**PlantVillage Dataset** - A curated collection of plant leaf images for disease classification.
 
 | Plant | Classes | Total Images |
 |-------|---------|-------------|
@@ -483,7 +483,7 @@ Held-out PlantVillage test split (3,109 photos) plus PlantDoc field photos (1,01
 
 **Ablation:** the same EfficientNet backbone trained the ordinary way (A0) is just as accurate (99.6 %) but scores only 67.5 % on a grey background and 63.7 % on a swapped one, so the robustness comes from LesionNet's design. A phone-sized LesionNet (MobileNetV2 backbone) keeps 94.2 % on a grey background.
 
-All models — LesionNet included — drop to about 20 % on field photos: lab-photo training does not transfer to the field. Details, caveats and ablations: [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md). How to reproduce: [`research/lesion_net/README.md`](research/lesion_net/README.md).
+All models - LesionNet included - drop to about 20 % on field photos: lab-photo training does not transfer to the field. Details, caveats and ablations: [`research/lesion_net/RESULTS.md`](research/lesion_net/RESULTS.md). How to reproduce: [`research/lesion_net/README.md`](research/lesion_net/README.md).
 
 ### Output Locations
 
@@ -529,6 +529,6 @@ This project is released for **research and educational purposes only**. The Pla
 ---
 
 <p align="center">
-  <strong>🌿 AGRI-X AI — Empowering Agriculture with Explainable AI</strong><br>
+  <strong>🌿 AGRI-X AI - Empowering Agriculture with Explainable AI</strong><br>
   <em>Built with TensorFlow, Keras, and Streamlit</em>
 </p>

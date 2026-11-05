@@ -120,7 +120,7 @@ def metrics_table(metrics_df):
 def render_study_tab():
     ev = _csv(os.path.join(LN_RESULTS, "eval_summary.csv"))
     pdoc = _csv(os.path.join(LN_RESULTS, "plantdoc_summary.csv"))
-    st.markdown("#### 🛡️ LesionNet — our model")
+    st.markdown("#### 🛡️ LesionNet - our model")
     st.caption("A classifier that must outline the diseased spots before it names the disease. It is trained "
                "without any hand-drawn labels, and its lesion map is the exact evidence it uses.")
     if ev is not None:
@@ -168,7 +168,7 @@ def render_study_tab():
             st.image(fig_v, width="stretch", caption="The background tests on one test photo.")
         st.info("**Ablation:** *Plain EfficientNet (A0)* uses LesionNet's exact backbone, data and training, "
                 "but ordinary pooling and no lesion outlines. It is just as accurate on normal photos (99.6%) "
-                "but drops to 67.5% on a grey background — so the robustness comes from LesionNet's design.")
+                "but drops to 67.5% on a grey background - so the robustness comes from LesionNet's design.")
 
     c1, c2 = st.columns(2)
     hist = {n: os.path.join(SAVED, f"LesionNet_{t}_history.json") for n, t in (("LesionNet", "A3_full"),
@@ -242,15 +242,15 @@ def render_paper_tab():
     st.markdown(PAPER_ABSTRACT)
     st.markdown("#### Contributions")
     st.markdown(
-        "1. **Diagnostic study** — standard CNNs put 7–12% of their evidence on the disease; the most accurate "
+        "1. **Diagnostic study** - standard CNNs put 7–12% of their evidence on the disease; the most accurate "
         "one (ResNet50) is the least robust to a background change.\n"
-        "2. **LesionNet** — lesion-gated pooling with a detached gate: the classifier only sees what it outlined "
+        "2. **LesionNet** - lesion-gated pooling with a detached gate: the classifier only sees what it outlined "
         "as leaf or lesion, so its lesion map is a faithful explanation by construction.\n"
-        "3. **Annotation-free training** — colour-based pseudo-masks with healthy-class negatives and "
+        "3. **Annotation-free training** - colour-based pseudo-masks with healthy-class negatives and "
         "reliability weighting, plus background-swap augmentation.\n"
-        "4. **Robustness, faithfulness, severity** — 98.7% on a grey background (plain backbone: 67.5%), "
+        "4. **Robustness, faithfulness, severity** - 98.7% on a grey background (plain backbone: 67.5%), "
         "97% pointing accuracy, severity ρ = 0.90.\n"
-        "5. **Honest field test** — all models fall to ≈20% on PlantDoc field photos; released openly.")
+        "5. **Honest field test** - all models fall to ≈20% on PlantDoc field photos; released openly.")
     fig_b = os.path.join(LN_FIGS, "fig_bars.png")
     if os.path.exists(fig_b):
         st.image(fig_b, width=640, caption="Accuracy under background tests and on field photos.")
@@ -260,7 +260,7 @@ def render_paper_tab():
 
 def render_plantdoc_dataset():
     pc = _csv(os.path.join(LN_RESULTS, "plantdoc_per_class.csv"))
-    st.markdown("### External test set — PlantDoc field photos")
+    st.markdown("### External test set - PlantDoc field photos")
     st.caption("Real photos from fields and the internet (Singh et al., 2020), used only for testing. "
                "12 of PlantDoc's classes match ours.")
     if pc is None:
@@ -352,7 +352,7 @@ def render_project_facts():
 
     st.markdown("##### Models and parameters")
     mf = pd.DataFrame(MODEL_FACTS)
-    st.dataframe(mf.astype(object).where(mf.notna(), "—"), use_container_width=True, hide_index=True)
+    st.dataframe(mf.astype(object).where(mf.notna(), "-"), use_container_width=True, hide_index=True)
     st.caption("Classic models: accuracy on their original test split. LesionNet models: on the 3,109-photo "
                "held-out split (where the classic models score 93.0%, 99.8%, 96.4% and 96.2%).")
 

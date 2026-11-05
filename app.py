@@ -1,7 +1,7 @@
 """
-AGRI-X AI — Agricultural Intelligence Platform
+AGRI-X AI - Agricultural Intelligence Platform
 Explainable Multi-Model Deep Learning Framework for Plant Disease Detection
-and Smart Agricultural Decision Support — Streamlit Dashboard (Phase 2)
+and Smart Agricultural Decision Support - Streamlit Dashboard (Phase 2)
 """
 import os, sys, json, time
 import numpy as np
@@ -43,7 +43,7 @@ from report_generator import render_report_section
 
 # ─── Page Config ───
 st.set_page_config(
-    page_title="AGRI-X AI — Agricultural Intelligence Platform",
+    page_title="AGRI-X AI - Agricultural Intelligence Platform",
     page_icon="🌿",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -92,7 +92,7 @@ if "weather_raw" not in st.session_state:
     st.session_state["weather_current"] = {}
 
 # Re-fetch weather whenever the farm location changes (GPS, city search, coordinates),
-# not only on first load — otherwise a new location keeps showing the old weather.
+# not only on first load - otherwise a new location keeps showing the old weather.
 if location and (
     st.session_state["weather_raw"] is None
     or st.session_state.get("weather_location_key") != _new_location_key
@@ -143,17 +143,17 @@ DISEASE_KB = {
     "Pepper__bell___Bacterial_spot": {"disease": "Bacterial Spot", "plant": "Bell Pepper", "pesticide": "Copper-based bactericides at 7-day intervals. Streptomycin sulfate for severe cases.", "fungicide": "Copper oxychloride 50% WP at 2.5g/L. Mancozeb 75% WP preventive.", "irrigation": "Switch to drip irrigation. Avoid overhead watering. Water early morning.", "fertilizer": "Balanced NPK (10-10-10). Increase potassium for disease resistance.", "notes": "Remove infected debris. Practice 2-3 year crop rotation."},
     "Pepper__bell___healthy": {"disease": "Healthy", "plant": "Bell Pepper", "pesticide": "No pesticide needed.", "fungicide": "Optional preventive neem oil biweekly.", "irrigation": "Maintain consistent moisture via drip.", "fertilizer": "Balanced NPK every 2-3 weeks.", "notes": "Plant is healthy. Continue monitoring."},
     "Potato___Early_blight": {"disease": "Early Blight", "plant": "Potato", "pesticide": "Chlorothalonil or mancozeb at first symptoms. Spray every 7-10 days.", "fungicide": "Azoxystrobin 23% SC at 1ml/L.", "irrigation": "Use furrow or drip. Avoid wetting foliage.", "fertilizer": "Adequate nitrogen, apply potash to strengthen cell walls.", "notes": "Remove lower infected leaves. Mulch to prevent soil splash."},
-    "Potato___Late_blight": {"disease": "Late Blight", "plant": "Potato", "pesticide": "URGENT: Metalaxyl + mancozeb immediately. Spray every 5-7 days.", "fungicide": "Cymoxanil + mancozeb curative. Dimethomorph for resistant strains.", "irrigation": "STOP overhead irrigation. Drip only. Improve drainage.", "fertilizer": "Reduce nitrogen. Increase phosphorus and potassium.", "notes": "HIGHLY DESTRUCTIVE — act immediately! Destroy infected plants."},
+    "Potato___Late_blight": {"disease": "Late Blight", "plant": "Potato", "pesticide": "URGENT: Metalaxyl + mancozeb immediately. Spray every 5-7 days.", "fungicide": "Cymoxanil + mancozeb curative. Dimethomorph for resistant strains.", "irrigation": "STOP overhead irrigation. Drip only. Improve drainage.", "fertilizer": "Reduce nitrogen. Increase phosphorus and potassium.", "notes": "HIGHLY DESTRUCTIVE - act immediately! Destroy infected plants."},
     "Potato___healthy": {"disease": "Healthy", "plant": "Potato", "pesticide": "No treatment needed.", "fungicide": "Optional preventive mancozeb before monsoon.", "irrigation": "1-2 inches/week. Mulch to retain moisture.", "fertilizer": "NPK 12-12-17 at planting.", "notes": "Healthy crop. Continue weekly monitoring."},
-    "Tomato_Bacterial_spot": {"disease": "Bacterial Spot", "plant": "Tomato", "pesticide": "Copper hydroxide 77% WP at 2g/L every 7 days.", "fungicide": "Bordeaux mixture 1%. Streptocycline 100ppm for severe cases.", "irrigation": "Drip only. Avoid leaf wetting.", "fertilizer": "Balanced NPK with extra calcium.", "notes": "Highly contagious — isolate infected plants."},
+    "Tomato_Bacterial_spot": {"disease": "Bacterial Spot", "plant": "Tomato", "pesticide": "Copper hydroxide 77% WP at 2g/L every 7 days.", "fungicide": "Bordeaux mixture 1%. Streptocycline 100ppm for severe cases.", "irrigation": "Drip only. Avoid leaf wetting.", "fertilizer": "Balanced NPK with extra calcium.", "notes": "Highly contagious - isolate infected plants."},
     "Tomato_Early_blight": {"disease": "Early Blight", "plant": "Tomato", "pesticide": "Chlorothalonil 75% WP at 2g/L.", "fungicide": "Mancozeb 75% WP preventive. Azoxystrobin curative.", "irrigation": "Mulch soil. Drip preferred.", "fertilizer": "Avoid excess nitrogen. Apply potash.", "notes": "Prune lower branches for air circulation."},
-    "Tomato_Late_blight": {"disease": "Late Blight", "plant": "Tomato", "pesticide": "EMERGENCY: Metalaxyl-mancozeb immediately. Repeat every 5 days.", "fungicide": "Cymoxanil + mancozeb. Mandipropamid for resistance management.", "irrigation": "STOP overhead watering. Drip only.", "fertilizer": "Reduce nitrogen. Maximize potassium.", "notes": "CRITICAL — can destroy entire crop in days!"},
+    "Tomato_Late_blight": {"disease": "Late Blight", "plant": "Tomato", "pesticide": "EMERGENCY: Metalaxyl-mancozeb immediately. Repeat every 5 days.", "fungicide": "Cymoxanil + mancozeb. Mandipropamid for resistance management.", "irrigation": "STOP overhead watering. Drip only.", "fertilizer": "Reduce nitrogen. Maximize potassium.", "notes": "CRITICAL - can destroy entire crop in days!"},
     "Tomato_Leaf_Mold": {"disease": "Leaf Mold", "plant": "Tomato", "pesticide": "Chlorothalonil preventively in humid conditions.", "fungicide": "Mancozeb 2.5g/L or copper oxychloride 3g/L.", "irrigation": "Reduce humidity. Improve ventilation.", "fertilizer": "Balanced NPK. Avoid excess nitrogen.", "notes": "Common in greenhouses. Increase air flow."},
     "Tomato_Septoria_leaf_spot": {"disease": "Septoria Leaf Spot", "plant": "Tomato", "pesticide": "Chlorothalonil or copper-based spray every 7-10 days.", "fungicide": "Mancozeb preventive + azoxystrobin curative.", "irrigation": "Mulch heavily. Drip irrigation.", "fertilizer": "Standard NPK. Extra potassium.", "notes": "Spreads rapidly in wet conditions."},
-    "Tomato_Spider_mites_Two_spotted_spider_mite": {"disease": "Spider Mites", "plant": "Tomato", "pesticide": "Abamectin 1.8% EC at 0.5ml/L. Biocontrol with predatory mites.", "fungicide": "Not applicable (pest, not fungal).", "irrigation": "Increase humidity — mites thrive in dry conditions.", "fertilizer": "Standard nutrition. Avoid plant stress.", "notes": "Check undersides of leaves. Neem oil as organic alternative."},
+    "Tomato_Spider_mites_Two_spotted_spider_mite": {"disease": "Spider Mites", "plant": "Tomato", "pesticide": "Abamectin 1.8% EC at 0.5ml/L. Biocontrol with predatory mites.", "fungicide": "Not applicable (pest, not fungal).", "irrigation": "Increase humidity - mites thrive in dry conditions.", "fertilizer": "Standard nutrition. Avoid plant stress.", "notes": "Check undersides of leaves. Neem oil as organic alternative."},
     "Tomato__Target_Spot": {"disease": "Target Spot", "plant": "Tomato", "pesticide": "Chlorothalonil 75% WP every 7-10 days.", "fungicide": "Azoxystrobin + difenoconazole combination.", "irrigation": "Improve air circulation. Drip only.", "fertilizer": "Balanced NPK. Extra potassium + calcium.", "notes": "Concentric ring pattern on leaves. Remove infected leaves."},
-    "Tomato__Tomato_YellowLeaf__Curl_Virus": {"disease": "Yellow Leaf Curl Virus", "plant": "Tomato", "pesticide": "Control whitefly: Imidacloprid 17.8% SL. Yellow sticky traps.", "fungicide": "Not applicable (viral disease).", "irrigation": "Normal. Use reflective mulch to repel whiteflies.", "fertilizer": "Boost immunity with balanced NPK + micronutrients.", "notes": "VIRAL — no cure! Remove infected plants. Use resistant varieties."},
-    "Tomato__Tomato_mosaic_virus": {"disease": "Tomato Mosaic Virus", "plant": "Tomato", "pesticide": "No chemical treatment. Control aphid vectors.", "fungicide": "Not applicable (viral).", "irrigation": "Normal. Avoid handling wet plants.", "fertilizer": "Balanced nutrition for plant vigor.", "notes": "VIRAL — extremely contagious via contact. Disinfect tools."},
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": {"disease": "Yellow Leaf Curl Virus", "plant": "Tomato", "pesticide": "Control whitefly: Imidacloprid 17.8% SL. Yellow sticky traps.", "fungicide": "Not applicable (viral disease).", "irrigation": "Normal. Use reflective mulch to repel whiteflies.", "fertilizer": "Boost immunity with balanced NPK + micronutrients.", "notes": "VIRAL - no cure! Remove infected plants. Use resistant varieties."},
+    "Tomato__Tomato_mosaic_virus": {"disease": "Tomato Mosaic Virus", "plant": "Tomato", "pesticide": "No chemical treatment. Control aphid vectors.", "fungicide": "Not applicable (viral).", "irrigation": "Normal. Avoid handling wet plants.", "fertilizer": "Balanced nutrition for plant vigor.", "notes": "VIRAL - extremely contagious via contact. Disinfect tools."},
     "Tomato_healthy": {"disease": "Healthy", "plant": "Tomato", "pesticide": "No treatment needed.", "fungicide": "Optional preventive copper before rainy season.", "irrigation": "1-1.5 inches/week. Mulch to retain moisture.", "fertilizer": "NPK 10-10-10 every 2 weeks. Calcium during fruiting.", "notes": "Healthy! Continue monitoring. Rotate crops annually."},
 }
 
@@ -179,7 +179,7 @@ def go_to(page_name):
 available = get_available_models(REGISTRY)
 all_models = list(REGISTRY.keys())
 
-# LesionNet (our model, research/lesion_net) — listed first when its weights are present
+# LesionNet (our model, research/lesion_net) - listed first when its weights are present
 LESIONNET_PATH = lni.find_lesionnet_path()
 LN_MODELS = lni.available_models()            # LesionNet, LesionNet-Mobile (whichever weights exist)
 DETECT_MODELS = LN_MODELS + available
@@ -233,7 +233,7 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════
 if page == "🏠 Home":
     best_acc = max((r.get('accuracy', 0) for r in REGISTRY.values()), default=0)
-    best_model = max(REGISTRY.items(), key=lambda x: x[1].get("accuracy", 0))[0] if REGISTRY else "—"
+    best_model = max(REGISTRY.items(), key=lambda x: x[1].get("accuracy", 0))[0] if REGISTRY else "-"
     season = _get_current_season()
 
     hero_col, snap_col = st.columns([1.65, 1], gap="medium")
@@ -243,7 +243,7 @@ if page == "🏠 Home":
             {chip_html('🌿 AI for Indian farms', 'green')}
             <h1>Spot crop disease early.<br><span class="accent">Grow with confidence.</span></h1>
             <p class="lead">Photograph a leaf and AGRI-X AI tells you what is wrong, how serious it is,
-            and what to do — along with weather alerts, the best crops for your soil and a yield forecast.</p>
+            and what to do - along with weather alerts, the best crops for your soil and a yield forecast.</p>
             <div class="hero-chips">
                 {chip_html(f'🧠 {len(REGISTRY)} AI models', 'gray')}
                 {chip_html(f'🎯 {len(CLASS_NAMES)} leaf conditions', 'gray')}
@@ -411,7 +411,7 @@ elif page == "🔬 Disease Detection":
             "upload_id": upload_id, "model": model_choice, "class": pred_class,
             "plant": kb.get("plant", pred_class.split("_")[0]),
             "disease": kb.get("disease", pred_class.replace("_", " ")),
-            "display_name": pred_class.replace("_", " ").replace("  ", " — "),
+            "display_name": pred_class.replace("_", " ").replace("  ", " - "),
             "confidence": conf, "inference_ms": inf_time, "is_healthy": is_healthy,
             "top5": top5, "image": image, "heatmap": None, "overlay": None,
             "act_pct": 0.0, "severity": None, "risk": None,
@@ -462,7 +462,7 @@ elif page == "🔬 Disease Detection":
 
     diag = st.session_state.get("diagnosis")
     if diag and diag.get("upload_id") != upload_id:
-        diag = None  # a different (or no) photo is selected — don't show an old result
+        diag = None  # a different (or no) photo is selected - don't show an old result
 
     with col_result:
         if not diag:
@@ -588,7 +588,7 @@ elif page == "🔬 Disease Detection":
                     unsafe_allow_html=True)
                 st.caption("LesionNet first marks every pixel as background, healthy leaf or diseased tissue. "
                            "It then names the disease using only the leaf and diseased pixels, so the background "
-                           "cannot influence the answer. This map is not a guess about where it looked — it is "
+                           "cannot influence the answer. This map is not a guess about where it looked - it is "
                            "the input to its decision.")
                 d1, d2, d3 = st.columns(3)
                 d1.image(lesion["leaf_mask"], caption="Leaf found by LesionNet", width="stretch", clamp=True)
@@ -598,7 +598,7 @@ elif page == "🔬 Disease Detection":
                     st.markdown("**Largest spots**")
                     for rs in regions[:8]:
                         emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
-                        st.markdown(f"{emoji} **Spot {rs['id']}** — {rs['area_pct']:.1f}% of the leaf · "
+                        st.markdown(f"{emoji} **Spot {rs['id']}** - {rs['area_pct']:.1f}% of the leaf · "
                                     f"{rs['confidence']:.0%} sure")
             else:
                 bd = lesion.get("breakdown", {})
@@ -625,11 +625,11 @@ elif page == "🔬 Disease Detection":
                     for rs in regions[:8]:
                         emoji = "🔴" if rs["severity"] == "severe" else "🟠" if rs["severity"] == "moderate" else "🟡"
                         kind = {"severe": "mostly dead tissue", "moderate": "mixed", "mild": "mostly yellowing"}[rs["severity"]]
-                        st.markdown(f"{emoji} **Spot {rs['id']}** — {rs['area_pct']:.1f}% of the leaf · {kind}")
+                        st.markdown(f"{emoji} **Spot {rs['id']}** - {rs['area_pct']:.1f}% of the leaf · {kind}")
 
         with tab_top:
             for item in diag["top5"]:
-                st.progress(item["confidence"], text=f"{item['class'].replace('_', ' ')} — {item['confidence']:.1%}")
+                st.progress(item["confidence"], text=f"{item['class'].replace('_', ' ')} - {item['confidence']:.1%}")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -639,18 +639,18 @@ elif page == "🔬 Disease Detection":
 elif page == "🌾 Crop Advisor":
     st.markdown(page_header_html(
         "🌾 Crop Advisor", "Plan your next crop",
-        "Your location, weather and soil in one place — with the best crops to grow, expected profit and a yield forecast.",
+        "Your location, weather and soil in one place - with the best crops to grow, expected profit and a yield forecast.",
     ), unsafe_allow_html=True)
 
     # Farm context at a glance (same data every tab uses)
     _soil_q, _ = calculate_soil_quality(location.get("soil_data") if location else None)
     st.markdown(context_bar_html([
-        ("📍", "Location", f"{location.get('city', '—')}, {location.get('state', '')}" if location else "—"),
+        ("📍", "Location", f"{location.get('city', '-')}, {location.get('state', '')}" if location else "-"),
         (weather_current.get("icon", "🌡️") if weather_current else "🌡️", "Weather",
          f"{weather_current.get('temperature', 0):.0f}°C · {weather_current.get('humidity', 0):.0f}% humidity" if weather_current else "Unavailable"),
         ("🪨", "Soil", (f"{location.get('soil_group_label', '')} · {location.get('soil_type', '')} · "
-                       f"{_soil_q:.0%} fertile") if location else "—"),
-        ("🧭", "Farming region", location.get("agro_region", "—") if location else "—"),
+                       f"{_soil_q:.0%} fertile") if location else "-"),
+        ("🧭", "Farming region", location.get("agro_region", "-") if location else "-"),
         ("🗓️", "Season", _get_current_season()),
     ]), unsafe_allow_html=True)
 
@@ -684,19 +684,19 @@ elif page == "🌾 Crop Advisor":
 
             alerts = []
             if temp >= 40:
-                alerts.append(("🔴", "Extreme Heat", f"Temperature at {temp:.1f}°C — crop heat stress likely. Increase irrigation.", "#B91C1C"))
+                alerts.append(("🔴", "Extreme Heat", f"Temperature at {temp:.1f}°C - crop heat stress likely. Increase irrigation.", "#B91C1C"))
             elif temp >= 35:
-                alerts.append(("🟠", "High Temperature", f"Temperature at {temp:.1f}°C — monitor for wilting and water stress.", "#B45309"))
+                alerts.append(("🟠", "High Temperature", f"Temperature at {temp:.1f}°C - monitor for wilting and water stress.", "#B45309"))
             elif temp <= 5:
-                alerts.append(("🔵", "Frost Risk", f"Temperature at {temp:.1f}°C — protect frost-sensitive crops.", "#2563A8"))
+                alerts.append(("🔵", "Frost Risk", f"Temperature at {temp:.1f}°C - protect frost-sensitive crops.", "#2563A8"))
             if humidity >= 85:
-                alerts.append(("🟡", "High Humidity", f"Humidity at {humidity}% — increased risk of fungal diseases.", "#A16207"))
+                alerts.append(("🟡", "High Humidity", f"Humidity at {humidity}% - increased risk of fungal diseases.", "#A16207"))
             if wind >= 40:
-                alerts.append(("🟠", "Strong Winds", f"Wind at {wind:.0f} km/h — risk of crop lodging and physical damage.", "#C2410C"))
+                alerts.append(("🟠", "Strong Winds", f"Wind at {wind:.0f} km/h - risk of crop lodging and physical damage.", "#C2410C"))
             if uv >= 8:
-                alerts.append(("🔴", "High UV Index", f"UV index at {uv:.1f} — sunscald risk on fruits and vegetables.", "#6D28D9"))
+                alerts.append(("🔴", "High UV Index", f"UV index at {uv:.1f} - sunscald risk on fruits and vegetables.", "#6D28D9"))
             if precip >= 20:
-                alerts.append(("🟡", "Heavy Rainfall", f"Rainfall at {precip:.1f}mm — check drainage, risk of waterlogging.", "#2563A8"))
+                alerts.append(("🟡", "Heavy Rainfall", f"Rainfall at {precip:.1f}mm - check drainage, risk of waterlogging.", "#2563A8"))
 
             if alerts:
                 st.markdown("### ⚠️ Agricultural Weather Alerts")
@@ -803,7 +803,7 @@ elif page == "📊 Research Dashboard":
     rc1.metric("Models", len(RESEARCH_MODELS))
     rc2.metric("Trained", len(available) + len(LN_MODELS))
     rc3.metric("Classes", len(CLASS_NAMES))
-    rc4.metric("Images", f"{DATASET_SUMMARY['total_images']:,}" if DATASET_SUMMARY else "—")
+    rc4.metric("Images", f"{DATASET_SUMMARY['total_images']:,}" if DATASET_SUMMARY else "-")
 
     tab_facts, tab_study, tab_train, tab_cm, tab_roc, tab_gradcam, tab_metrics = st.tabs([
         "📘 Project Facts", "🛡️ LesionNet Study", "📈 Training History", "🔢 Confusion Matrices",
@@ -819,22 +819,22 @@ elif page == "📊 Research Dashboard":
     with tab_train:
         comp_path = os.path.join(GRAPHS_DIR, "all_models_training_comparison.png")
         if os.path.exists(comp_path):
-            st.markdown("**All Models — Training Comparison**")
+            st.markdown("**All Models - Training Comparison**")
             st.image(comp_path, width="stretch")
             st.divider()
         for mname in RESEARCH_MODELS:
             gpath = find_training_graph(mname)
             if gpath:
-                st.markdown(f"**{mname} — Training History**")
+                st.markdown(f"**{mname} - Training History**")
                 st.image(gpath, width="stretch")
                 st.divider()
             else:
-                st.caption(f"⏳ {mname} — training graph not available")
+                st.caption(f"⏳ {mname} - training graph not available")
 
     with tab_cm:
         combined_cm_path = os.path.join(CONFUSION_DIR, "all_models_confusion_matrix.png")
         if os.path.exists(combined_cm_path):
-            st.markdown("**📊 Overall Confusion Matrix — All Models**")
+            st.markdown("**📊 Overall Confusion Matrix - All Models**")
             st.image(combined_cm_path, width="stretch")
             st.divider()
         st.markdown("**Individual Confusion Matrices**")
@@ -853,7 +853,7 @@ elif page == "📊 Research Dashboard":
     with tab_roc:
         combined_roc_path = os.path.join(ROC_DIR, "all_models_roc_curves.png")
         if os.path.exists(combined_roc_path):
-            st.markdown("**📈 ROC Curves — All Models (Macro-Average)**")
+            st.markdown("**📈 ROC Curves - All Models (Macro-Average)**")
             st.image(combined_roc_path, width="stretch")
             st.divider()
         st.markdown("**Individual ROC & Precision-Recall Curves**")
@@ -872,14 +872,14 @@ elif page == "📊 Research Dashboard":
     with tab_gradcam:
         _q = os.path.join(rv.LN_FIGS, "fig_qualitative.png")
         if os.path.exists(_q):
-            st.markdown("**LesionNet vs. Grad-CAM++ — test photos**")
+            st.markdown("**LesionNet vs. Grad-CAM++ - test photos**")
             st.image(_q, width=820, caption="Grad-CAM++ (classic models) shows roughly where a model looked; "
                      "LesionNet's map is the evidence its decision is computed from.")
             st.divider()
         for mname in REGISTRY:
             gcimgs = find_gradcam_images(mname)
             if gcimgs:
-                st.markdown(f"**{mname} — Grad-CAM Samples**")
+                st.markdown(f"**{mname} - Grad-CAM Samples**")
                 cols = st.columns(min(len(gcimgs), 3))
                 for i, gp in enumerate(gcimgs[:6]):
                     cols[i % 3].image(gp, width="stretch", caption=os.path.basename(gp).replace(".png","").replace("_"," "))
@@ -893,17 +893,17 @@ elif page == "📊 Research Dashboard":
                 if col in display_df.columns:
                     display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
             if "Inference Time (ms)" in display_df.columns:
-                display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms" if pd.notna(x) else "—")
+                display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms" if pd.notna(x) else "-")
             if "Model Size (MB)" in display_df.columns:
                 display_df["Model Size (MB)"] = display_df["Model Size (MB)"].apply(lambda x: f"{x:.1f} MB")
-            st.dataframe(display_df.astype(object).where(display_df.notna(), "—"), use_container_width=True, hide_index=True)
+            st.dataframe(display_df.astype(object).where(display_df.notna(), "-"), use_container_width=True, hide_index=True)
             st.divider()
 
         st.markdown("**📝 Classification Reports**")
         for mname in RESEARCH_MODELS:
             report_path = os.path.join(METRICS_DIR, f"{mname}_classification_report.txt")
             if os.path.exists(report_path):
-                with st.expander(f"📄 {mname} — Classification Report"):
+                with st.expander(f"📄 {mname} - Classification Report"):
                     with open(report_path, "rb") as f:
                         raw_report = f.read()
                     # Reports written on Windows are cp1252; decode either way
@@ -930,7 +930,7 @@ elif page == "📊 Research Dashboard":
 elif page == "📈 Model Comparison":
     st.markdown(page_header_html(
         "📈 Models", "Compare the AI models",
-        "Accuracy, speed and size of each model — and where each one fits best.",
+        "Accuracy, speed and size of each model - and where each one fits best.",
     ), unsafe_allow_html=True)
 
     import robustness_view
@@ -945,16 +945,16 @@ elif page == "📈 Model Comparison":
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
         if "Inference Time (ms)" in display_df.columns:
-            display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms" if pd.notna(x) else "—")
+            display_df["Inference Time (ms)"] = display_df["Inference Time (ms)"].apply(lambda x: f"{x:.1f} ms" if pd.notna(x) else "-")
         if "Model Size (MB)" in display_df.columns:
             display_df["Model Size (MB)"] = display_df["Model Size (MB)"].apply(lambda x: f"{x:.1f} MB")
-        st.dataframe(display_df.astype(object).where(display_df.notna(), "—"), use_container_width=True, hide_index=True)
+        st.dataframe(display_df.astype(object).where(display_df.notna(), "-"), use_container_width=True, hide_index=True)
         st.caption("Classic models: their original test split. LesionNet models: the 3,109-photo held-out split. "
                    "LesionNet speeds are estimated on the same scale from a same-machine relative measurement.")
     else:
         rows = []
         for m, d in CMP.items():
-            rows.append({"Model": m, "Accuracy": f"{d.get('accuracy',0):.0%}", "Params": d.get("params","—"), "Size": f"{d.get('size_mb','—')} MB", "Inference": f"{d.get('inference_ms','—')} ms", "Status": d.get("status","—").upper()})
+            rows.append({"Model": m, "Accuracy": f"{d.get('accuracy',0):.0%}", "Params": d.get("params","-"), "Size": f"{d.get('size_mb','-')} MB", "Inference": f"{d.get('inference_ms','-')} ms", "Status": d.get("status","-").upper()})
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     st.markdown("### Performance Comparison")
@@ -995,14 +995,14 @@ elif page == "📈 Model Comparison":
             dc1, dc2 = st.columns(2)
             dc1.markdown(f"""
 **Architecture:** {mdata.get('architecture', mname)}
-**Parameters:** {mdata.get('params', '—')}
-**Model Size:** {mdata.get('size_mb', '—')} MB
-**Inference Speed:** {mdata.get('inference_ms', '—')} ms
+**Parameters:** {mdata.get('params', '-')}
+**Model Size:** {mdata.get('size_mb', '-')} MB
+**Inference Speed:** {mdata.get('inference_ms', '-')} ms
 """)
             dc2.markdown(f"""
-**✅ Strengths:** {mdata.get('strengths', '—')}
-**⚠️ Weaknesses:** {mdata.get('weaknesses', '—')}
-**🚀 Best For:** {mdata.get('deployment', '—')}
+**✅ Strengths:** {mdata.get('strengths', '-')}
+**⚠️ Weaknesses:** {mdata.get('weaknesses', '-')}
+**🚀 Best For:** {mdata.get('deployment', '-')}
 """)
 
     st.markdown("### Multi-Metric Radar")
@@ -1127,9 +1127,9 @@ elif page == "📋 Reports & About":
 │  • LesionNet (ours)  │  • Background-robustness tests           │
 ├──────────────────────┴──────────────────────────────────────────┤
 │                     Data Layer (src/data/)                       │
-│              DatasetManager — Loading, Splitting, Augmentation   │
+│              DatasetManager - Loading, Splitting, Augmentation   │
 ├─────────────────────────────────────────────────────────────────┤
-│  Config · Entity · Utils — Settings, Dataclasses, Logging       │
+│  Config · Entity · Utils - Settings, Dataclasses, Logging       │
 └─────────────────────────────────────────────────────────────────┘
         """, language="text")
 
@@ -1183,7 +1183,7 @@ elif page == "📋 Reports & About":
         st.markdown("---")
         st.markdown("""
         <div style="text-align:center;padding:1rem;color:var(--text-3);">
-            <strong>🌿 AGRI-X AI — Empowering Agriculture with Explainable AI</strong><br>
+            <strong>🌿 AGRI-X AI - Empowering Agriculture with Explainable AI</strong><br>
             <em>Built with TensorFlow, Keras, and Streamlit</em>
         </div>
         """, unsafe_allow_html=True)

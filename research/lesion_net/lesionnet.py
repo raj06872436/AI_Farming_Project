@@ -1,5 +1,5 @@
 """
-LesionNet — a plant-disease classifier that must point at the disease first.
+LesionNet - a plant-disease classifier that must point at the disease first.
 
     photo ──► backbone (EfficientNetB0 / MobileNetV2, ImageNet-pretrained)
                  │  multi-scale features (stride 8, 16, 32)
@@ -12,7 +12,7 @@ LesionNet — a plant-disease classifier that must point at the disease first.
                                            disease class (15)
 
 The classifier only ever sees features averaged over pixels the segmentation head
-marked as leaf or lesion, so background pixels cannot contribute to the decision —
+marked as leaf or lesion, so background pixels cannot contribute to the decision -
 the predicted lesion map *is* the explanation, faithful by construction. By default
 the gate is detached (stop-gradient), so the classification loss cannot move the gate
 towards convenient background regions; only the segmentation labels shape it.

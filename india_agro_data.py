@@ -1,15 +1,15 @@
 """
-AGRI-X AI — India agro-climatic reference data.
+AGRI-X AI - India agro-climatic reference data.
 
 Used whenever live soil / climate services can't answer (they are often down, and
 SoilGrids has no data for built-up city centres). Every Indian state and union
 territory has a profile, and large, varied states are split into agro-climatic
-regions matched by district name — so Nashik gets "North Maharashtra, medium black
+regions matched by district name - so Nashik gets "North Maharashtra, medium black
 soil, onion / grapes / tomato country" instead of a generic "Loamy, 60 %".
 
 Values are typical (median) conditions compiled from general Indian soil maps
 (ICAR-NBSS&LUP soil groups), IMD rainfall normals and state agriculture profiles.
-They describe a region, not a single field — a soil test always beats them.
+They describe a region, not a single field - a soil test always beats them.
 
 Plain-language analogy: this is the "regional almanac" a local agronomist carries
 in their head; live satellite/soil data, when available, is the field visit.
@@ -343,7 +343,7 @@ def find_profile(location):
     if state:
         return dict(STATES[state], match="state", state=state)
     # Not in India (or unknown) → a neutral, clearly-labelled default
-    return dict(_p("Generic tropical lowland", "—", "Alluvial", 7.0, 6, "MMM", 1000, (22, 30, 28, 25), "SW",
+    return dict(_p("Generic tropical lowland", "-", "Alluvial", 7.0, 6, "MMM", 1000, (22, 30, 28, 25), "SW",
                    ["Rice", "Maize", "Wheat", "Tomato", "Groundnut"]), match="default", state="")
 
 
@@ -356,7 +356,7 @@ def monthly_climate(profile):
     total = sum(pattern)
     rain = [profile["rain"] * f / total for f in pattern]
     return {"temp": [round(t, 1) for t in temp], "rain": [round(r) for r in rain],
-            "annual_rain": profile["rain"], "source": f"Regional normals — {profile['name']}"}
+            "annual_rain": profile["rain"], "source": f"Regional normals - {profile['name']}"}
 
 
 def regional_soil_data(profile):

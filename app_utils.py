@@ -276,7 +276,7 @@ CUSTOM_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 
 /* ══════════════════════════════════════════════════════════════
-   AGRI-X AI — "Fresh Field" light theme
+   AGRI-X AI - "Fresh Field" light theme
    Colours mirror theme.py. Change them here + in theme.py.
    ══════════════════════════════════════════════════════════════ */
 :root {

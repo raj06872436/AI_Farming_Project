@@ -47,7 +47,7 @@ class DenseNet121Builder(BaseModelBuilder):
         return "DenseNet121"
 
     # ------------------------------------------------------------------
-    # BUILD FULL MODEL (custom — fixes preprocessing mismatch)
+    # BUILD FULL MODEL (custom - fixes preprocessing mismatch)
     # ------------------------------------------------------------------
 
     def build(self, num_classes: int = None, **kwargs) -> tf.keras.Model:

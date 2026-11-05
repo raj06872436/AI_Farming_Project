@@ -33,7 +33,7 @@ logger = get_logger("evaluate")
 def main():
     """Run the full evaluation pipeline."""
     logger.info("=" * 70)
-    logger.info("AI AGRICULTURE PROJECT — EVALUATION")
+    logger.info("AI AGRICULTURE PROJECT - EVALUATION")
     logger.info("Advanced Analysis & Research-Level Evaluation")
     logger.info("=" * 70)
 

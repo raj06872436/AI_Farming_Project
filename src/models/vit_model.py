@@ -1,6 +1,6 @@
 # ==============================================================================
 # src/models/vit_model.py
-# Vision Transformer (ViT) model builder — OPTIONAL.
+# Vision Transformer (ViT) model builder - OPTIONAL.
 # Uses a custom lightweight ViT implementation built with Keras layers
 # to avoid external dependency issues.
 # ==============================================================================
@@ -72,7 +72,7 @@ class TransformerBlock(layers.Layer):
 class ViTBuilder(BaseModelBuilder):
     """
     Builder for a lightweight Vision Transformer (ViT).
-    Custom Keras implementation — no external dependencies required.
+    Custom Keras implementation - no external dependencies required.
 
     Architecture:
     - Patch embedding (16x16 patches from 224x224 input = 196 patches)
@@ -154,5 +154,5 @@ class ViTBuilder(BaseModelBuilder):
         return "ViT"
 
     def get_last_conv_layer_name(self) -> str:
-        """ViT doesn't have traditional conv layers — return patch embedding."""
+        """ViT doesn't have traditional conv layers - return patch embedding."""
         return "patch_embedding"

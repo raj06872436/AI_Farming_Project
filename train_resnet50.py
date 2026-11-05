@@ -61,7 +61,7 @@ gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     logger.info(f"GPU DETECTED: {gpus}")
 else:
-    logger.warning("NO GPU DETECTED — training will be slow on CPU")
+    logger.warning("NO GPU DETECTED - training will be slow on CPU")
 
 logger.info("=" * 60)
 

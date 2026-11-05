@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Disease Risk Engine (Module 3)
+AGRI-X AI - Disease Risk Engine (Module 3)
 Weather-aware disease risk scoring.
 """
 

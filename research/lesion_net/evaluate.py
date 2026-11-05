@@ -1,5 +1,5 @@
 """
-Step 3 — compare LesionNet with the four existing classifiers on the held-out test split.
+Step 3 - compare LesionNet with the four existing classifiers on the held-out test split.
 
 Tests (all on the same test images):
   1. Clean accuracy / macro-F1.
@@ -15,7 +15,7 @@ Tests (all on the same test images):
      (the map its decision is computed from).
      NOTE: lesion masks are the same automatic pseudo-labels LesionNet was trained to
      imitate, so this test favours LesionNet. Tests 2 and 3 do not use lesion masks at
-     all — they are the fair comparison. Hand-drawn masks (e.g. PlantSeg) are needed for
+     all - they are the fair comparison. Hand-drawn masks (e.g. PlantSeg) are needed for
      a fully independent lesion test.
   5. Severity: LesionNet's predicted diseased share of the leaf vs the measured one,
      and on healthy leaves (should be ~0).
@@ -231,7 +231,7 @@ def main():
             cells = []
             for c in cols:
                 v = r.get(c, "")
-                cells.append(f"{v:.3f}" if isinstance(v, float) and not np.isnan(v) else ("—" if v == "" or (isinstance(v, float) and np.isnan(v)) else str(v)))
+                cells.append(f"{v:.3f}" if isinstance(v, float) and not np.isnan(v) else ("-" if v == "" or (isinstance(v, float) and np.isnan(v)) else str(v)))
             fh.write("| " + " | ".join(cells) + " |\n")
     print(open(os.path.join(args.out, "eval_summary.md")).read())
     make_figure(results, args.out)

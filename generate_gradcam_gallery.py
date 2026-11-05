@@ -56,7 +56,7 @@ def get_sample_images(dataset_dir, num=5):
 
 
 def generate_gradcam(model, img_array, layer_name):
-    """Generate Grad-CAM heatmap — handles nested backbone models."""
+    """Generate Grad-CAM heatmap - handles nested backbone models."""
     target = None
     backbone = None
 
@@ -174,7 +174,7 @@ def save_gradcam_figure(img_array, heatmap, model_name, sample_idx, class_name):
     ax3.axis("off")
 
     clean_class = class_name.replace(" ", "_")
-    fig.suptitle(f"{model_name} — {class_name.replace('_', ' ')}", fontsize=13, fontweight="bold")
+    fig.suptitle(f"{model_name} - {class_name.replace('_', ' ')}", fontsize=13, fontweight="bold")
     plt.tight_layout()
 
     filename = f"{model_name}_sample_{sample_idx}_{clean_class}.png"
@@ -195,7 +195,7 @@ print(f"Got {len(samples)} sample images from {len(set(s[1] for s in samples))} 
 for model_name, config in MODELS.items():
     model_path = find_model_path(model_name)
     if model_path is None:
-        print(f"SKIP {model_name} — no saved model")
+        print(f"SKIP {model_name} - no saved model")
         continue
 
     print(f"\n{'='*60}")

@@ -1,5 +1,5 @@
 """
-Step 2 — train LesionNet (or one of its ablations) on the GPU.
+Step 2 - train LesionNet (or one of its ablations) on the GPU.
 
 Run inside WSL2 with your tf_gpu environment, from the project folder:
     python research/lesion_net/train_lesionnet.py                           # full LesionNet, EfficientNetB0
@@ -155,7 +155,7 @@ def main():
     ap.add_argument("--lr2", type=float, default=1e-4)
     ap.add_argument("--limit-per-class", type=int, default=0, help="quick tests only")
     ap.add_argument("--init-backbone", default="", help="copy backbone weights from a trained classifier .keras "
-                    "(note: that model may have seen your test images — use ImageNet weights for the paper)")
+                    "(note: that model may have seen your test images - use ImageNet weights for the paper)")
     ap.add_argument("--tag", default="")
     ap.add_argument("--no-mixed-precision", action="store_true")
     ap.add_argument("--xla", action="store_true", help="enable XLA compilation (faster if it works on your TF build)")
@@ -168,7 +168,7 @@ def main():
     JIT = args.xla
     if gpus and not args.no_mixed_precision:
         tf.keras.mixed_precision.set_global_policy("mixed_float16")
-    print(f"GPU: {gpus[0].name if gpus else 'none (CPU — will be slow)'}")
+    print(f"GPU: {gpus[0].name if gpus else 'none (CPU - will be slow)'}")
 
     classes = [l.strip() for l in open(os.path.join(ROOT, "class_names.txt")) if l.strip()]
     tr = read_manifest(args.manifest, "train", args.limit_per_class)
@@ -192,14 +192,14 @@ def main():
     history = {}
     t0 = time.time()
 
-    # Phase 1 — heads only
+    # Phase 1 - heads only
     set_backbone_trainable(model, False)
     compile_model(model, args.lr1, args.lambda_seg)
     h1 = model.fit(ds_tr, validation_data=ds_va, epochs=args.epochs1, callbacks=[ckpt], verbose=2)
     for k, v in h1.history.items():
         history.setdefault(k, []).extend([float(x) for x in v])
 
-    # Phase 2 — fine-tune everything, cosine decay
+    # Phase 2 - fine-tune everything, cosine decay
     if args.epochs2 > 0:
         set_backbone_trainable(model, True)
         steps = max(1, len(tr) // args.batch) * args.epochs2

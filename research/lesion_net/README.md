@@ -1,4 +1,4 @@
-# LesionNet — a classifier that has to point at the disease
+# LesionNet - a classifier that has to point at the disease
 
 Your four existing models are accurate, but the attention study (`research/results.md`)
 showed they put only 8–13 % of their attention on diseased tissue, and a lot on the
@@ -33,7 +33,7 @@ python research/lesion_net/train_lesionnet.py --tag A3_full
 # 3. Compare with your 4 existing models on the held-out test split (≈15–30 min)
 python research/lesion_net/evaluate.py
 
-# 4. Second dataset — PlantDoc field photos (downloads ~300 MB once, then ≈5 min)
+# 4. Second dataset - PlantDoc field photos (downloads ~300 MB once, then ≈5 min)
 python research/datasets/fetch_plantdoc.py
 python research/lesion_net/eval_external.py
 

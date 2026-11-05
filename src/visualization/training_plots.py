@@ -54,7 +54,7 @@ class TrainingPlotter:
                  "o-", color=COLORS[0], label="Train Accuracy", linewidth=2)
         ax1.plot(epochs, result.history.get("val_accuracy", []),
                  "s--", color=COLORS[1], label="Val Accuracy", linewidth=2)
-        ax1.set_title(f"{result.model_name} — Accuracy vs Epoch", fontsize=13, fontweight="bold")
+        ax1.set_title(f"{result.model_name} - Accuracy vs Epoch", fontsize=13, fontweight="bold")
         ax1.set_xlabel("Epoch")
         ax1.set_ylabel("Accuracy")
         ax1.legend(frameon=True)
@@ -65,7 +65,7 @@ class TrainingPlotter:
                  "o-", color=COLORS[2], label="Train Loss", linewidth=2)
         ax2.plot(epochs, result.history.get("val_loss", []),
                  "s--", color=COLORS[3], label="Val Loss", linewidth=2)
-        ax2.set_title(f"{result.model_name} — Loss vs Epoch", fontsize=13, fontweight="bold")
+        ax2.set_title(f"{result.model_name} - Loss vs Epoch", fontsize=13, fontweight="bold")
         ax2.set_xlabel("Epoch")
         ax2.set_ylabel("Loss")
         ax2.legend(frameon=True)
@@ -108,13 +108,13 @@ class TrainingPlotter:
             ax2.plot(epochs, result.history.get("val_loss", []),
                      "o-", color=color, label=result.model_name, linewidth=2, markersize=4)
 
-        ax1.set_title("Validation Accuracy — All Models", fontsize=13, fontweight="bold")
+        ax1.set_title("Validation Accuracy - All Models", fontsize=13, fontweight="bold")
         ax1.set_xlabel("Epoch")
         ax1.set_ylabel("Accuracy")
         ax1.legend(frameon=True)
         ax1.grid(True, alpha=0.3)
 
-        ax2.set_title("Validation Loss — All Models", fontsize=13, fontweight="bold")
+        ax2.set_title("Validation Loss - All Models", fontsize=13, fontweight="bold")
         ax2.set_xlabel("Epoch")
         ax2.set_ylabel("Loss")
         ax2.legend(frameon=True)
