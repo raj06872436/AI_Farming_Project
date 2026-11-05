@@ -1,5 +1,5 @@
 r"""
-GPU Training Script — Run inside WSL2 with tf_gpu environment.
+GPU Training Script - Run inside WSL2 with tf_gpu environment.
 Retrains DenseNet121 and EfficientNetB0 on GPU (RTX 4050).
 
 Usage (from WSL2 Ubuntu terminal):
@@ -40,11 +40,11 @@ def setup_gpu():
             
             # Enable mixed precision for faster training on RTX 4050
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
-            print("✅ Mixed precision (float16) enabled — ~2x speedup")
+            print("✅ Mixed precision (float16) enabled - ~2x speedup")
         except RuntimeError as e:
             print(f"⚠️ GPU config error: {e}")
     else:
-        print("❌ NO GPU DETECTED — running on CPU")
+        print("❌ NO GPU DETECTED - running on CPU")
         print("   Make sure you're running inside WSL2 with tf_gpu env")
         sys.exit(1)
 
@@ -144,7 +144,7 @@ def train_model(model_name, model_config, config, dataset_mgr, factory):
     model = builder.build(num_classes=dataset_mgr.num_classes)
 
     # --------------------------------------------------------
-    # PHASE 1 — Frozen backbone
+    # PHASE 1 - Frozen backbone
     # --------------------------------------------------------
     logger.info(f"PHASE 1: Frozen Backbone ({model_config['initial_epochs']} epochs)")
 
@@ -165,7 +165,7 @@ def train_model(model_name, model_config, config, dataset_mgr, factory):
     logger.info(f"Phase 1 done in {p1_time/60:.1f} min")
 
     # --------------------------------------------------------
-    # PHASE 2 — Fine-tuning
+    # PHASE 2 - Fine-tuning
     # --------------------------------------------------------
     logger.info(f"PHASE 2: Fine-Tuning ({model_config['fine_tune_epochs']} epochs)")
 
@@ -287,7 +287,7 @@ def train_model(model_name, model_config, config, dataset_mgr, factory):
         logger.warning(f"Grad-CAM failed: {e}")
 
     logger.info("=" * 60)
-    logger.info(f"✅ {model_name} COMPLETE — Accuracy: {metrics.accuracy:.4f}")
+    logger.info(f"✅ {model_name} COMPLETE - Accuracy: {metrics.accuracy:.4f}")
     logger.info("=" * 60)
 
     # Cleanup
@@ -354,7 +354,7 @@ def main():
 
     # Previous CPU results for comparison
     print("\n📊 Previous CPU Results (for comparison):")
-    print("  ResNet50:       99.50%  (already excellent — no retrain needed)")
+    print("  ResNet50:       99.50%  (already excellent - no retrain needed)")
     print("  DenseNet121:    95.99%  → check new result above")
     print("  EfficientNetB0: 95.80%  → check new result above")
     print("  MobileNetV2:    91.63%")

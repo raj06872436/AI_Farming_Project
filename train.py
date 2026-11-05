@@ -32,7 +32,7 @@ logger = get_logger("train")
 def main():
     """Run the full training pipeline."""
     logger.info("=" * 70)
-    logger.info("AI AGRICULTURE PROJECT — TRAINING")
+    logger.info("AI AGRICULTURE PROJECT - TRAINING")
     logger.info("Plant Disease Detection using Transfer Learning")
     logger.info("=" * 70)
 

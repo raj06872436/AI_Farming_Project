@@ -1,14 +1,14 @@
 """
-AGRI-X AI — Crop Recommendation & Revenue Forecaster (Module 12) v4.0
+AGRI-X AI - Crop Recommendation & Revenue Forecaster (Module 12) v4.0
 
 What changed in v4
   • 40 crops (cereals, millets, pulses, oilseeds, vegetables, spices, fruit) with
-    current MSPs — see crop_database.py
+    current MSPs - see crop_database.py
   • Crops are judged against the climate of their *growing season* at your exact
     location (5-year weather records), not against today's temperature
   • Soil: Indian soil group (black, red, alluvial, laterite…), texture and pH, from
     live SoilGrids data or, when that is unavailable, the regional soil profile
-  • Regional fit: crops commonly grown in your agro-climatic region get credit —
+  • Regional fit: crops commonly grown in your agro-climatic region get credit -
     seed, buyers and know-how are close by
 """
 from datetime import datetime
@@ -46,7 +46,7 @@ def _get_current_season():
 def estimate_annual_rainfall(location, weather_raw=None):
     """
     Annual rainfall for the location.
-    Returns (mm, confidence, method) — confidence is "high" for measured local records,
+    Returns (mm, confidence, method) - confidence is "high" for measured local records,
     "medium" for regional normals.
     """
     normals = get_climate_normals(location)
@@ -152,13 +152,13 @@ def score_crop(name, crop, ctx):
     # 1. Season (20)
     if perennial:
         score += 14
-        reasons.append(f"🌳 Plantation crop — {crop.get('note') or 'plan for several years.'}")
+        reasons.append(f"🌳 Plantation crop - {crop.get('note') or 'plan for several years.'}")
     elif season in crop["season"]:
         score += 20
         reasons.append(f"✅ Sown in **{season}** ({SEASON_LABEL[season]}).")
     else:
         score += 4
-        reasons.append(f"⚠️ Not usually a {season} crop — best sown in **{', '.join(crop['season'])}**.")
+        reasons.append(f"⚠️ Not usually a {season} crop - best sown in **{', '.join(crop['season'])}**.")
 
     # 2. Temperature over the growing period (25)
     t_min, lo, hi, t_max = crop["temp_range"]
@@ -169,16 +169,16 @@ def score_crop(name, crop, ctx):
     elif t_min <= t <= t_max:
         gap = (lo - t) / max(1, lo - t_min) if t < lo else (t - hi) / max(1, t_max - hi)
         pts = 22 - 12 * gap
-        reasons.append(f"🟡 Season averages ~{t:.0f}°C — workable, a bit {'cool' if t < lo else 'warm'} (best {lo}–{hi}°C).")
+        reasons.append(f"🟡 Season averages ~{t:.0f}°C - workable, a bit {'cool' if t < lo else 'warm'} (best {lo}–{hi}°C).")
     else:
         pts = 2
-        reasons.append(f"❌ Season averages ~{t:.0f}°C — {'too cold' if t < t_min else 'too hot'} (needs {t_min}–{t_max}°C).")
+        reasons.append(f"❌ Season averages ~{t:.0f}°C - {'too cold' if t < t_min else 'too hot'} (needs {t_min}–{t_max}°C).")
     if w["coldest"] < t_min - 4:
         pts -= 4
-        reasons.append(f"🥶 Nights can drop to ~{w['coldest']:.0f}°C — frost / cold injury risk.")
+        reasons.append(f"🥶 Nights can drop to ~{w['coldest']:.0f}°C - frost / cold injury risk.")
     if w["hottest"] > t_max + 3:
         pts -= 4
-        reasons.append(f"🔥 Days can reach ~{w['hottest']:.0f}°C — heat stress at flowering.")
+        reasons.append(f"🔥 Days can reach ~{w['hottest']:.0f}°C - heat stress at flowering.")
     score += max(0, pts)
 
     # 3. Water (20): seasonal rain vs crop water need, with irrigation
@@ -191,7 +191,7 @@ def score_crop(name, crop, ctx):
         gap = need_lo - rain
         if ctx["irrigation"]:
             pts = 18 if gap < 0.6 * need_lo or crop["water_need"] in ("Low", "Moderate") else 14
-            reasons.append(f"💧 Needs ~{gap:.0f} mm more water than rain gives — irrigation available.")
+            reasons.append(f"💧 Needs ~{gap:.0f} mm more water than rain gives - irrigation available.")
         else:
             ratio = rain / need_lo
             bonus = 1.2 if crop["water_need"] == "Low" else 1.0
@@ -202,7 +202,7 @@ def score_crop(name, crop, ctx):
     else:
         pts = 17 if crop["water_need"] in ("High", "Very High") else 10
         score += pts
-        reasons.append(f"🌧️ Very wet season (~{rain} mm) — {'fine for this crop' if pts > 12 else 'needs good drainage / raised beds'}.")
+        reasons.append(f"🌧️ Very wet season (~{rain} mm) - {'fine for this crop' if pts > 12 else 'needs good drainage / raised beds'}.")
 
     # 4. Soil group + texture (15)
     grp = ctx.get("soil_group")
@@ -226,12 +226,12 @@ def score_crop(name, crop, ctx):
     else:
         score += 2
         fix = "add lime" if ph < p_lo else "add gypsum / organic matter"
-        reasons.append(f"❌ Soil pH {ph:.1f} is outside the crop's range ({p_lo}–{p_hi}) — {fix}.")
+        reasons.append(f"❌ Soil pH {ph:.1f} is outside the crop's range ({p_lo}–{p_hi}) - {fix}.")
 
     # 6. Regional fit (10)
     if name in ctx.get("region_crops", []):
         score += 10
-        reasons.append(f"🏘️ Widely grown in {ctx.get('region_name', 'your region')} — seed, buyers and advice are nearby.")
+        reasons.append(f"🏘️ Widely grown in {ctx.get('region_name', 'your region')} - seed, buyers and advice are nearby.")
     else:
         score += 2
 
@@ -401,7 +401,7 @@ def _land_to_acres(area, unit):
 
 
 def render_crop_advisor_page(location, weather_current, weather_raw=None):
-    """Full crop advisor page — location-, season- and soil-aware."""
+    """Full crop advisor page - location-, season- and soil-aware."""
     st.markdown('<div class="section-head" style="margin-top:0;"><div class="sh-title">🌾 Best crops for your farm</div>'
                 '<span>Ranked by season climate, soil, water and what grows well in your region</span></div>',
                 unsafe_allow_html=True)
@@ -449,7 +449,7 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
             st.write("")
             irrigation = st.checkbox("🚰 Irrigation available", value=True, key="crop_irrigation")
 
-        with st.expander("⚙️ I know my soil — adjust the details (optional)", expanded=False):
+        with st.expander("⚙️ I know my soil - adjust the details (optional)", expanded=False):
             st.caption("Have a Soil Health Card or lab report? Enter its values for a more accurate ranking.")
             o1, o2, o3, o4 = st.columns(4)
             with o1:
@@ -507,7 +507,7 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
             render_crop_card(crop, i)
             c_left, c_right = st.columns([3, 1])
             with c_left:
-                with st.expander(f"📋 Why {crop['name']}? — full breakdown"):
+                with st.expander(f"📋 Why {crop['name']}? - full breakdown"):
                     for r in crop["reasons"]:
                         st.markdown(r)
                     if crop.get("note"):
@@ -524,7 +524,7 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
                 "Crop": f"{c['icon']} {c['name']}", "Type": c["category"], "Score": c["score"],
                 "Season": c["season"], "Harvest (t)": f"{c['yield_min']:.1f}–{c['yield_max']:.1f}",
                 "Profit": f"{_money(c['profit_min'])} – {_money(c['profit_max'])}",
-                "MSP ₹/q": c["msp"] or "—", "In your region": "✅" if c["regional"] else "",
+                "MSP ₹/q": c["msp"] or "-", "In your region": "✅" if c["regional"] else "",
             } for c in crops])
             st.dataframe(table, use_container_width=True, hide_index=True)
 
@@ -533,4 +533,4 @@ def render_crop_advisor_page(location, weather_current, weather_raw=None):
         render_revenue_comparison_chart(shown[:6])
         st.caption("Prices: MSP for Kharif 2026-27 and Rabi 2027-28 (Government of India), sugarcane FRP 2026-27; "
                    "other crops use typical mandi ranges, which change every season. Yields and costs are typical "
-                   "figures — your results will vary.")
+                   "figures - your results will vary.")

@@ -102,7 +102,7 @@ def render():
 - **Grey / swapped background:** the same leaf is pasted onto a plain grey background or the background
   of a different photo. A model that uses the leaf should keep its accuracy.
 - **Field photos (PlantDoc):** real photos from fields and the internet, never used for training; only the
-  12 classes shared with our 15 are scored (chance 8 %). All models drop a lot here — lab photos are a
+  12 classes shared with our 15 are scored (chance 8 %). All models drop a lot here - lab photos are a
   poor teacher for the field.
 - **Plain EfficientNet (A0):** LesionNet's exact backbone, data split and training schedule, but
   ordinary pooling and no lesion outlines. It is just as accurate on normal photos, so the robustness

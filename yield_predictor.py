@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Yield Prediction Engine (Module 7) v3.5
+AGRI-X AI - Yield Prediction Engine (Module 7) v3.5
 Non-linear agronomic modeling + Limiting-factor Waterfall + Interactive Scenario Simulator ("What-If" Analysis).
 """
 import streamlit as st
@@ -401,7 +401,7 @@ def render_yield_page(location, weather_current, weather_raw):
     Full yield prediction page with non-linear models, waterfall analysis, and what-if simulation.
     """
     st.markdown('<div class="section-head"><div class="sh-title">📦 Yield forecast</div>'
-                '<span>How much you can expect to harvest — and what holds it back</span></div>',
+                '<span>How much you can expect to harvest - and what holds it back</span></div>',
                 unsafe_allow_html=True)
 
     humidity = weather_current.get("humidity", 60) if weather_current else 60
@@ -416,7 +416,7 @@ def render_yield_page(location, weather_current, weather_raw):
     if crop_params.get("soil_quality") is not None:
         soil_quality = crop_params["soil_quality"]
 
-    # Crop selector — a crop picked via "Predict Yield" in the Crop Advisor is applied once.
+    # Crop selector - a crop picked via "Predict Yield" in the Crop Advisor is applied once.
     # (Setting the widget's session key is required: Streamlit ignores `index` once the
     # widget already exists.)
     crop_names = list(UNIFIED_CROP_DB.keys())
@@ -461,7 +461,7 @@ def render_yield_page(location, weather_current, weather_raw):
 
     # Once requested (button here, or "Predict Yield" in the Crop Advisor), the forecast is
     # recomputed from the current inputs on every rerun, so it never goes stale when the
-    # crop, area, irrigation or location changes. The model is pure arithmetic — cheap.
+    # crop, area, irrigation or location changes. The model is pure arithmetic - cheap.
     if st.session_state.pop("yield_auto_trigger", False):
         st.session_state["yield_active"] = True
     if st.button("📊 Calculate Detailed Yield Forecast", type="primary", use_container_width=True, key="btn_yield"):
@@ -498,7 +498,7 @@ def render_yield_page(location, weather_current, weather_raw):
         soil_src = ("ISRIC SoilGrids (measured)" if soil_breakdown.get("source") == "soilgrids"
                     else f"Typical soil for {location.get('agro_region', 'your region') if location else 'your region'}")
         st.caption(f"""
-        🌡️ Climate: {normals['source']} — {season} average ~{temp:.1f}°C, ~{window['rain']} mm rain over the season
+        🌡️ Climate: {normals['source']} - {season} average ~{temp:.1f}°C, ~{window['rain']} mm rain over the season
         🪨 Soil: {soil_src} (pH {soil_breakdown.get('ph_value', 6.5)}, organic carbon {soil_breakdown.get('soc_value', 10)} g/kg, water-holding {soil_breakdown.get('awhc_val', 140)} mm/m)
         ⛰️ Altitude: {f'{elevation:.0f} m' if elevation is not None else 'unknown'}
         """)

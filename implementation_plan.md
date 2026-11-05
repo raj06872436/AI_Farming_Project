@@ -104,7 +104,7 @@ EfficientNetB0 builder
 DenseNet121 builder
 
 #### [NEW] src/models/vit_model.py
-Vision Transformer using `keras.applications` or custom implementation. Optional — graceful fallback if unavailable.
+Vision Transformer using `keras.applications` or custom implementation. Optional - graceful fallback if unavailable.
 
 #### [NEW] src/models/model_factory.py
 Factory pattern: `get_model(name: str) -> keras.Model`
@@ -246,13 +246,13 @@ Professional multi-page Streamlit dashboard with:
 - Navigation between pages
 
 **Pages/Sections:**
-1. **🏠 Home** — Hero section, upload, predict
-2. **🔍 Prediction** — Image upload → prediction → confidence → top-3 predictions → Grad-CAM overlay → severity estimate → recommendations
-3. **📊 Model Comparison** — Interactive table + bar charts comparing all models
-4. **📈 Training History** — Per-model accuracy/loss curves
-5. **🎯 Evaluation** — Confusion matrices, ROC curves, PR curves
-6. **🔬 Research** — Ablation study, cross-validation results, statistical analysis, compression study
-7. **ℹ️ About** — Project info, methodology, references
+1. **🏠 Home** - Hero section, upload, predict
+2. **🔍 Prediction** - Image upload → prediction → confidence → top-3 predictions → Grad-CAM overlay → severity estimate → recommendations
+3. **📊 Model Comparison** - Interactive table + bar charts comparing all models
+4. **📈 Training History** - Per-model accuracy/loss curves
+5. **🎯 Evaluation** - Confusion matrices, ROC curves, PR curves
+6. **🔬 Research** - Ablation study, cross-validation results, statistical analysis, compression study
+7. **ℹ️ About** - Project info, methodology, references
 
 **Design:**
 - Dark/light theme toggle
@@ -314,14 +314,14 @@ graph TD
 ## Verification Plan
 
 ### Automated Tests
-1. **Syntax check:** `python -c "import src"` — verify all modules import cleanly
+1. **Syntax check:** `python -c "import src"` - verify all modules import cleanly
 2. **Config test:** Verify settings load correctly with default values
 3. **Data pipeline test:** Load a small batch from PlantVillage, verify shapes (batch, 224, 224, 3)
 4. **Model build test:** Build each model, verify output shape matches num_classes
 5. **Quick training smoke test:** Train 1 model for 1 epoch, verify training completes without errors
 6. **Evaluation test:** Run evaluation on dummy predictions, verify all metrics generate
 7. **Visualization test:** Generate 1 of each plot type, verify files saved
-8. **Streamlit test:** `streamlit run app.py` — verify dashboard loads without errors
+8. **Streamlit test:** `streamlit run app.py` - verify dashboard loads without errors
 
 ### Manual Verification
 - Full training run (user-initiated, as it takes hours)

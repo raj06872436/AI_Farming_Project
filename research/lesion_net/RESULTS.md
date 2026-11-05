@@ -1,4 +1,4 @@
-# LesionNet — results
+# LesionNet - results
 
 LesionNet first segments every pixel into background / healthy leaf / lesion, then
 classifies using only features pooled over the predicted leaf and lesion pixels
@@ -24,7 +24,7 @@ regenerates them.
 - "Grey / swapped background": the leaf is kept and its background replaced by flat grey or by
   the background of a photo from another class. These tests need no lesion masks.
 - "Background only": the leaf is filled with its own background texture (no leaf, no
-  silhouette). Every model, LesionNet included, stays above chance — PlantVillage backgrounds
+  silhouette). Every model, LesionNet included, stays above chance - PlantVillage backgrounds
   carry class information, and LesionNet's segmentation does not remove all of it.
 
 **Takeaway:** same accuracy as the best classic model on normal photos, but it keeps 98.7 %
@@ -57,12 +57,12 @@ classes PlantDoc shares with our 15. Chance: 8.3 %.
 
 | Model | Accuracy (12 classes) | Macro-F1 | Right crop | Lesion % healthy / diseased leaves |
 |---|---|---|---|---|
-| MobileNetV2 | **23.6 %** | **0.189** | 68.9 % | — |
-| ResNet50 | 19.6 % | 0.147 | 65.2 % | — |
-| EfficientNetB0 | 20.2 % | 0.148 | 68.9 % | — |
-| DenseNet121 | 20.1 % | 0.158 | 67.4 % | — |
+| MobileNetV2 | **23.6 %** | **0.189** | 68.9 % | - |
+| ResNet50 | 19.6 % | 0.147 | 65.2 % | - |
+| EfficientNetB0 | 20.2 % | 0.148 | 68.9 % | - |
+| DenseNet121 | 20.1 % | 0.158 | 67.4 % | - |
 | LesionNet | 20.8 % | 0.172 | **70.7 %** | 16.5 % / 24.7 % |
-| A0 plain EfficientNet (ablation) | 23.1 % | 0.191 | 70.4 % | — |
+| A0 plain EfficientNet (ablation) | 23.1 % | 0.191 | 70.4 % | - |
 | A5 LesionNet-Mobile (ablation) | 21.6 % | 0.154 | 62.5 % | 24.8 % / 32.5 % |
 
 **Takeaway (negative result, worth reporting):** every model trained only on PlantVillage
@@ -75,14 +75,14 @@ Next step for the paper: fine-tune on the PlantDoc *train* split and test on its
 (LesionNet's pseudo-mask pipeline can label PlantDoc images too), and compare how fast each
 model adapts.
 
-## 5. Ablations — what makes LesionNet robust?
+## 5. Ablations - what makes LesionNet robust?
 
 Same PlantVillage test split; A0 and A3 share backbone (EfficientNetB0, ImageNet), data split,
-epochs and optimiser — only the LesionNet ideas differ.
+epochs and optimiser - only the LesionNet ideas differ.
 
 | Model | What changes | Accuracy | Grey bg | Swapped bg | Background only (chance 6.7 %) | Evidence on lesions | Severity ρ | PlantDoc (12 cl.) |
 |---|---|---|---|---|---|---|---|---|
-| A0 plain EfficientNet | global pooling, no lesion outlines, no background swap | **99.6 %** | 67.5 % | 63.7 % | 32.7 % | — | — | **23.1 %** |
+| A0 plain EfficientNet | global pooling, no lesion outlines, no background swap | **99.6 %** | 67.5 % | 63.7 % | 32.7 % | - | - | **23.1 %** |
 | **A3 LesionNet** | full model | 99.5 % | **98.7 %** | **81.8 %** | **19.5 %** | **44.1 %** | **0.90** | 20.8 % |
 | A5 LesionNet-Mobile | MobileNetV2 backbone (stopped at epoch 10/18 by a GPU driver crash; best checkpoint used) | 96.0 % | 94.2 % | 73.2 % | 20.3 % | 34.0 % | 0.78 | 21.6 % |
 

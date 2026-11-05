@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Soil Dataset Parameters Documentation Generator
+AGRI-X AI - Soil Dataset Parameters Documentation Generator
 Generates a comprehensive Word document (.docx) listing all soil parameters
 used across the project: SoilGrids API data, texture classification,
 crop suitability scoring, yield prediction, and soil type definitions.
@@ -130,7 +130,7 @@ def build_document():
     run = meta.add_run(
         f'Agricultural Intelligence Platform\n'
         f'Generated: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}\n'
-        f'Version: 2.0 — Phase 2'
+        f'Version: 2.0 - Phase 2'
     )
     run.font.size = Pt(11)
     run.font.color.rgb = RGBColor(120, 120, 120)
@@ -144,7 +144,7 @@ def build_document():
     doc.add_heading('Table of Contents', level=1)
     toc_items = [
         '1. Introduction & Overview',
-        '2. Soil Data Source — ISRIC SoilGrids API',
+        '2. Soil Data Source - ISRIC SoilGrids API',
         '3. Core Soil Parameters (SoilGrids)',
         '   3.1 Clay Content',
         '   3.2 Sand Content',
@@ -217,7 +217,7 @@ def build_document():
     # ══════════════════════════════════════════════════════════════
     # 2. DATA SOURCE
     # ══════════════════════════════════════════════════════════════
-    doc.add_heading('2. Soil Data Source — ISRIC SoilGrids API', level=1)
+    doc.add_heading('2. Soil Data Source - ISRIC SoilGrids API', level=1)
     doc.add_paragraph(
         'The platform retrieves soil composition data from ISRIC SoilGrids v2.0, a global '
         'gridded soil information system that provides predictions of soil properties at '
@@ -415,7 +415,7 @@ def build_document():
         ['4', 'Clay > 25% AND Sand > 25%', 'Clay Loam', 'Balanced heavy soil, moderate drainage'],
         ['5', 'Sand > 50%', 'Sandy Loam', 'Lightweight, good drainage, moderate fertility'],
         ['6', 'Silt > 40%', 'Silt Loam', 'Fertile, good structure, moderate drainage'],
-        ['7', 'Default (none of above)', 'Loam', 'Ideal balanced soil — best for most crops'],
+        ['7', 'Default (none of above)', 'Loam', 'Ideal balanced soil - best for most crops'],
     ]
     create_styled_table(
         doc,
@@ -425,7 +425,7 @@ def build_document():
 
     doc.add_paragraph()
     doc.add_paragraph(
-        'Note: The classification follows a top-down priority order — the first matching '
+        'Note: The classification follows a top-down priority order - the first matching '
         'condition determines the soil type. If no specific condition is met, the soil '
         'defaults to "Loam", which is considered ideal for most agricultural purposes.'
     )
@@ -452,7 +452,7 @@ def build_document():
         ['Red', 'Iron-rich, well-drained. Slightly acidic. Found in tropical regions.',
          'Sandy-Clay mix', 'Tomato, Maize, Chilli'],
         ['Laterite', 'Leached iron/aluminum-rich soil. Low fertility without amendments.',
-         'Iron/Aluminum Oxides', 'Limited — requires heavy amendment'],
+         'Iron/Aluminum Oxides', 'Limited - requires heavy amendment'],
         ['Sandy', 'Coarse-grained, excellent drainage. Low nutrient holding capacity.',
          'Sand > 70%', 'Tomato, Potato, Bell Pepper, Mustard, Onion'],
         ['Loamy', 'Balanced mix of clay, silt, and sand. Ideal for most crops.',
@@ -584,7 +584,7 @@ def build_document():
         'If the selected soil type is in the crop\'s compatible soil list → +15 points '
         '(with message "✅ {soil} soil is ideal")',
         'If the selected soil type is NOT in the compatible list → +5 points '
-        '(with message "⚠️ {soil} soil — not ideal but possible")',
+        '(with message "⚠️ {soil} soil - not ideal but possible")',
         'The soil type is auto-filled from the location\'s detected soil type (via SoilGrids), '
         'but users can override it via the dropdown selector.',
     ]
@@ -683,15 +683,15 @@ def build_document():
     # ══════════════════════════════════════════════════════════════
     doc.add_heading('11. References', level=1)
     references = [
-        'ISRIC SoilGrids v2.0 — https://rest.isric.org/soilgrids/v2.0/ — Global gridded '
+        'ISRIC SoilGrids v2.0 - https://rest.isric.org/soilgrids/v2.0/ - Global gridded '
         'soil information at 250m resolution.',
-        'ISRIC World Soil Information — https://www.isric.org/ — International Soil Reference '
+        'ISRIC World Soil Information - https://www.isric.org/ - International Soil Reference '
         'and Information Centre.',
-        'Open-Meteo Elevation API — https://open-meteo.com/ — Free elevation data API.',
-        'USDA Soil Texture Triangle — Standard classification of soil texture based on '
+        'Open-Meteo Elevation API - https://open-meteo.com/ - Free elevation data API.',
+        'USDA Soil Texture Triangle - Standard classification of soil texture based on '
         'clay, sand, and silt proportions.',
-        'FAO Soil Classification — Food and Agriculture Organization soil taxonomy guidelines.',
-        'Indian Council of Agricultural Research (ICAR) — Soil type classifications used '
+        'FAO Soil Classification - Food and Agriculture Organization soil taxonomy guidelines.',
+        'Indian Council of Agricultural Research (ICAR) - Soil type classifications used '
         'in Indian agriculture (Alluvial, Black, Red, Laterite).',
     ]
     for ref in references:
@@ -703,7 +703,7 @@ def build_document():
     footer = doc.add_paragraph()
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = footer.add_run(
-        '— End of Document —\n'
+        '- End of Document -\n'
         f'Generated by AGRI-X AI Soil Parameters Documentation Tool\n'
         f'{datetime.now().strftime("%B %d, %Y")}'
     )

@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Field Report Generator (Module 11)
+AGRI-X AI - Field Report Generator (Module 11)
 Generates downloadable CSV and HTML reports containing prediction results,
 weather data, risk analysis, treatment recommendations, and crop suggestions.
 """
@@ -46,7 +46,7 @@ def generate_csv_report(prediction=None, weather=None, location=None,
     fname = f"AgriXAI_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
     # Header
-    w.writerow(["AGRI-X AI — Field Analysis Report"])
+    w.writerow(["AGRI-X AI - Field Analysis Report"])
     w.writerow(["Generated", ts])
     w.writerow([])
 
@@ -262,7 +262,7 @@ def generate_html_report(prediction=None, weather=None, location=None,
     html = f"""<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<title>AGRI-X AI Field Report — {ts}</title>
+<title>AGRI-X AI Field Report - {ts}</title>
 <style>
   body {{ font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px; color: #333; }}
   h1 {{ color: #27ae60; margin-bottom: 0; }}
@@ -273,7 +273,7 @@ def generate_html_report(prediction=None, weather=None, location=None,
   @media print {{ body {{ padding: 15px; }} }}
 </style>
 </head><body>
-<h1>🌿 AGRI-X AI — Field Analysis Report</h1>
+<h1>🌿 AGRI-X AI - Field Analysis Report</h1>
 <div class="subtitle">Generated: {ts}</div>
 {sections}
 <div class="footer">

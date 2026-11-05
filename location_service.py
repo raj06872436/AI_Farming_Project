@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Location Service (Module 1) v3.0
+AGRI-X AI - Location Service (Module 1) v3.0
 Automatic geolocation via Browser GPS / IP + dual-depth soil analysis + AWHC + PyDeck map.
 """
 import requests
@@ -276,7 +276,7 @@ def _attach_soil(loc: dict) -> dict:
     """
     Add soil + agro-region information to a location dict:
     live SoilGrids data when available, otherwise the region's typical soil
-    (from india_agro_data) — never a blind "Loamy" guess.
+    (from india_agro_data) - never a blind "Loamy" guess.
     """
     profile = find_profile(loc)
     soil = get_soil_data(loc["latitude"], loc["longitude"])
@@ -463,7 +463,7 @@ def render_location_card(loc: dict):
     deck = pdk.Deck(
         layers=[pulse_layer, pin_layer],
         initial_view_state=view_state,
-        map_provider="carto",          # free basemap — Mapbox styles need an API token
+        map_provider="carto",          # free basemap - Mapbox styles need an API token
         map_style=pdk.map_styles.CARTO_LIGHT,
         tooltip={"text": "🌾 Field Center: {label}"}
     )
@@ -514,7 +514,7 @@ def render_location_details(loc: dict):
                 f'<span class="chip chip-gray">🪨 {loc.get("soil_group_label", "")} soil</span>'
                 f'<span class="chip chip-gray">🧭 {loc.get("agro_zone", "")}</span></div>'
                 f'<div style="color:var(--text-3);font-size:0.85rem;margin-bottom:0.6rem;">{loc.get("soil_note", "")}'
-                f'{"" if live else " Live soil data was unavailable, so these are typical values for the area — a soil test will be more accurate."}</div>',
+                f'{"" if live else " Live soil data was unavailable, so these are typical values for the area - a soil test will be more accurate."}</div>',
                 unsafe_allow_html=True)
             soil_type = loc.get("soil_type", _classify_soil(soil))
             ph = soil.get("ph", {}).get("value", 6.5)
@@ -613,7 +613,7 @@ def render_browser_gps_button():
     if not st.session_state.get("_gps_pending"):
         return
 
-    st.caption("⏳ Waiting for your browser — please allow location access in the popup.")
+    st.caption("⏳ Waiting for your browser - please allow location access in the popup.")
     # A fresh key per attempt so a retry asks the browser again instead of reusing the last answer
     result = get_geolocation(component_key=f"gps_geolocation_{st.session_state['_gps_attempt']}")
     if not result:
@@ -667,7 +667,7 @@ def _render_gps_fallback_html():
                 const lon = position.coords.longitude.toFixed(4);
                 btn.innerHTML = "✅ GPS Found (±" + Math.round(position.coords.accuracy) + "m)";
                 status.innerText = "Coordinates: " + lat + ", " + lon +
-                    " — enter these under 'Enter Exact Coordinates' if the page does not update.";
+                    " - enter these under 'Enter Exact Coordinates' if the page does not update.";
                 let target;
                 try { target = new URL(window.top.location.href); }
                 catch (e) { target = new URL(document.referrer || window.location.href); }
@@ -723,7 +723,7 @@ def render_location_override_form():
 
             matches = st.session_state.get("_city_matches", [])
             if matches:
-                st.caption("Pick the right place — one click sets it as your farm location.")
+                st.caption("Pick the right place - one click sets it as your farm location.")
                 for idx, m in enumerate(matches):
                     where = ", ".join(x for x in (m.get("district"), m.get("state"), m.get("country"))
                                       if x and x != m["city"])

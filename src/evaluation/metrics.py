@@ -248,7 +248,7 @@ class MetricsCalculator:
         for m in all_metrics:
             filepath = os.path.join(output_dir, f"{m.model_name}_classification_report.txt")
             with open(filepath, "w") as f:
-                f.write(f"Classification Report — {m.model_name}\n")
+                f.write(f"Classification Report - {m.model_name}\n")
                 f.write("=" * 60 + "\n\n")
                 f.write(m.classification_report)
             logger.debug(f"Classification report saved: {filepath}")

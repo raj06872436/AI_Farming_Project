@@ -1,9 +1,9 @@
 """
-AGRI-X AI — Climate normals for a farm location.
+AGRI-X AI - Climate normals for a farm location.
 
 Crop choice depends on the *season's* weather, not today's. This module gets the
 average temperature and rainfall for every month at the exact farm location from
-the last five years of ERA5 weather records (Open-Meteo archive API — free, no key),
+the last five years of ERA5 weather records (Open-Meteo archive API - free, no key),
 and falls back to the regional normals in india_agro_data when offline.
 
 Analogy: today's weather tells you whether to carry an umbrella; the climate normal

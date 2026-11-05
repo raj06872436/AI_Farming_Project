@@ -86,7 +86,7 @@ Measured on 60 images (`research/gradcam_bug_check.py`):
 | ResNet50 | 22 / 60 | 0.87 (min 0.61) |
 | DenseNet121 | 4 / 60 | 0.15 (min −0.65) |
 | EfficientNetB0 | 60 / 60 | 1.00 (unaffected: its preprocessing is built into the backbone) |
-| MobileNetV2 | — | unaffected (flat model, graph used directly) |
+| MobileNetV2 | - | unaffected (flat model, graph used directly) |
 
 The fixed builder reproduces each model's softmax output exactly (max difference 0.0). It is
 worth checking for this when comparing explanations across Keras backbones.

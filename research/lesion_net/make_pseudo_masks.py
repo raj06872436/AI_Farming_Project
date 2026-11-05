@@ -1,11 +1,11 @@
 """
-Step 1 — create training labels for LesionNet (no hand annotation needed).
+Step 1 - create training labels for LesionNet (no hand annotation needed).
 
 For every PlantVillage photo this writes a small label image:
     0 = background, 1 = healthy leaf tissue, 2 = diseased tissue (lesion)
 using the colour-based segmentation in lesion_segmentation.py.
 
-  • Healthy-class photos: any "lesion" pixels are set to healthy leaf — we KNOW
+  • Healthy-class photos: any "lesion" pixels are set to healthy leaf - we KNOW
     these leaves are healthy, so they become clean negative examples.
   • Diseased photos whose mask looks unreliable (or where < 1 % lesion was found)
     get seg_weight = 0, so the network is not taught "no disease here" on a sick leaf.

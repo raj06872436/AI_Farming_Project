@@ -1,10 +1,10 @@
 """
-AGRI-X AI — Leaf & lesion segmentation (how much of the leaf is actually diseased).
+AGRI-X AI - Leaf & lesion segmentation (how much of the leaf is actually diseased).
 
 Why this exists
 ---------------
 Grad-CAM tells us *where the model looked*, on a coarse 7×7 grid. Measuring the
-"affected area" from it gave ~40–55 % on every leaf — even perfectly healthy ones —
+"affected area" from it gave ~40–55 % on every leaf - even perfectly healthy ones -
 because the model looks at most of the leaf. Here we measure the diseased tissue
 itself, pixel by pixel, from colour:
 
@@ -13,14 +13,14 @@ itself, pixel by pixel, from colour:
   2. Learn what *healthy* tissue looks like on this particular leaf (its typical
      green), so lighting and variety differences don't matter.
   3. Mark tissue that departs from that healthy green:
-       • necrotic  — brown / dark / reddish spots and dead tissue   (severe)
-       • chlorotic — yellowing, mottling, mosaic                    (mild)
-       • pale      — whitish mould / powdery or bleached patches    (moderate)
+       • necrotic  - brown / dark / reddish spots and dead tissue   (severe)
+       • chlorotic - yellowing, mottling, mosaic                    (mild)
+       • pale      - whitish mould / powdery or bleached patches    (moderate)
   4. Clean up (remove specks, ignore the leaf's outer rim) and report the
      affected area as a percentage of the LEAF, not of the photo.
 
 Plain-language analogy: the old method was like asking "where did the doctor's eyes
-go?" — this one is like actually measuring the size of the rash.
+go?" - this one is like actually measuring the size of the rash.
 """
 import cv2
 import numpy as np
@@ -186,10 +186,10 @@ def detect_lesions(rgb, leaf_mask=None, include_pale=False):
     Detect diseased tissue inside the leaf.
 
     Returns dict:
-        lesion_mask : uint8 (H, W) 0/255 — all diseased tissue
-        label_map   : uint8 (H, W)       — HEALTHY / CHLOROTIC / PALE / NECROTIC
+        lesion_mask : uint8 (H, W) 0/255 - all diseased tissue
+        label_map   : uint8 (H, W)       - HEALTHY / CHLOROTIC / PALE / NECROTIC
         leaf_mask   : uint8 (H, W) 0/255
-        affected_pct: float — diseased share of the leaf area (0–100)
+        affected_pct: float - diseased share of the leaf area (0–100)
         breakdown   : {"yellowing": %, "pale / mould": %, "dead / spotted": %} of leaf
         regions     : list of per-spot stats (largest first)
     """
@@ -263,11 +263,11 @@ def detect_lesions(rgb, leaf_mask=None, include_pale=False):
 
     n, cc, stats, cents = cv2.connectedComponentsWithStats(lesion, 8)
     min_area = max(6, 0.0008 * leaf_px)
-    # Pixels along the leaf outline — used to spot shadows hugging the edge
+    # Pixels along the leaf outline - used to spot shadows hugging the edge
     edge_band = cv2.dilate(leaf_mask, np.ones((3, 3), np.uint8), iterations=rim + 2) & ~cv2.erode(
         leaf_mask, np.ones((3, 3), np.uint8), iterations=rim + 2)
     edge_band = edge_band > 0
-    # Colour of whatever is just outside the leaf (table, soil, shadow) — strips along
+    # Colour of whatever is just outside the leaf (table, soil, shadow) - strips along
     # the outline that match it are background bleeding into the mask, not disease
     outside = (cv2.dilate(leaf_mask, np.ones((3, 3), np.uint8), iterations=rim * 2 + 4) > 0) & ~leaf
     out_lab = np.median(lab[outside], axis=0) if outside.sum() > 30 else None
@@ -280,7 +280,7 @@ def detect_lesions(rgb, leaf_mask=None, include_pale=False):
         comp = cc == i
         kinds = labels[comp]
         nec_share = float(np.mean(kinds == NECROTIC))
-        # A pale patch on its own is often just glare — keep only sizeable ones
+        # A pale patch on its own is often just glare - keep only sizeable ones
         if np.all(kinds[kinds > 0] == PALE) and area < 0.01 * leaf_px:
             continue
         # Dark, grey strips along the leaf outline are cast shadows, not disease

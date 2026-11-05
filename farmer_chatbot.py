@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Farmer Assistant Chatbot (Module 9)
+AGRI-X AI - Farmer Assistant Chatbot (Module 9)
 Rule-based agricultural AI assistant using prediction, weather, crop, and disease knowledge bases.
 """
 import html
@@ -58,9 +58,9 @@ DISEASE_RESPONSES = {
         "response": """**Yellowing leaves can indicate several issues:**
 
 🦠 **Possible Diseases:**
-- **Tomato Yellow Leaf Curl Virus (TYLCV)** — transmitted by whiteflies
-- **Nitrogen deficiency** — common in poor soil
-- **Early Blight** — yellowing around brown lesions
+- **Tomato Yellow Leaf Curl Virus (TYLCV)** - transmitted by whiteflies
+- **Nitrogen deficiency** - common in poor soil
+- **Early Blight** - yellowing around brown lesions
 
 🔍 **Diagnosis Steps:**
 1. Check for whiteflies on leaf undersides
@@ -79,9 +79,9 @@ DISEASE_RESPONSES = {
         "response": """**Brown spots on leaves are commonly caused by:**
 
 🦠 **Likely Diseases:**
-- **Bacterial Spot** (Xanthomonas) — water-soaked spots with halos
-- **Early Blight** (Alternaria) — concentric ring target patterns
-- **Septoria Leaf Spot** — small spots with gray centers
+- **Bacterial Spot** (Xanthomonas) - water-soaked spots with halos
+- **Early Blight** (Alternaria) - concentric ring target patterns
+- **Septoria Leaf Spot** - small spots with gray centers
 
 💊 **Treatment:**
 - Apply copper-based fungicide immediately
@@ -96,17 +96,17 @@ DISEASE_RESPONSES = {
         "response": """**Plant wilting can be caused by:**
 
 💧 **Water Issues:**
-- Underwatering — check soil moisture
-- Overwatering — check for root rot
-- Poor drainage — waterlogged soil
+- Underwatering - check soil moisture
+- Overwatering - check for root rot
+- Poor drainage - waterlogged soil
 
 🦠 **Disease Causes:**
-- **Late Blight** — rapid wilting with dark patches
-- **Fusarium Wilt** — progressive wilting from base
-- **Bacterial Wilt** — sudden collapse
+- **Late Blight** - rapid wilting with dark patches
+- **Fusarium Wilt** - progressive wilting from base
+- **Bacterial Wilt** - sudden collapse
 
 💊 **Quick Check:**
-1. Feel the soil — dry = water immediately
+1. Feel the soil - dry = water immediately
 2. Check stems for dark discoloration
 3. If disease suspected, upload photo for AI diagnosis""",
     },
@@ -115,7 +115,7 @@ DISEASE_RESPONSES = {
         "response": """**Leaf curling is a serious symptom. Common causes:**
 
 🦠 **Primary Cause:**
-- **Tomato Yellow Leaf Curl Virus (TYLCV)** — NO cure!
+- **Tomato Yellow Leaf Curl Virus (TYLCV)** - NO cure!
 - Transmitted by whiteflies (Bemisia tabaci)
 
 💊 **Actions:**
@@ -124,15 +124,15 @@ DISEASE_RESPONSES = {
 - Use resistant varieties for next planting
 - Install insect-proof netting
 
-⚠️ **This is a viral disease — prevention is the only option!**""",
+⚠️ **This is a viral disease - prevention is the only option!**""",
     },
     "mold": {
         "title": "Mold/Fungus",
         "response": """**Mold or fungal growth indicates high humidity conditions:**
 
 🦠 **Likely Disease:**
-- **Leaf Mold** (Passalora fulva) — olive-green fuzzy growth underneath
-- **Late Blight** — white fuzzy growth on undersides
+- **Leaf Mold** (Passalora fulva) - olive-green fuzzy growth underneath
+- **Late Blight** - white fuzzy growth on undersides
 
 💊 **Treatment:**
 - Improve ventilation immediately
@@ -146,9 +146,9 @@ DISEASE_RESPONSES = {
         "response": """**Rotting can affect roots, stems, or fruit:**
 
 🦠 **Causes:**
-- **Phytophthora** (Late Blight) — tuber/fruit rot
-- **Blossom End Rot** — calcium deficiency
-- **Root Rot** — overwatering/poor drainage
+- **Phytophthora** (Late Blight) - tuber/fruit rot
+- **Blossom End Rot** - calcium deficiency
+- **Root Rot** - overwatering/poor drainage
 
 💊 **Treatment:**
 - Improve drainage immediately
@@ -177,7 +177,7 @@ DISEASE_RESPONSES = {
         "response": """**Mosaic pattern indicates viral infection:**
 
 🦠 **Disease:**
-- **Tomato Mosaic Virus (ToMV)** — extremely contagious!
+- **Tomato Mosaic Virus (ToMV)** - extremely contagious!
 - Spread by touch, tools, and contaminated hands
 
 💊 **Actions:**
@@ -192,8 +192,8 @@ DISEASE_RESPONSES = {
         "response": """**Blight is one of the most destructive plant diseases:**
 
 🦠 **Types:**
-- **Early Blight** — target-shaped spots, lower leaves first
-- **Late Blight** — CRITICAL! Can destroy entire crop in days
+- **Early Blight** - target-shaped spots, lower leaves first
+- **Late Blight** - CRITICAL! Can destroy entire crop in days
 
 💊 **Treatment:**
 - **Early Blight:** Chlorothalonil + azoxystrobin
@@ -201,18 +201,18 @@ DISEASE_RESPONSES = {
 - Remove ALL infected material
 - Improve drainage, stop overhead irrigation
 
-⚠️ **Late Blight is an EMERGENCY — act immediately!**""",
+⚠️ **Late Blight is an EMERGENCY - act immediately!**""",
     },
     "pest": {
         "title": "Pest Infestation",
         "response": """**Common agricultural pests and treatments:**
 
 🐛 **Identification & Treatment:**
-- **Aphids** — neem oil or imidacloprid
-- **Whiteflies** — yellow sticky traps + insecticides
-- **Caterpillars** — Bt (Bacillus thuringiensis) spray
-- **Fruit borers** — spinosad or chlorantraniliprole
-- **Spider mites** — abamectin or predatory mites
+- **Aphids** - neem oil or imidacloprid
+- **Whiteflies** - yellow sticky traps + insecticides
+- **Caterpillars** - Bt (Bacillus thuringiensis) spray
+- **Fruit borers** - spinosad or chlorantraniliprole
+- **Spider mites** - abamectin or predatory mites
 
 💡 **IPM Approach:**
 1. Scout fields regularly
@@ -265,11 +265,11 @@ def get_response(user_input, weather_current=None, prediction_result=None, locat
         return f"""👋 {time_greeting}{loc_str}! I'm your **AGRI-X AI Farming Assistant**.
 
 I can help you with:
-- 🔬 **Disease diagnosis** — describe symptoms or upload a leaf photo
-- 🌾 **Crop recommendations** — ask what to plant
-- 📊 **Yield estimation** — predict expected harvest
-- 🌦️ **Weather guidance** — get farming weather advice
-- 💊 **Treatment advice** — how to treat plant diseases
+- 🔬 **Disease diagnosis** - describe symptoms or upload a leaf photo
+- 🌾 **Crop recommendations** - ask what to plant
+- 📊 **Yield estimation** - predict expected harvest
+- 🌦️ **Weather guidance** - get farming weather advice
+- 💊 **Treatment advice** - how to treat plant diseases
 
 **How can I help you today?**"""
 
@@ -289,23 +289,23 @@ Based on current conditions:
 """
         if season == "Kharif":
             response += """**Top Recommended Crops:**
-1. 🌾 **Rice** — ideal for monsoon
-2. 🌽 **Maize** — fast growing
-3. 🏵️ **Cotton** — good for warm areas
-4. 🫘 **Soybean** — nitrogen-fixing
-5. 🌶️ **Chilli** — high market value"""
+1. 🌾 **Rice** - ideal for monsoon
+2. 🌽 **Maize** - fast growing
+3. 🏵️ **Cotton** - good for warm areas
+4. 🫘 **Soybean** - nitrogen-fixing
+5. 🌶️ **Chilli** - high market value"""
         elif season == "Rabi":
             response += """**Top Recommended Crops:**
-1. 🌾 **Wheat** — staple rabi crop
-2. 🌻 **Mustard** — low water requirement
-3. 🥔 **Potato** — good for cool weather
-4. 🧅 **Onion** — high demand
-5. 🫛 **Pulses** — soil enriching"""
+1. 🌾 **Wheat** - staple rabi crop
+2. 🌻 **Mustard** - low water requirement
+3. 🥔 **Potato** - good for cool weather
+4. 🧅 **Onion** - high demand
+5. 🫛 **Pulses** - soil enriching"""
         else:
             response += """**Top Recommended Crops:**
-1. 🍅 **Tomato** — short duration
-2. 🫑 **Bell Pepper** — high value
-3. 🧅 **Onion** — summer variety"""
+1. 🍅 **Tomato** - short duration
+2. 🫑 **Bell Pepper** - high value
+3. 🧅 **Onion** - summer variety"""
 
         response += "\n\n👉 Go to the **🌾 Crop Advisor** page for detailed analysis with revenue forecasts!"
         return response
@@ -314,11 +314,11 @@ Based on current conditions:
         return """📊 **Yield Prediction Guide**
 
 To estimate your crop yield, I need:
-1. **Crop type** — which crop you're growing
-2. **Land area** — in acres or hectares
-3. **Current weather** — temperature & humidity
-4. **Soil quality** — poor, average, or good
-5. **Irrigation** — available or rainfed
+1. **Crop type** - which crop you're growing
+2. **Land area** - in acres or hectares
+3. **Current weather** - temperature & humidity
+4. **Soil quality** - poor, average, or good
+5. **Irrigation** - available or rainfed
 
 **Tips to increase yield:**
 - 🌱 Use certified high-yield seed varieties
@@ -344,8 +344,8 @@ To estimate your crop yield, I need:
 - 💨 Wind: {weather_current.get('wind_speed', 0):.1f} km/h
 
 **Farming Impact:**
-{"⚠️ High temperature — increase watering frequency." if temp >= 35 else ""}
-{"⚠️ High humidity — watch for fungal diseases." if humidity >= 80 else ""}
+{"⚠️ High temperature - increase watering frequency." if temp >= 35 else ""}
+{"⚠️ High humidity - watch for fungal diseases." if humidity >= 80 else ""}
 {"✅ Favorable conditions for farming." if 20 <= temp <= 30 and 50 <= humidity <= 75 else ""}
 
 👉 Go to **🌾 Crop Advisor** (Weather tab) for full forecast!"""
@@ -363,19 +363,19 @@ To estimate your crop yield, I need:
 📊 Confidence: {conf:.0%}
 
 I can help you with:
-- 💊 Treatment options — ask "how to treat {pred_class.split('_')[-1]}"
-- ⚠️ Risk assessment — ask "what's the risk level"
-- 🌾 Crop alternatives — ask "what crop should I plant"
+- 💊 Treatment options - ask "how to treat {pred_class.split('_')[-1]}"
+- ⚠️ Risk assessment - ask "what's the risk level"
+- 🌾 Crop alternatives - ask "what crop should I plant"
 
 Or describe any symptoms you're seeing!"""
 
         return """I'm your **AGRI-X AI Farming Assistant**. Here's what I can help with:
 
-🔬 **Disease Help** — "My leaves have brown spots", "What causes leaf curl?"
-🌾 **Crop Advice** — "What crop should I plant?", "Best crop for this season"
-📊 **Yield Info** — "How to increase yield?", "Expected harvest"
-🌦️ **Weather** — "What's the weather?", "Will it rain?"
-💊 **Treatment** — "How to treat blight?", "What pesticide for mites?"
+🔬 **Disease Help** - "My leaves have brown spots", "What causes leaf curl?"
+🌾 **Crop Advice** - "What crop should I plant?", "Best crop for this season"
+📊 **Yield Info** - "How to increase yield?", "Expected harvest"
+🌦️ **Weather** - "What's the weather?", "Will it rain?"
+💊 **Treatment** - "How to treat blight?", "What pesticide for mites?"
 
 **Try asking me something!** 🌿"""
 
@@ -384,7 +384,7 @@ def render_chatbot(weather_current=None, prediction_result=None, location=None):
     """Render the farmer assistant chatbot interface."""
     st.markdown('<div class="page-header fade-in"><div class="page-eyebrow">🤖 Farmer Assistant</div>'
                 '<h1 class="page-title">Ask anything about your farm</h1>'
-                '<p class="page-sub">Diseases, treatments, crops, fertilizer or weather — ask in plain words. '
+                '<p class="page-sub">Diseases, treatments, crops, fertilizer or weather - ask in plain words. '
                 'Answers use your latest diagnosis, weather and location.</p></div>', unsafe_allow_html=True)
 
     # Initialize chat history

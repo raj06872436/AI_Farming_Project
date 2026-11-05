@@ -77,7 +77,7 @@ for model_name in MODELS_TO_EVALUATE:
             break
 
     if model_path is None:
-        logger.warning(f"SKIPPING {model_name} — no saved model found")
+        logger.warning(f"SKIPPING {model_name} - no saved model found")
         continue
 
     logger.info("=" * 60)
@@ -156,9 +156,9 @@ if all_metrics:
                 "params": f"{m.total_params / 1e6:.1f}M",
                 "size_mb": round(m.model_size_mb, 1),
                 "inference_ms": round(m.inference_time_ms, 1),
-                "strengths": "—",
-                "weaknesses": "—",
-                "deployment": "—",
+                "strengths": "-",
+                "weaknesses": "-",
+                "deployment": "-",
             }
 
     with open(registry_path, "w") as f:

@@ -11,12 +11,12 @@ Grad-CAM / Grad-CAM++ attention map with a pixel-level map of diseased tissue
                                 whole leaf (1 = no preference, >1 = looks at lesions)
   pointing_hit                  does the attention peak fall on a lesion (±15 px)?
   iou_05                        IoU between attention > 0.5 and the lesion mask
-  cam_area_pct                  % of the leaf with attention > 0.25 — what the app
+  cam_area_pct                  % of the leaf with attention > 0.25 - what the app
                                 used to report as "affected area"
   lesion_pct                    measured diseased share of the leaf
 
 Lesion masks are produced automatically (colour-based, see lesion_segmentation.py),
-so they are pseudo ground truth, not hand annotations — keep that in mind when
+so they are pseudo ground truth, not hand annotations - keep that in mind when
 reporting. Swap in hand-drawn masks (e.g. PlantSeg) via --masks for a stricter test.
 
 Usage (from the project folder):

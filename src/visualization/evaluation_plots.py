@@ -45,7 +45,7 @@ class EvaluationPlotter:
             yticklabels=self.class_names,
             ax=ax, linewidths=0.5,
         )
-        ax.set_title(f"Confusion Matrix — {metrics.model_name}",
+        ax.set_title(f"Confusion Matrix - {metrics.model_name}",
                      fontsize=14, fontweight="bold")
         ax.set_xlabel("Predicted Label", fontsize=11)
         ax.set_ylabel("True Label", fontsize=11)
@@ -91,7 +91,7 @@ class EvaluationPlotter:
                 )
 
         ax.plot([0, 1], [0, 1], "k--", linewidth=1, alpha=0.5)
-        ax.set_title(f"ROC Curves — {metrics.model_name}", fontsize=13, fontweight="bold")
+        ax.set_title(f"ROC Curves - {metrics.model_name}", fontsize=13, fontweight="bold")
         ax.set_xlabel("False Positive Rate")
         ax.set_ylabel("True Positive Rate")
         ax.legend(loc="lower right", fontsize=8)
@@ -126,7 +126,7 @@ class EvaluationPlotter:
                     label=f'{self.class_names[i]} (AP = {metrics.pr_auc.get(i, 0):.3f})',
                 )
 
-        ax.set_title(f"Precision-Recall Curves — {metrics.model_name}",
+        ax.set_title(f"Precision-Recall Curves - {metrics.model_name}",
                      fontsize=13, fontweight="bold")
         ax.set_xlabel("Recall")
         ax.set_ylabel("Precision")
@@ -284,7 +284,7 @@ class EvaluationPlotter:
             axes[idx].set_visible(False)
 
         fig.suptitle(
-            "Overall Confusion Matrices — All Models",
+            "Overall Confusion Matrices - All Models",
             fontsize=18, fontweight="bold", y=1.02,
         )
         plt.tight_layout()
@@ -329,7 +329,7 @@ class EvaluationPlotter:
         ax.plot([0, 1], [0, 1], "k--", linewidth=1, alpha=0.5, label="Random Classifier")
 
         ax.set_title(
-            "ROC Curves — All Models (Macro-Average)",
+            "ROC Curves - All Models (Macro-Average)",
             fontsize=15, fontweight="bold",
         )
         ax.set_xlabel("False Positive Rate", fontsize=12)

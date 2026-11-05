@@ -48,7 +48,7 @@ class ResNet50Builder(BaseModelBuilder):
         return "ResNet50"
 
     # ------------------------------------------------------------------
-    # BUILD FULL MODEL (custom — fixes preprocessing mismatch)
+    # BUILD FULL MODEL (custom - fixes preprocessing mismatch)
     # ------------------------------------------------------------------
 
     def build(self, num_classes: int = None, **kwargs) -> tf.keras.Model:
@@ -80,7 +80,7 @@ class ResNet50Builder(BaseModelBuilder):
 
         x = base_model(x, training=False)
 
-        # Classifier head — larger than default to match ResNet's 2048-dim output
+        # Classifier head - larger than default to match ResNet's 2048-dim output
         x = layers.GlobalAveragePooling2D(name="global_avg_pool")(x)
         x = layers.BatchNormalization(name="batch_norm")(x)
         x = layers.Dense(512, activation="relu", name="dense_1")(x)
@@ -130,7 +130,7 @@ class ResNet50Builder(BaseModelBuilder):
         return model
 
     # ------------------------------------------------------------------
-    # FINE TUNING — unfreeze conv5 block (deeper than default 50 layers)
+    # FINE TUNING - unfreeze conv5 block (deeper than default 50 layers)
     # ------------------------------------------------------------------
 
     def unfreeze_for_fine_tuning(

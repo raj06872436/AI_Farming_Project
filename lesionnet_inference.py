@@ -3,7 +3,7 @@ LesionNet in the app: one forward pass gives the disease class AND a lesion map.
 
 The class is computed only from features pooled over the pixels the network marked as
 leaf / lesion (see research/lesion_net/lesionnet.py), so the lesion map shown to the user
-is exactly the evidence the decision used — not an after-the-fact heatmap.
+is exactly the evidence the decision used - not an after-the-fact heatmap.
 """
 import glob
 import os

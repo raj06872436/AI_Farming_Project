@@ -153,7 +153,7 @@ def create_document():
         "Preprocessing is a critical stage that transforms raw leaf images from the "
         "PlantVillage dataset into a standardized format suitable for training convolutional "
         "neural networks (CNNs). Proper preprocessing ensures consistent input dimensions, "
-        "normalized pixel values, and augmented training diversity — all of which directly "
+        "normalized pixel values, and augmented training diversity - all of which directly "
         "impact model accuracy and generalization."
     )
 
@@ -218,21 +218,21 @@ def create_document():
     run.font.size = Pt(11)
 
     class_names = [
-        ("1", "Pepper Bell — Bacterial Spot", "Disease"),
-        ("2", "Pepper Bell — Healthy", "Healthy"),
-        ("3", "Potato — Early Blight", "Disease"),
-        ("4", "Potato — Late Blight", "Disease"),
-        ("5", "Potato — Healthy", "Healthy"),
-        ("6", "Tomato — Bacterial Spot", "Disease"),
-        ("7", "Tomato — Early Blight", "Disease"),
-        ("8", "Tomato — Late Blight", "Disease"),
-        ("9", "Tomato — Leaf Mold", "Disease"),
-        ("10", "Tomato — Septoria Leaf Spot", "Disease"),
-        ("11", "Tomato — Spider Mites (Two-Spotted)", "Disease"),
-        ("12", "Tomato — Target Spot", "Disease"),
-        ("13", "Tomato — Yellow Leaf Curl Virus", "Disease"),
-        ("14", "Tomato — Mosaic Virus", "Disease"),
-        ("15", "Tomato — Healthy", "Healthy"),
+        ("1", "Pepper Bell - Bacterial Spot", "Disease"),
+        ("2", "Pepper Bell - Healthy", "Healthy"),
+        ("3", "Potato - Early Blight", "Disease"),
+        ("4", "Potato - Late Blight", "Disease"),
+        ("5", "Potato - Healthy", "Healthy"),
+        ("6", "Tomato - Bacterial Spot", "Disease"),
+        ("7", "Tomato - Early Blight", "Disease"),
+        ("8", "Tomato - Late Blight", "Disease"),
+        ("9", "Tomato - Leaf Mold", "Disease"),
+        ("10", "Tomato - Septoria Leaf Spot", "Disease"),
+        ("11", "Tomato - Spider Mites (Two-Spotted)", "Disease"),
+        ("12", "Tomato - Target Spot", "Disease"),
+        ("13", "Tomato - Yellow Leaf Curl Virus", "Disease"),
+        ("14", "Tomato - Mosaic Virus", "Disease"),
+        ("15", "Tomato - Healthy", "Healthy"),
     ]
 
     table = doc.add_table(rows=len(class_names) + 1, cols=3)
@@ -342,7 +342,7 @@ def create_document():
     doc.add_paragraph(
         "All pixel values are rescaled from the original integer range [0, 255] to the "
         "floating-point range [0.0, 1.0] by dividing by 255. This normalization is applied "
-        "uniformly to all data splits — training, validation, and test."
+        "uniformly to all data splits - training, validation, and test."
     )
 
     p = doc.add_paragraph()
@@ -464,7 +464,7 @@ def create_document():
     doc.add_paragraph(
         "Data augmentation is applied ONLY to the training set to artificially increase "
         "its diversity and improve model generalization. The validation and test sets "
-        "receive NO augmentation — only rescaling — to ensure unbiased evaluation."
+        "receive NO augmentation - only rescaling - to ensure unbiased evaluation."
     )
 
     p = doc.add_paragraph()
@@ -629,8 +629,8 @@ def create_document():
     batch_data = [
         ("Parameter", "Value"),
         ("Batch Size", "32 images"),
-        ("Shuffle (Training)", "True — randomizes order each epoch"),
-        ("Shuffle (Validation/Test)", "False — deterministic evaluation"),
+        ("Shuffle (Training)", "True - randomizes order each epoch"),
+        ("Shuffle (Validation/Test)", "False - deterministic evaluation"),
         ("Class Mode", "categorical (one-hot encoded labels)"),
     ]
     for i, (col1, col2) in enumerate(batch_data):
@@ -686,7 +686,7 @@ def create_document():
 
     doc.add_paragraph(
         "During inference (prediction on new images), the same preprocessing steps "
-        "are applied as during training — EXCEPT for data augmentation. The inference "
+        "are applied as during training - EXCEPT for data augmentation. The inference "
         "preprocessing pipeline ensures that the model receives input in the exact "
         "same format it was trained on."
     )
@@ -842,7 +842,7 @@ def create_document():
     footer = doc.add_paragraph()
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = footer.add_run(
-        "Generated for AI Agriculture Project — Plant Disease Detection\n"
+        "Generated for AI Agriculture Project - Plant Disease Detection\n"
         "Framework: TensorFlow / Keras | Dataset: PlantVillage\n"
         "Models: MobileNetV2, ResNet50, EfficientNetB0, DenseNet121"
     )

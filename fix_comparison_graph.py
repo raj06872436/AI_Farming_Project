@@ -24,7 +24,7 @@ os.makedirs(GRAPHS_DIR, exist_ok=True)
 # Curves from actual individual training history graphs
 # ============================================================
 
-# MobileNetV2 — 20 epochs, val_acc ~0.45→0.92, train_acc ~0.45→0.83
+# MobileNetV2 - 20 epochs, val_acc ~0.45→0.92, train_acc ~0.45→0.83
 mobilenet_epochs = list(range(1, 21))
 mobilenet_val_acc = [
     0.73, 0.79, 0.84, 0.86, 0.88, 0.90, 0.91, 0.91, 0.91, 0.91,
@@ -35,7 +35,7 @@ mobilenet_val_loss = [
     0.39, 0.39, 0.39, 0.39, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38
 ]
 
-# ResNet50 — 30 epochs (5 frozen + 25 fine-tune), val_acc ~0.85→0.995
+# ResNet50 - 30 epochs (5 frozen + 25 fine-tune), val_acc ~0.85→0.995
 resnet_epochs = list(range(1, 31))
 resnet_val_acc = [
     0.85, 0.85, 0.90, 0.91, 0.89, 0.91, 0.93, 0.93, 0.89, 0.90,
@@ -48,7 +48,7 @@ resnet_val_loss = [
     0.04, 0.04, 0.04, 0.04, 0.03, 0.03, 0.03, 0.03, 0.03, 0.02
 ]
 
-# EfficientNetB0 — 15 epochs, val_acc ~0.89→0.96
+# EfficientNetB0 - 15 epochs, val_acc ~0.89→0.96
 efficientnet_epochs = list(range(1, 16))
 efficientnet_val_acc = [
     0.89, 0.89, 0.92, 0.93, 0.93, 0.91, 0.93, 0.93, 0.94, 0.95,
@@ -59,7 +59,7 @@ efficientnet_val_loss = [
     0.16, 0.15, 0.15, 0.14, 0.14
 ]
 
-# DenseNet121 — 20 epochs, val_acc ~0.87→0.96
+# DenseNet121 - 20 epochs, val_acc ~0.87→0.96
 densenet_epochs = list(range(1, 21))
 densenet_val_acc = [
     0.87, 0.91, 0.93, 0.93, 0.94, 0.94, 0.94, 0.94, 0.94, 0.95,
@@ -90,14 +90,14 @@ for idx in range(4):
     ax2.plot(all_epochs[idx], all_val_loss[idx],
              "o-", color=color, label=NAMES[idx], linewidth=2, markersize=4)
 
-ax1.set_title("Validation Accuracy — All Models", fontsize=13, fontweight="bold")
+ax1.set_title("Validation Accuracy - All Models", fontsize=13, fontweight="bold")
 ax1.set_xlabel("Epoch")
 ax1.set_ylabel("Accuracy")
 ax1.legend(frameon=True)
 ax1.grid(True, alpha=0.3)
 ax1.set_ylim([0.80, 1.02])
 
-ax2.set_title("Validation Loss — All Models", fontsize=13, fontweight="bold")
+ax2.set_title("Validation Loss - All Models", fontsize=13, fontweight="bold")
 ax2.set_xlabel("Epoch")
 ax2.set_ylabel("Loss")
 ax2.legend(frameon=True)

@@ -1,5 +1,5 @@
 # ==============================================================================
-# AGRI-X AI — Plant Disease Detection & Agricultural Intelligence Platform
+# AGRI-X AI - Plant Disease Detection & Agricultural Intelligence Platform
 # Requirements File
 # Tested with Python 3.11 (Windows), TensorFlow 2.18, Streamlit 1.57
 # ==============================================================================

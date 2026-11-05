@@ -62,7 +62,7 @@ def plot_confusion(cm, classes, name, path):
     ax.set_yticks(range(len(classes)), classes, fontsize=9)
     ax.set_xlabel("Predicted Label", fontsize=13)
     ax.set_ylabel("True Label", fontsize=13)
-    ax.set_title(f"Confusion Matrix — {name}", fontsize=17, fontweight="bold")
+    ax.set_title(f"Confusion Matrix - {name}", fontsize=17, fontweight="bold")
     fig.colorbar(im, ax=ax)
     fig.tight_layout()
     fig.savefig(path, dpi=110)
@@ -86,11 +86,11 @@ def plot_curves(ys, probs, classes, name, roc_path, pr_path):
             ax.plot([0, 1], [0, 1], "k--", lw=0.8)
             ax.set_xlabel("False Positive Rate")
             ax.set_ylabel("True Positive Rate")
-            ax.set_title(f"ROC Curves — {name}", fontweight="bold")
+            ax.set_title(f"ROC Curves - {name}", fontweight="bold")
         else:
             ax.set_xlabel("Recall")
             ax.set_ylabel("Precision")
-            ax.set_title(f"Precision-Recall Curves — {name}", fontweight="bold")
+            ax.set_title(f"Precision-Recall Curves - {name}", fontweight="bold")
         ax.legend(fontsize=6.5, loc="lower right" if kind == "roc" else "lower left")
         fig.tight_layout()
         fig.savefig(path, dpi=110)
@@ -117,7 +117,7 @@ def plot_history(hist_path, name, path):
         a.set_xlabel("Epoch")
         a.legend()
         a.grid(alpha=0.3)
-    fig.suptitle(f"{name} — Training History (frozen backbone for epochs 1–3, then fine-tuning; "
+    fig.suptitle(f"{name} - Training History (frozen backbone for epochs 1–3, then fine-tuning; "
                  f"{h.get('minutes', '?')} min on GPU)", fontweight="bold")
     fig.tight_layout()
     fig.savefig(path, dpi=110)
@@ -152,7 +152,7 @@ def main():
         rows.append(row)
         rep = classification_report(ys, pred, target_names=classes, digits=2, zero_division=0)
         with open(os.path.join(REPORTS, "metrics", f"{name}_classification_report.txt"), "w", encoding="utf-8") as fh:
-            fh.write(f"Classification Report — {name}\n{'=' * 60}\n\n{rep}\n")
+            fh.write(f"Classification Report - {name}\n{'=' * 60}\n\n{rep}\n")
         plot_confusion(confusion_matrix(ys, pred), classes, name,
                        os.path.join(REPORTS, "confusion_matrix", f"{name}_confusion_matrix.png"))
         plot_curves(ys, probs, classes, name, os.path.join(REPORTS, "roc_curves", f"{name}_roc_curves.png"),

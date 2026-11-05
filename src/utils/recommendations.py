@@ -83,7 +83,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, Dict] = {
                       "Improve field drainage urgently.",
         "fertilizer": "Reduce nitrogen application. Increase phosphorus and potassium. "
                       "Apply calcium ammonium nitrate instead of urea.",
-        "notes": "Late blight is HIGHLY DESTRUCTIVE — act immediately! Destroy all "
+        "notes": "Late blight is HIGHLY DESTRUCTIVE - act immediately! Destroy all "
                  "infected plants. Do NOT compost infected material. Alert neighboring farms.",
     },
     "Potato___healthy": {
@@ -109,7 +109,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, Dict] = {
         "irrigation": "Drip irrigation only. Avoid any leaf wetting. Water in morning.",
         "fertilizer": "Balanced NPK with extra calcium. Apply gypsum to soil. "
                       "Foliar calcium spray to strengthen cell walls.",
-        "notes": "Highly contagious — isolate infected plants. Remove affected leaves. "
+        "notes": "Highly contagious - isolate infected plants. Remove affected leaves. "
                  "Disinfect tools between plants. Use resistant varieties for next season.",
     },
     "Tomato_Early_blight": {
@@ -134,7 +134,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, Dict] = {
         "irrigation": "STOP all overhead watering. Drip only. Improve drainage immediately.",
         "fertilizer": "Reduce nitrogen drastically. Maximize potassium. Apply phosphorus "
                       "to boost root defense.",
-        "notes": "CRITICAL DISEASE — can destroy entire crop in days! Remove ALL infected "
+        "notes": "CRITICAL DISEASE - can destroy entire crop in days! Remove ALL infected "
                  "plants. Burn or deep-bury infected material. Do not compost!",
     },
     "Tomato_Leaf_Mold": {
@@ -169,9 +169,9 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, Dict] = {
         "pesticide": "Abamectin 1.8% EC at 0.5ml/L. Spiromesifen for resistance management. "
                      "Release predatory mites (Phytoseiulus persimilis) for biocontrol.",
         "fungicide": "Not applicable (pest, not fungal). Use miticides specifically.",
-        "irrigation": "Increase humidity around plants — mites thrive in dry conditions. "
+        "irrigation": "Increase humidity around plants - mites thrive in dry conditions. "
                       "Overhead misting can deter mites.",
-        "fertilizer": "Standard nutrition. Stressed plants are more susceptible — "
+        "fertilizer": "Standard nutrition. Stressed plants are more susceptible - "
                       "ensure adequate watering and nutrition.",
         "notes": "Check undersides of leaves with magnifying glass. Webbing indicates "
                  "heavy infestation. Neem oil spray as organic alternative.",
@@ -197,7 +197,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, Dict] = {
         "irrigation": "Normal irrigation. Use reflective mulch to repel whiteflies.",
         "fertilizer": "Boost plant immunity with balanced NPK + micronutrients. "
                       "Foliar salicylic acid spray (0.1mM) to induce systemic resistance.",
-        "notes": "VIRAL — no cure exists! Remove and destroy infected plants immediately. "
+        "notes": "VIRAL - no cure exists! Remove and destroy infected plants immediately. "
                  "Use resistant/tolerant varieties (Ty genes). Control whitefly population. "
                  "Install insect-proof nets in nurseries.",
     },
@@ -211,7 +211,7 @@ DISEASE_KNOWLEDGE_BASE: Dict[str, Dict] = {
                       "mechanical transmission.",
         "fertilizer": "Balanced nutrition to maintain plant vigor. Micronutrient "
                       "supplementation (Zn, B, Mn).",
-        "notes": "VIRAL — no cure! Extremely contagious via contact. Disinfect all tools "
+        "notes": "VIRAL - no cure! Extremely contagious via contact. Disinfect all tools "
                  "with 10% bleach. Wash hands before handling plants. Remove and destroy "
                  "infected plants. Use TMV-resistant varieties.",
     },

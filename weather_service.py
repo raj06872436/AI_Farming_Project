@@ -1,5 +1,5 @@
 """
-AGRI-X AI — Weather Service (Module 2)
+AGRI-X AI - Weather Service (Module 2)
 Real-time weather via Open-Meteo (free, no API key).
 """
 import requests, streamlit as st

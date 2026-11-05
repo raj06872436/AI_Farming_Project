@@ -1,5 +1,5 @@
 """
-disease_heatmap.py — Production-grade disease heatmap engine.
+disease_heatmap.py - Production-grade disease heatmap engine.
 
 Modular pipeline:
   1. segment_leaf()             → binary leaf mask
@@ -111,7 +111,7 @@ def segment_leaf(image_rgb_uint8):
 # 2. GRAD-CAM GENERATION
 # ═══════════════════════════════════════════════════════════════════
 
-# Layer mapping — verified from actual saved model architectures
+# Layer mapping - verified from actual saved model architectures
 GRADCAM_LAYERS = {
     "MobileNetV2": "out_relu",           # 7x7x1280  (flat, top-level layer)
     "ResNet50": "conv5_block3_out",      # 7x7x2048  (inside 'resnet50' backbone)
@@ -177,7 +177,7 @@ def _build_grad_model(model, target_layer, backbone, penultimate_layer):
     Why this is careful: in Keras 3, `preprocess_input(...)` applied to a symbolic tensor
     becomes graph *operations*, not layers, so they do not appear in `model.layers`.
     The earlier version replayed only `model.layers` before the backbone and therefore
-    skipped ResNet50 / DenseNet121 input normalisation — the Grad-CAM gradients were
+    skipped ResNet50 / DenseNet121 input normalisation - the Grad-CAM gradients were
     computed for a differently-scaled image than the one the model actually classified.
     Here the part before the backbone is taken straight from the model graph
     (including those operations), and we check the logits match the real model.
@@ -281,7 +281,7 @@ def generate_gradcam(model, img_array, layer_name):
     hm_img = Image.fromarray(hm_uint8).resize((224, 224), Image.LANCZOS)
     heatmap_224 = np.array(hm_img).astype(np.float32) / 255.0
 
-    # Very light gaussian blur — minimal smoothing to remove block artifacts
+    # Very light gaussian blur - minimal smoothing to remove block artifacts
     # while preserving distinct multi-spot activation peaks
     heatmap_224 = gaussian_filter(heatmap_224, sigma=0.8)
     hm_min, hm_max = heatmap_224.min(), heatmap_224.max()
@@ -299,7 +299,7 @@ def _detect_lesions_by_color(image_rgb_uint8, leaf_mask_binary=None):
     Detect brown/necrotic lesion spots using HSV + LAB color analysis.
 
     Grad-CAM operates at 7×7 resolution (each cell ≈ 32×32 pixels) so it
-    fundamentally cannot resolve multiple small spots — they merge into one
+    fundamentally cannot resolve multiple small spots - they merge into one
     large blob. This function provides the spatial precision that Grad-CAM
     lacks by detecting lesion-colored pixels directly in the image.
 
@@ -379,7 +379,7 @@ def detect_infected_regions(heatmap, threshold=0.12, min_area_pct=0.08,
 
     Returns:
         disease_mask: np.ndarray (H, W) float32 [0, 1].
-        num_regions: int — number of distinct infected regions found.
+        num_regions: int - number of distinct infected regions found.
         region_stats: list of dicts with per-region statistics.
     """
     h, w = heatmap.shape
@@ -398,7 +398,7 @@ def detect_infected_regions(heatmap, threshold=0.12, min_area_pct=0.08,
         # SOFT GATING: Use a floor so color spots are NEVER fully silenced,
         # even when Grad-CAM doesn't reach them.  This is critical because
         # the 7×7 Grad-CAM resolution cannot distinguish spots that are
-        # close together — they merge into one blob, leaving other spots
+        # close together - they merge into one blob, leaving other spots
         # with zero Grad-CAM activation.
         #
         #   - Grad-CAM high + color → full signal (strong confidence)
@@ -425,13 +425,13 @@ def detect_infected_regions(heatmap, threshold=0.12, min_area_pct=0.08,
     # Binary threshold
     binary = (fused > effective_threshold).astype(np.uint8) * 255
 
-    # Morphological cleanup — gentle: preserve separate spots
+    # Morphological cleanup - gentle: preserve separate spots
     kern_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
     binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kern_open)
     kern_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kern_close)
 
-    # Connected component analysis — find every distinct region
+    # Connected component analysis - find every distinct region
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
         binary, connectivity=8
     )
@@ -577,7 +577,7 @@ def create_heatmap_overlay(
 
     Returns:
         overlay: np.ndarray (H, W, 3) float32 [0, 1].
-        act_pct: float — percentage of leaf area with significant activation.
+        act_pct: float - percentage of leaf area with significant activation.
     """
     import matplotlib.cm as cm
 
@@ -597,7 +597,7 @@ def create_heatmap_overlay(
 
     # Alpha map: higher activation → more opaque overlay
     min_alpha, max_alpha = alpha_range
-    # Activation threshold at 0.15 — below this, no overlay at all
+    # Activation threshold at 0.15 - below this, no overlay at all
     raw_alpha = np.clip((masked_heatmap - 0.15) / 0.85, 0, 1)
     # Scale alpha within the specified range
     alpha = raw_alpha * max_alpha
@@ -623,7 +623,7 @@ def create_heatmap_overlay(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MAIN PIPELINE — called from app.py
+# MAIN PIPELINE - called from app.py
 # ═══════════════════════════════════════════════════════════════════
 
 def run_disease_heatmap_pipeline(model, img_array, model_name):
@@ -633,18 +633,18 @@ def run_disease_heatmap_pipeline(model, img_array, model_name):
     Args:
         model: Trained Keras model.
         img_array: Preprocessed image (1, 224, 224, 3) float32 [0, 1].
-        model_name: str — one of 'MobileNetV2', 'ResNet50', etc.
+        model_name: str - one of 'MobileNetV2', 'ResNet50', etc.
 
     Returns:
         dict with keys:
-            'leaf_mask': (224, 224) float32 — soft leaf mask
-            'raw_heatmap': (224, 224) float32 — raw Grad-CAM++ heatmap
-            'disease_mask': (224, 224) float32 — multi-region disease mask
-            'masked_heatmap': (224, 224) float32 — heatmap constrained to leaf
-            'overlay': (224, 224, 3) float32 — final overlay image
-            'act_pct': float — activation percentage
-            'num_regions': int — number of detected disease regions
-            'region_stats': list — per-region statistics
+            'leaf_mask': (224, 224) float32 - soft leaf mask
+            'raw_heatmap': (224, 224) float32 - raw Grad-CAM++ heatmap
+            'disease_mask': (224, 224) float32 - multi-region disease mask
+            'masked_heatmap': (224, 224) float32 - heatmap constrained to leaf
+            'overlay': (224, 224, 3) float32 - final overlay image
+            'act_pct': float - activation percentage
+            'num_regions': int - number of detected disease regions
+            'region_stats': list - per-region statistics
         None if pipeline fails.
     """
     try:
@@ -666,7 +666,7 @@ def run_disease_heatmap_pipeline(model, img_array, model_name):
             leaf_mask_binary=leaf_mask_binary,
         )
 
-        # Step 4: Apply leaf mask — strictly constrain to leaf
+        # Step 4: Apply leaf mask - strictly constrain to leaf
         masked_heatmap = apply_leaf_mask(raw_heatmap, leaf_mask_float)
 
         # Step 5: Create overlay
@@ -700,7 +700,7 @@ def run_fullres_overlay(heatmap_224, original_pil_image):
 
     Args:
         heatmap_224: np.ndarray (224, 224) float32 [0, 1]. Raw masked heatmap.
-        original_pil_image: PIL.Image — original uploaded image.
+        original_pil_image: PIL.Image - original uploaded image.
 
     Returns:
         overlay_fullres: np.ndarray (H, W, 3) float32 [0, 1].
@@ -713,7 +713,7 @@ def run_fullres_overlay(heatmap_224, original_pil_image):
     # Upscale heatmap to original resolution (CUBIC for sharper edges)
     hm_resized = cv2.resize(heatmap_224, (w_orig, h_orig), interpolation=cv2.INTER_CUBIC)
 
-    # Minimal blur scaled to resolution — preserve multi-spot separation
+    # Minimal blur scaled to resolution - preserve multi-spot separation
     scale = max(w_orig, h_orig) / 224.0
     hm_resized = gaussian_filter(hm_resized, sigma=0.8 * scale)
     hm_min, hm_max = hm_resized.min(), hm_resized.max()

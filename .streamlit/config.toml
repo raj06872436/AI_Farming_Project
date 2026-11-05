@@ -1,5 +1,5 @@
 [theme]
-# "Fresh Field" light theme — keep in sync with theme.py
+# "Fresh Field" light theme - keep in sync with theme.py
 base = "light"
 primaryColor = "#2E7D32"
 backgroundColor = "#F6F7F2"
