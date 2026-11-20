@@ -8,7 +8,9 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+os.chdir(ROOT)
 
 import matplotlib
 matplotlib.use("Agg")

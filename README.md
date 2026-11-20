@@ -7,6 +7,11 @@
 [![Streamlit 1.57+](https://img.shields.io/badge/Streamlit-1.57+-FF4B4B?logo=streamlit&logoColor=white)](#)
 [![License: Research](https://img.shields.io/badge/License-Research%20%26%20Education-green)](#)
 
+<p align="center">
+  <img src="docs/screenshots/preview_disease_detection.png" width="49%" alt="Disease detection with Grad-CAM" />
+  <img src="docs/screenshots/preview_crop_advisor.png" width="49%" alt="Crop advisor" />
+</p>
+
 ---
 
 ## 📋 Table of Contents
@@ -156,6 +161,12 @@ AI_Farming_Project_Final/
 ├── report_generator.py               # Downloadable diagnosis reports
 ├── train.py                          # CLI: python train.py
 ├── evaluate.py                       # CLI: python evaluate.py
+│
+├── scripts/                          # One-off generators (run from repo root, e.g. python scripts/generate_all_reports.py)
+├── docs/
+│   ├── reports/                      # Word reports (XAI, preprocessing, soil, crops, Grad-CAM)
+│   └── screenshots/                  # App screenshots
+├── paper/                            # LesionNet paper and viva guide
 │
 ├── PlantVillage/                     # Dataset (15 class directories)
 ├── saved_models/                     # Trained model checkpoints (.keras)

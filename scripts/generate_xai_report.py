@@ -992,7 +992,7 @@ if __name__ == "__main__":
     print("[*] Generating Explainable AI Research Report...")
     doc = build_report()
     output_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "reports",
         "Explainable_AI_Report.docx"
     )
     doc.save(output_path)
