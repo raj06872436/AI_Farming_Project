@@ -1,3 +1,5 @@
+<p align="center"><a href="https://github.com/raj06872436"><img src=".github/cover.svg" width="100%" alt="AGRI-X" /></a></p>
+
 # 🌿 AGRI-X AI - Explainable Multi-Model Deep Learning Framework for Plant Disease Detection
 
 > **An end-to-end, research-grade framework combining transfer learning, explainable AI (Grad-CAM), and smart agricultural decision support for automated plant disease identification.**
